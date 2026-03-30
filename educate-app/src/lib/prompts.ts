@@ -1,0 +1,84 @@
+export function generateQuestionsPrompt(
+  subject: string,
+  board: string,
+  type: string,
+  focusStr: string | null
+): string {
+  const focusLine = focusStr
+    ? `Focus SPECIFICALLY on these topics/subtopics: ${focusStr}. All questions must be about these areas only.`
+    : '';
+
+  const configs: Record<string, { label: string; marks: number }> = {
+    short: { label: 'short answer (1-2 marks, single sentence answer)', marks: 2 },
+    mid: { label: 'structured response (3-5 marks, 2-3 developed points)', marks: 4 },
+    long: { label: 'extended response (6-8 marks, full paragraph argument and evaluation)', marks: 8 },
+  };
+
+  const cfg = configs[type];
+  if (!cfg) throw new Error(`Invalid question type: ${type}`);
+
+  return `You are a GCSE ${subject} examiner for ${board}. Generate 5 ${cfg.label} questions. ${focusLine}
+
+Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
+[{"question":"Question text","answer":"Detailed model answer","marks":${cfg.marks},"hint":"Brief hint"}]`;
+}
+
+export function generateFlashcardsPrompt(
+  subject: string,
+  board: string,
+  focusStr: string | null
+): string {
+  const focusLine = focusStr
+    ? `Focus SPECIFICALLY on these topics/subtopics: ${focusStr}. All questions must be about these areas only.`
+    : '';
+
+  return `You are a GCSE ${subject} teacher for ${board}. Generate 12 flashcards covering key terms, concepts and definitions for GCSE level. ${focusLine}
+
+Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
+[{"term":"Key term","definition":"Clear GCSE-level definition (2-3 sentences)","example":"Brief example or null"}]`;
+}
+
+export function checkAnswerPrompt(
+  subject: string,
+  board: string,
+  questionType: string,
+  question: string,
+  modelAnswer: string,
+  userAnswer: string,
+  marks: number
+): string {
+  const typeLabel: Record<string, string> = {
+    short: 'short answer (1-2 marks)',
+    mid: 'structured response (3-5 marks)',
+    long: 'extended response (6-8 marks)',
+  };
+
+  return `You are a GCSE ${subject} (${board}) examiner.
+Question type: ${typeLabel[questionType] || questionType}
+Question: ${question}
+Model answer: ${modelAnswer}
+Student answer: ${userAnswer}
+Marks available: ${marks}
+Assess rigorously. In the feedback and modelAnswer fields, use LaTeX for any mathematical expressions: $formula$ for inline, $$formula$$ for display math. Use **bold** for key terms.
+Respond ONLY with valid JSON, no backticks:
+{"correct":true or false,"marksAwarded":number,"feedback":"2-3 sentence specific feedback with LaTeX math where relevant","modelAnswer":"Ideal answer with LaTeX math where relevant"}`;
+}
+
+export function chatSystemPrompt(subject: string | null, board: string | null): string {
+  const context = subject
+    ? `Student is studying GCSE ${subject} with ${board}.`
+    : 'Student is preparing for GCSEs.';
+
+  return `You are a friendly, encouraging GCSE tutor. ${context} Give clear, accurate, exam-focused help. Keep responses concise and practical. Use UK English. Guide students to think rather than just giving full answers.
+
+FORMATTING RULES — you MUST follow these:
+- For ALL mathematical expressions, use LaTeX notation: $formula$ for inline math, $$formula$$ for display/block math on its own line.
+  Examples: "The quadratic formula is $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$" or "where $a = 3$ and $b = 5$".
+- When explaining processes, cycles, or relationships (e.g. photosynthesis, water cycle, food chains, circuits, historical cause-effect), include a Mermaid diagram in a code block:
+  \`\`\`mermaid
+  graph TD
+    A[Step 1] --> B[Step 2]
+  \`\`\`
+- Use **bold** for key terms and important vocabulary.
+- Always use LaTeX for equations, formulas, and mathematical notation — never write them as plain text.`;
+}

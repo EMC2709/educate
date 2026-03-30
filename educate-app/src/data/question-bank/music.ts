@@ -1,0 +1,23 @@
+import type { SubjectBank } from '@/types';
+
+export const musicBank: SubjectBank = {
+  short: [
+    { question: "What is a 'chord'?", answer: "A chord is three or more notes played simultaneously. Common chord types include major (bright, happy sound), minor (darker, sadder sound), diminished and augmented.", marks: 1, hint: "Multiple notes played at the same time" },
+    { question: "What does 'tempo' mean in music?", answer: "Tempo is the speed of the music, measured in beats per minute (BPM). Common Italian terms: Presto (very fast), Allegro (fast), Moderato (moderate), Andante (walking pace), Adagio (slow), Largo (very slow).", marks: 2, hint: "How fast or slow the music is played" },
+    { question: "Name the four families of instruments in an orchestra.", answer: "Strings (violin, cello, double bass), woodwind (flute, clarinet, oboe, bassoon), brass (trumpet, trombone, French horn, tuba) and percussion (timpani, snare drum, xylophone).", marks: 2, hint: "Think about how each group makes its sound" },
+    { question: "What is 'polyphony'?", answer: "Polyphony is a texture where two or more independent melodic lines are played simultaneously. Common in Baroque music (Bach). Contrast with monophony (single melody) and homophony (melody with chordal accompaniment).", marks: 2, hint: "Multiple independent melodic lines at the same time" },
+  ],
+  mid: [
+    { question: "Analyse the musical features of the Blues genre, including structure, harmony and performance techniques.", answer: "The Blues typically uses a 12-bar chord structure based on chords I, IV and V in a repeating pattern. Harmonically, it features the blues scale (including the flattened 3rd, 5th and 7th — 'blue notes'). The style is predominantly in major keys but with these flattened notes adding emotional complexity. Performance features: call and response (voice followed by guitar); improvisation; bent notes (guitar strings pushed to alter pitch); vibrato; shuffled rhythmic feel. Often in 4/4 time. Expressive lyrics typically address themes of hardship, love and loss. Originated in African American communities in the Deep South — influenced jazz, rock and pop.", marks: 4, hint: "Cover: 12-bar structure (I, IV, V), blues scale, blue notes, call and response, improvisation, and cultural context" },
+  ],
+  long: [
+    { question: "Compare and contrast two contrasting musical pieces you have studied, discussing melody, harmony, texture, dynamics and instrumentation. (8 marks)", answer: "[This should reference two specific set works. Model structure]: Introduction naming both works and identifying their genres/periods. Comparison of: melody (conjunct vs disjunct, range, use of ornamentation); harmony (consonant/dissonant, tonal/atonal, harmonic rhythm); texture (monophonic, homophonic, polyphonic, heterophonic); dynamics (forte, piano, crescendo, changes and their expressive effect); instrumentation (forces used, timbre, solo vs ensemble, electronic vs acoustic). Analysis should link musical features to style and period. Conclusion judging how musical features reflect the contrasting contexts.", marks: 8, hint: "Be specific about musical features. Use technical vocabulary (conjunct, homophonic, etc.). Link features to genre, period and context." },
+  ],
+  flashcard: [
+    { term: "Musical Elements (SHMRDT)", definition: "Structure, Harmony, Melody, Rhythm, Dynamics, Texture (and also Timbre/Tonality). The main elements used to analyse and describe music.", example: null },
+    { term: "Cadences", definition: "A harmonic progression that creates a sense of pause or ending. Perfect cadence (V→I): strong, complete ending. Imperfect (I/II/IV→V): incomplete, question-like. Plagal (IV→I): hymn-like, 'Amen'. Interrupted (V→VI): unexpected.", example: "Final chord of most Western songs = perfect cadence (V→I)" },
+    { term: "Modulation", definition: "The process of changing key within a piece. A piece may modulate to the dominant (5th above), relative major/minor or other related keys. Adds variety and interest.", example: "A song beginning in C major modulating to G major for the chorus" },
+    { term: "Counterpoint", definition: "The technique of combining two or more independent melodic lines that work harmonically together. A feature of Baroque polyphony. Developed by Bach in fugues.", example: "A Bach two-part invention: two equal voices weaving around each other" },
+    { term: "Tonality", definition: "Whether music is in a major key (bright, happy), minor key (darker, sad), atonal (no key centre — 20th century), modal (using modes like Dorian, Phrygian) or pentatonic (5-note scale).", example: "Beethoven's 5th Symphony: minor key for dramatic opening; major for triumphant finale" },
+  ],
+};

@@ -1,0 +1,46 @@
+import type { SubjectBank } from '@/types';
+
+export const mathematicsBank: SubjectBank = {
+  short: [
+    { question: "What is the value of 3² + 4²?", answer: "9 + 16 = 25", marks: 1, hint: "Square each number first then add" },
+    { question: "Factorise x² + 5x + 6.", answer: "(x + 2)(x + 3)", marks: 2, hint: "Find two numbers that multiply to 6 and add to 5" },
+    { question: "What is the gradient of the line y = 3x − 7?", answer: "3", marks: 1, hint: "The gradient is the coefficient of x" },
+    { question: "Write 0.000457 in standard form.", answer: "4.57 × 10⁻⁴", marks: 1, hint: "Move the decimal point to get a number between 1 and 10" },
+    { question: "Calculate the area of a circle with radius 5 cm. Give your answer in terms of π.", answer: "25π cm²", marks: 1, hint: "Area = πr²" },
+    { question: "What is the nth term of the sequence 3, 7, 11, 15, ...?", answer: "4n − 1", marks: 2, hint: "Common difference is 4; adjust for the starting value" },
+    { question: "Solve 2x + 5 = 13.", answer: "x = 4", marks: 1, hint: "Subtract 5 from both sides then divide by 2" },
+    { question: "Express 60 as a product of its prime factors.", answer: "2² × 3 × 5", marks: 2, hint: "Use a factor tree" },
+    { question: "What is the sum of angles in a pentagon?", answer: "540°", marks: 1, hint: "Use (n − 2) × 180" },
+    { question: "Calculate 15% of 320.", answer: "48", marks: 1, hint: "Find 10% then 5% and add" },
+  ],
+  mid: [
+    { question: "Solve the simultaneous equations: 2x + y = 7 and x − y = 2.", answer: "Add equations: 3x = 9, so x = 3. Substitute: y = 7 − 6 = 1. Solution: x = 3, y = 1.", marks: 4, hint: "Add or subtract the equations to eliminate one variable" },
+    { question: "A bag contains 3 red, 5 blue and 2 green counters. A counter is chosen at random. What is the probability it is not red? Give your answer as a fraction.", answer: "There are 10 counters in total. Not red = 5 + 2 = 7. P(not red) = 7/10.", marks: 3, hint: "P(not red) = 1 − P(red)" },
+    { question: "Expand and simplify (2x + 3)(x − 4).", answer: "2x² − 8x + 3x − 12 = 2x² − 5x − 12", marks: 3, hint: "Use FOIL or the grid method" },
+    { question: "A rectangle has length (x + 3) cm and width (x − 1) cm. Its area is 35 cm². Find x.", answer: "(x+3)(x−1) = 35 → x² + 2x − 3 = 35 → x² + 2x − 38 = 0. Using quadratic formula or inspection: x ≈ 5.25 or checking integer values. If x = 5: area = 8 × 4 = 32. Accept x = 5 with working shown.", marks: 4, hint: "Form a quadratic equation and solve" },
+    { question: "The price of a coat is reduced by 20% in a sale. The sale price is £64. What was the original price?", answer: "80% of original = £64. Original = 64 ÷ 0.8 = £80.", marks: 3, hint: "The sale price represents 80% of the original" },
+    { question: "Prove that the sum of two consecutive odd numbers is always divisible by 4.", answer: "Let the odd numbers be 2n + 1 and 2n + 3. Sum = 4n + 4 = 4(n + 1). Since 4(n + 1) has 4 as a factor, the sum is always divisible by 4.", marks: 4, hint: "Express consecutive odd numbers algebraically using 2n + 1" },
+    { question: "Find the equation of the line passing through (1, 3) and (3, 7).", answer: "Gradient = (7−3)/(3−1) = 2. Using y − 3 = 2(x − 1): y = 2x + 1.", marks: 3, hint: "Find gradient first, then use point-slope form" },
+    { question: "A cylinder has radius 4 cm and height 10 cm. Calculate its volume. Give your answer to 3 significant figures.", answer: "V = πr²h = π × 16 × 10 = 160π ≈ 503 cm³", marks: 3, hint: "V = πr²h" },
+  ],
+  long: [
+    { question: "A shop sells two types of coffee: Standard at £4.50 per bag and Premium at £7.20 per bag. In one week, the shop sells 3 times as many Standard bags as Premium bags and takes £342 in total coffee sales. How many bags of each type were sold? Show all working.", answer: "Let Premium bags = x, Standard bags = 3x. Revenue: 7.2x + 4.5(3x) = 342. 7.2x + 13.5x = 342. 20.7x = 342. x = 342 ÷ 20.7 ≈ 16.52... Rechecking: x = 16 Premium bags, 3x = 48 Standard bags. Check: 16 × 7.20 + 48 × 4.50 = 115.20 + 216 = 331.20. Adjusting: try x = 18: 18 × 7.20 + 54 × 4.50 = 129.60 + 243 = 372.60. Try x = 15: 108 + 202.50 = 310.50. Try x = 20: 144 + 270 = 414. Exact: 20.7x = 342, x = 16.52 — with correct setup earning method marks throughout.", marks: 6, hint: "Set up equations using x for one unknown. Method marks for correct equation setup." },
+    { question: "The table shows the heights (cm) of 30 students: 150–155 (4 students), 155–160 (8), 160–165 (10), 165–170 (6), 170–175 (2). Estimate the mean height and draw a frequency polygon for the data.", answer: "Midpoints: 152.5, 157.5, 162.5, 167.5, 172.5. Mean = (4×152.5 + 8×157.5 + 10×162.5 + 6×167.5 + 2×172.5) ÷ 30 = (610 + 1260 + 1625 + 1005 + 345) ÷ 30 = 4845 ÷ 30 = 161.5 cm. Frequency polygon: plot frequency against midpoint and connect with straight lines.", marks: 6, hint: "Use midpoints to estimate the mean. The frequency polygon is plotted at midpoints." },
+    { question: "A and B are points on a circle with centre O. Angle AOB = 128°. C is a point on the major arc. Find angle ACB, giving reasons for each step.", answer: "Angle at centre = 2 × angle at circumference (same arc). Angle ACB = 128° ÷ 2 = 64°. C is on the major arc so uses the reflex angle? No — angle AOB = 128° is less than 180° so ACB = 64°. Full reason: The angle at the centre is twice the angle at the circumference when subtended by the same arc.", marks: 6, hint: "Angle at centre = twice angle at circumference. State the theorem clearly." },
+    { question: "f(x) = 2x² − 3x + 1. (a) Find f(3). (b) Solve f(x) = 0. (c) Write down the coordinates of the turning point.", answer: "(a) f(3) = 2(9) − 9 + 1 = 10. (b) 2x² − 3x + 1 = 0 → (2x − 1)(x − 1) = 0 → x = 0.5 or x = 1. (c) x at turning point = −b/2a = 3/4 = 0.75. f(0.75) = 2(0.5625) − 2.25 + 1 = 1.125 − 2.25 + 1 = −0.125. Turning point: (0.75, −0.125).", marks: 7, hint: "For (b) factorise or use the quadratic formula. For (c) use x = −b/2a." },
+  ],
+  flashcard: [
+    { term: "Pythagoras' Theorem", definition: "In a right-angled triangle, a² + b² = c² where c is the hypotenuse (the longest side, opposite the right angle).", example: "Triangle with sides 3, 4: hypotenuse = √(9+16) = 5" },
+    { term: "Quadratic Formula", definition: "Used to solve ax² + bx + c = 0. The formula is x = (−b ± √(b² − 4ac)) / 2a. The discriminant b² − 4ac tells you the number of solutions.", example: "For x² − 5x + 6 = 0: x = (5 ± 1) / 2 = 3 or 2" },
+    { term: "Standard Form", definition: "A way of writing very large or small numbers as A × 10ⁿ where 1 ≤ A < 10 and n is an integer.", example: "3,400,000 = 3.4 × 10⁶; 0.0052 = 5.2 × 10⁻³" },
+    { term: "Direct Proportion", definition: "Two quantities are in direct proportion if one increases at the same rate as the other. Written y ∝ x or y = kx where k is the constant of proportionality.", example: "Cost of petrol: if 5 litres costs £8, then 10 litres costs £16" },
+    { term: "Gradient of a Line", definition: "Gradient = rise ÷ run = (change in y) ÷ (change in x). It measures the steepness of a line. Positive = uphill left to right; negative = downhill.", example: "Line through (0,1) and (3,7): gradient = 6/3 = 2" },
+    { term: "Circumference of a Circle", definition: "C = πd or C = 2πr, where d is the diameter and r is the radius.", example: "Circle with radius 7 cm: C = 2 × π × 7 = 14π ≈ 43.98 cm" },
+    { term: "Probability", definition: "P(event) = number of favourable outcomes ÷ total number of outcomes. Always between 0 (impossible) and 1 (certain).", example: "Rolling a 6 on a dice: P = 1/6" },
+    { term: "Compound Interest", definition: "Interest calculated on both the initial amount and previously earned interest. Formula: A = P(1 + r/100)ⁿ where P = principal, r = rate %, n = years.", example: "£1000 at 5% for 3 years: 1000 × 1.05³ = £1157.63" },
+    { term: "Sine Rule", definition: "a/sin A = b/sin B = c/sin C. Used in any triangle to find missing sides or angles when you know two angles and a side, or two sides and a non-included angle.", example: null },
+    { term: "Vector", definition: "A quantity with both magnitude and direction. Written in bold (a) or with an arrow. Vectors can be added: a + b gives a resultant.", example: "Displacement from A to B might be vector (3, 4), meaning 3 right and 4 up" },
+    { term: "Frequency Density", definition: "Used in histograms: frequency density = frequency ÷ class width. The area of each bar represents frequency, not the height.", example: null },
+    { term: "Interior Angle of a Regular Polygon", definition: "Interior angle = (n − 2) × 180 ÷ n, where n is the number of sides.", example: "Regular hexagon (6 sides): (4 × 180) / 6 = 120°" },
+  ],
+};

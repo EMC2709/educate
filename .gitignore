@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Env files (contain API keys)
+.env*
+!.env.example
+
+# Build output
+educate-app/.next/
+educate-app/out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.log

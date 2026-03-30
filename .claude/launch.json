@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "educate-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "educate-app"],
+      "port": 3000
+    },
+    {
+      "name": "educate-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--prefix", "educate-app"],
+      "port": 3000
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest educate-app --typescript --tailwind --app --src-dir --no-eslint --use-npm --no-import-alias --no-turbopack)",
+      "Bash(printf 'No\\\\nNo\\\\n')",
+      "Bash(yes \"No\")",
+      "Bash(npm install:*)",
+      "Bash(find C:/Users/LAPTOP80/Desktop/educate/educate-app/node_modules/next/dist/docs/01-app -name route* -name *.md)",
+      "Bash(npx next:*)",
+      "mcp__Claude_Preview__preview_start",
+      "WebSearch",
+      "WebFetch(domain:www.trustpilot.com)",
+      "WebFetch(domain:educationise.com)",
+      "WebFetch(domain:www.thestudentroom.co.uk)",
+      "WebFetch(domain:uk.trustpilot.com)",
+      "WebFetch(domain:www.reddit.com)",
+      "WebFetch(domain:queensonlineschool.com)",
+      "Bash(npm list:*)",
+      "Bash(node create-deck.cjs)",
+      "Bash(python \"C:/Users/LAPTOP80/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/410c7f0c-d056-49ec-80c5-c0d7c3dfad8d/71d6addf-4cec-4760-ae0a-0645ae76a930/skills/pptx/scripts/office/soffice.py\" --headless --convert-to pdf Educate_Pitch_Deck.pptx)",
+      "Bash(python -m markitdown Educate_Pitch_Deck.pptx)",
+      "Bash(pip install:*)",
+      "WebFetch(domain:get-information-schools.service.gov.uk)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:calday.co.uk)",
+      "Bash(npm ls:*)",
+      "Bash(openssl rand:*)",
+      "Bash(curl -s http://localhost:3000)"
+    ]
+  }
+}
