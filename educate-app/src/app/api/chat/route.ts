@@ -1,51 +1,56 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { anthropic } from '@/lib/anthropic';
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+import { auth } from '@clerk/nextjs/server';
 import { chatSystemPrompt } from '@/lib/prompts';
+import { z } from 'zod';
+import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
 
+// Cap individual messages so a user can't drop a 10MB string into the model.
 const messageSchema = z.object({
   role: z.enum(['user', 'assistant']),
-  content: z.string(),
+  content: z.string().max(8_000),
 });
 
 const schema = z.object({
-  messages: z.array(messageSchema),
-  subject: z.string().nullable().optional(),
-  board: z.string().nullable().optional(),
+  messages: z.array(messageSchema).min(1).max(40),
+  subject: z.string().max(80).nullable().optional(),
+  board: z.string().max(40).nullable().optional(),
 });
 
+// 30 chat turns / minute / user. Tighter than /generate because chat is interactive.
+const LIMIT = 30;
+const WINDOW_MS = 60 * 1000;
+
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your-api-key-here') {
-    return NextResponse.json(
-      { content: 'API key not configured. Add your ANTHROPIC_API_KEY to .env.local and restart the server.' },
-      { status: 503 }
+  const { userId } = await auth();
+  if (!userId) return Response.json({ error: 'Sign in required to use AI features.' }, { status: 401 });
+
+  const key = getRateLimitKey('chat', userId, request);
+  const rl = rateLimit(key, LIMIT, WINDOW_MS);
+  if (!rl.ok) {
+    return Response.json(
+      { error: `Slow down — ${LIMIT} messages per minute max. Try again in ${rl.retryAfterSec}s.` },
+      { status: 429, headers: rateLimitHeaders(LIMIT, rl) }
     );
   }
 
+  let body;
   try {
-    const body = await request.json();
-    const { messages, subject, board } = schema.parse(body);
-
-    const systemPrompt = chatSystemPrompt(subject ?? null, board ?? null);
-
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
-      system: systemPrompt,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
-    });
-
-    const text = message.content
-      .map(b => (b.type === 'text' ? b.text : ''))
-      .join('');
-
-    return NextResponse.json({ content: text || 'Sorry, try again.' });
-  } catch (error) {
-    console.error('Chat API error:', error);
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { content: `Something went wrong: ${msg}` },
-      { status: 500 }
-    );
+    body = schema.parse(await request.json());
+  } catch {
+    return Response.json({ error: 'Invalid request body.' }, { status: 400, headers: rateLimitHeaders(LIMIT, rl) });
   }
+
+  const systemPrompt = chatSystemPrompt(body.subject ?? null, body.board ?? null);
+
+  const result = streamText({
+    model: anthropic('claude-sonnet-4-20250514'),
+    system: systemPrompt,
+    messages: body.messages,
+    maxOutputTokens: 600,
+  });
+
+  return result.toUIMessageStreamResponse({
+    headers: rateLimitHeaders(LIMIT, rl),
+  });
 }

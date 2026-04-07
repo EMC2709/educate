@@ -48,6 +48,14 @@ export function Navbar({ board, subject, score, loadingSource, questionType }: N
           </span>
         )}
 
+        <Link
+          href="/games"
+          className="bg-neutral-800 border-none rounded-full px-3 sm:px-4 py-1.5 text-white no-underline text-xs sm:text-sm flex items-center gap-1.5 hover:bg-amber-500/20 hover:text-amber-400 transition-colors"
+        >
+          <span className="text-base">&#127918;</span>
+          <span className="hidden sm:inline">Games</span>
+        </Link>
+
         <button
           onClick={() => setChatOpen(!chatOpen)}
           className={`${chatOpen ? 'bg-indigo-500' : 'bg-neutral-800'} border-none rounded-full px-3 sm:px-4 py-1.5 text-white cursor-pointer text-xs sm:text-sm flex items-center gap-1.5 transition-colors`}

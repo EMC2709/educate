@@ -1,0 +1,53 @@
+import type { Question } from '@/types';
+
+export const physicalEducationPastPaper: Question[] = [
+  {
+    topic: "Applied Anatomy & Physiology",
+    question: "Explain the pathway of blood through the heart during exercise. Include the names of the chambers, valves, and blood vessels involved.",
+    answer: "Deoxygenated blood returns from the body via the vena cava (superior and inferior) into the right atrium. It passes through the tricuspid valve into the right ventricle. The right ventricle contracts, pushing blood through the pulmonary valve (semilunar valve) into the pulmonary artery, which carries deoxygenated blood to the lungs. In the lungs, gaseous exchange occurs — CO2 is removed and O2 is picked up. Oxygenated blood returns via the pulmonary vein into the left atrium. It passes through the bicuspid (mitral) valve into the left ventricle. The left ventricle (which has the thickest muscular wall) contracts with great force, pushing oxygenated blood through the aortic valve into the aorta, which distributes it to the working muscles and organs. During exercise, heart rate and stroke volume increase (cardiac output = HR x SV), increasing the volume of blood delivered to muscles per minute.",
+    marks: 6,
+    hint: "Trace the complete pathway: vena cava, right atrium, tricuspid valve, right ventricle, pulmonary valve, pulmonary artery, lungs, pulmonary vein, left atrium, bicuspid valve, left ventricle, aortic valve, aorta. Mention what happens during exercise.",
+  },
+  {
+    topic: "Physical Training",
+    question: "Describe the principles of training and explain how each principle could be applied to a six-week training programme for a 100m sprinter.",
+    answer: "The principles of training are often remembered using the acronym SPORT or FITT:\n\nSpecificity — training must be relevant to the sport. A sprinter should focus on anaerobic training (sprint intervals, plyometrics, explosive weight training) rather than long-distance running, because the 100m relies on the ATP-PC and lactic acid energy systems.\n\nProgressive overload — gradually increasing the demand on the body. Week 1 might involve 6 x 60m sprints; by week 6 this could progress to 10 x 80m sprints with shorter rest periods, or added resistance (sled pulls).\n\nOvertraining/rest and recovery — the sprinter must include rest days (at least 1-2 per week) to allow muscle fibres to repair and adapt. Without recovery, performance decreases and injury risk increases.\n\nReversibility — if training stops, fitness gains are lost. The sprinter must maintain consistent training; even a two-week break can reduce power and speed.\n\nTedium — varying the training to maintain motivation. Mixing gym sessions, track work, plyometrics, and competitive practice prevents boredom and ensures different muscle groups are challenged.\n\nFITT: Frequency (4-5 sessions/week), Intensity (high — 85-100% max effort for sprints), Time (sessions of 45-60 minutes), Type (interval training, resistance training, plyometrics).",
+    marks: 9,
+    hint: "Cover all the principles: Specificity, Progressive Overload, Overtraining/Rest, Reversibility, Tedium. Apply each specifically to a sprinter — do not give generic examples.",
+  },
+  {
+    topic: "Movement Analysis",
+    question: "Identify the agonist, antagonist, and type of muscle contraction occurring at the knee joint during the upward phase of a squat.",
+    answer: "During the upward (concentric) phase of a squat at the knee joint: the movement is extension of the knee. The agonist (prime mover) is the quadriceps group (rectus femoris, vastus lateralis, vastus medialis, vastus intermedius). The antagonist is the hamstrings group (biceps femoris, semitendinosus, semimembranosus), which relaxes to allow the movement. The type of contraction is concentric — the quadriceps shorten under tension as they contract to straighten the knee against the resistance of body weight. The knee joint is a hinge joint (synovial) allowing flexion and extension in the sagittal plane.",
+    marks: 4,
+    hint: "Identify the movement first (extension), then name the specific muscles. Remember: agonist = muscle causing the movement, antagonist = muscle opposing it. State the contraction type (concentric, eccentric, or isometric).",
+  },
+  {
+    topic: "Sport Psychology",
+    question: "Explain what is meant by intrinsic and extrinsic motivation. Evaluate which type of motivation is more effective for long-term participation in sport.",
+    answer: "Intrinsic motivation comes from within the performer — the internal drive to participate for personal satisfaction, enjoyment, or the sense of achievement. Examples: a runner who trains because they love the feeling of improving their personal best, or a footballer who plays because they enjoy the game itself.\n\nExtrinsic motivation comes from external rewards or pressures — trophies, medals, prize money, praise from a coach, or fear of punishment. Examples: an athlete who trains harder because of a cash bonus for winning, or a child who plays sport because their parents expect them to.\n\nEvaluation: Intrinsic motivation is generally considered more effective for long-term participation because it is self-sustaining — the performer does not depend on external rewards to continue. Research shows that when extrinsic rewards are removed, participation often drops (the over-justification effect). However, extrinsic motivation can be effective for beginners to encourage initial participation, and some performers thrive on external competition. The most effective approach combines both — a performer who genuinely enjoys their sport AND receives external recognition. Over-reliance on extrinsic rewards can undermine intrinsic motivation if the performer begins to feel they are only participating for the reward rather than enjoyment.",
+    marks: 6,
+    hint: "Define both types with sporting examples first. Then evaluate — consider short-term vs long-term effects, the over-justification effect, and whether combining both types is most effective.",
+  },
+  {
+    topic: "Socio-cultural Influences",
+    question: "Identify and explain two barriers to participation in sport for people with disabilities. Suggest one strategy to overcome each barrier.",
+    answer: "Barrier 1: Lack of accessible facilities — many sports centres do not have wheelchair ramps, accessible changing rooms, adapted equipment, or pool hoists. This physically prevents participation. Strategy: Local authorities and national governing bodies should invest in facility adaptations and ensure all new sports facilities meet accessibility standards. Funding from Sport England or the National Lottery can support these improvements.\n\nBarrier 2: Negative attitudes and stereotyping — people with disabilities may face assumptions that they cannot participate in sport, or may experience patronising attitudes from coaches, other participants, or the public. This reduces confidence and discourages participation. Strategy: Increased media coverage of Paralympic sport and disability sport (e.g. Channel 4's coverage of the Paralympics) helps challenge stereotypes. Training coaches in inclusive coaching practices and promoting disability sport role models can shift attitudes.\n\nOther valid barriers include: lack of adapted transport to venues, limited awareness of available opportunities, financial cost of specialist equipment, shortage of qualified coaches with disability sport experience.",
+    marks: 4,
+    hint: "Name a specific barrier, explain WHY it prevents participation, then give a realistic and specific strategy to address it. Repeat for the second barrier.",
+  },
+  {
+    topic: "Health & Fitness",
+    question: "Define the components of health-related fitness. For each component, give one fitness test that could be used to measure it.",
+    answer: "The five components of health-related fitness are:\n\n1. Cardiovascular endurance (aerobic fitness) — the ability of the heart and lungs to supply oxygen to the working muscles during sustained exercise. Test: Multi-stage fitness test (beep test) — participants run 20m shuttles in time with audio beeps that get progressively faster. The level reached estimates VO2 max.\n\n2. Muscular strength — the maximum force a muscle or muscle group can exert in a single contraction. Test: Hand grip dynamometer test — squeeze the dynamometer as hard as possible; the reading in kilograms indicates grip strength.\n\n3. Muscular endurance — the ability of a muscle or muscle group to perform repeated contractions over a period of time without fatigue. Test: Sit-up bleep test (or 1-minute sit-up test) — count the number of sit-ups completed in one minute.\n\n4. Flexibility — the range of movement available at a joint. Test: Sit and reach test — sit with legs straight, reach forward past the toes; distance reached (in cm) measures hamstring and lower back flexibility.\n\n5. Body composition — the proportion of fat, muscle, bone, and other tissues in the body. Test: Body mass index (BMI) calculation (weight in kg divided by height in metres squared), or skinfold caliper measurements at specific body sites.",
+    marks: 6,
+    hint: "There are five health-related fitness components. For each, give a clear definition and name a specific, recognised fitness test — not just 'a running test' but the actual name of the test and how it works.",
+  },
+  {
+    topic: "Applied Anatomy & Physiology",
+    question: "State two functions of the skeletal system. Give a sporting example for each function.",
+    answer: "1. Protection — the skeleton protects vital organs from impact and injury. Example: the ribcage protects the heart and lungs during contact sports such as rugby, where tackles could otherwise cause serious internal damage.\n\n2. Movement — bones act as levers that muscles pull on to create movement at joints. Example: during a football kick, the femur and tibia act as levers at the knee joint — the quadriceps contract to extend the lower leg and strike the ball.\n\nOther valid functions include: support (the skeleton provides a framework that holds the body upright — a gymnast maintaining a handstand), muscle attachment (tendons attach muscles to bones enabling movement), blood cell production (red blood cells produced in bone marrow carry oxygen to working muscles during a marathon), and mineral storage (bones store calcium and phosphorus needed for muscle contraction).",
+    marks: 2,
+    hint: "Name the function clearly, then give a specific sporting example that demonstrates that function in action. Keep it concise — this is only worth 2 marks.",
+  },
+];

@@ -1,11 +1,12 @@
 'use client';
 
-import { use, useState, useEffect, useCallback, useMemo } from 'react';
+import { use, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { EXAM_BOARDS } from '@/data/exam-boards';
 import { SUBJECT_TOPICS_MAP } from '@/data/subject-topics';
 import { QUESTION_BANK } from '@/data/question-bank';
+import { PAST_PAPER_BANK } from '@/data/past-paper-bank';
 import { Q_TYPES } from '@/data/question-types';
 import { Navbar } from '@/components/layout/Navbar';
 import { ChatPanel } from '@/components/layout/ChatPanel';
@@ -16,6 +17,7 @@ import { QuizComplete } from '@/components/quiz/QuizComplete';
 import { FlashcardDeck } from '@/components/flashcards/FlashcardDeck';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Button } from '@/components/ui/Button';
+import { useUser } from '@clerk/nextjs';
 import { useChat } from '@/context/ChatContext';
 import { shuffle } from '@/lib/shuffle';
 import { getBankQuestionsForSelection, getBankCardsForSelection } from '@/lib/question-helpers';
@@ -35,6 +37,7 @@ export default function QuizPage({
   const questionType = (qType || 'short') as QuestionType;
   const qTypeCfg = Q_TYPES.find(t => t.type === questionType);
   const router = useRouter();
+  const { isSignedIn } = useUser();
   const { setChatOpen, setChatInput } = useChat();
 
   const topicMap = useMemo(() => SUBJECT_TOPICS_MAP[subject] || {}, [subject]);
@@ -48,6 +51,9 @@ export default function QuizPage({
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [loading, setLoading] = useState(true);
   const [loadingSource, setLoadingSource] = useState<string | null>(null);
+  const resultSavedRef = useRef(false);
+  const [xpToast, setXpToast] = useState<{ xp: number; levelUp?: boolean } | null>(null);
+  const totalMarksAwarded = useRef(0);
 
   if (!board || !board.subjects.includes(subject) || !qTypeCfg) notFound();
 
@@ -59,6 +65,7 @@ export default function QuizPage({
     setFeedback(null);
     setUserAnswer('');
     setScore({ correct: 0, total: 0 });
+    resultSavedRef.current = false;
 
     // Get stored selections
     const storedSubs = sessionStorage.getItem('educate-selected-subtopics');
@@ -77,6 +84,53 @@ export default function QuizPage({
       }
     });
     const focusStr = parts.length > 0 ? parts.join('; ') : null;
+
+    if (questionType === 'past-paper') {
+      const bankOnly = sessionStorage.getItem('educate-bank-only') === 'true';
+      sessionStorage.removeItem('educate-bank-only');
+
+      const allBankQs = PAST_PAPER_BANK[subject] || [];
+      // Filter by selected topics if any selection was made
+      const hasSelection = Object.values(selectedTopics).some(Boolean);
+      const bankQs = hasSelection
+        ? allBankQs.filter(q => !q.topic || selectedTopics[q.topic])
+        : allBankQs;
+      const questionsToUse = bankQs.length >= 1 ? bankQs : allBankQs;
+
+      if (questionsToUse.length >= 1) {
+        setLoadingSource('bank');
+        setQuestions(shuffle(questionsToUse).slice(0, questionsToUse.length));
+        setLoading(false);
+        return;
+      }
+
+      // If bank-only flag is set, never fall through to AI generation
+      if (bankOnly) {
+        setQuestions([{
+          question: 'No pre-loaded past paper questions are available for this subject yet. More are being added soon.',
+          answer: '',
+          marks: 0,
+          hint: '',
+        }]);
+        setLoading(false);
+        return;
+      }
+
+      setLoadingSource('api');
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject, board: boardName, type: 'past-paper', focusStr: null }),
+        });
+        const data = await res.json();
+        setQuestions(data.questions || [{ question: 'Failed to load. Please try again.', answer: '', marks: 0, hint: '' }]);
+      } catch {
+        setQuestions([{ question: 'Failed to load. Please try again.', answer: '', marks: 0, hint: '' }]);
+      }
+      setLoading(false);
+      return;
+    }
 
     if (questionType === 'flashcard') {
       const bankCards = getBankCardsForSelection(
@@ -145,9 +199,46 @@ export default function QuizPage({
           modelAnswer: q.answer, userAnswer, marks: q.marks,
         }),
       });
+      if (res.status === 401) {
+        setFeedback({ correct: false, feedback: 'Sign in to use AI answer marking.', modelAnswer: q.answer, marksAwarded: 0 });
+        setScore(prev => ({ correct: prev.correct, total: prev.total + 1 }));
+        return;
+      }
       const parsed = await res.json();
       setFeedback(parsed);
-      setScore(prev => ({ correct: prev.correct + (parsed.correct ? 1 : 0), total: prev.total + 1 }));
+      const newScore = { correct: score.correct + (parsed.correct ? 1 : 0), total: score.total + 1 };
+      setScore(newScore);
+      totalMarksAwarded.current += (parsed.marksAwarded ?? (parsed.correct ? q.marks : 0));
+
+      // Show XP toast for marks earned this question
+      if (isSignedIn && parsed.marksAwarded > 0) {
+        const xpRates: Record<string, number> = { 'past-paper': 10, long: 8, mid: 6, short: 5 };
+        const xpEarned = (parsed.marksAwarded ?? 0) * (xpRates[questionType] ?? 8);
+        if (xpEarned > 0) {
+          setXpToast({ xp: xpEarned });
+          setTimeout(() => setXpToast(null), 2500);
+        }
+      }
+
+      // Save result when quiz is complete (last question answered)
+      if (currentQ === questions.length - 1 && isSignedIn && !resultSavedRef.current) {
+        resultSavedRef.current = true;
+        fetch('/api/save-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject, board: boardName, questionType,
+            scoreCorrect: newScore.correct,
+            scoreTotal: newScore.total,
+            marksAwarded: totalMarksAwarded.current,
+          }),
+        }).then(r => r.json()).then(data => {
+          if (data.xpResult?.leveledUp) {
+            setXpToast({ xp: data.xpGained, levelUp: true });
+            setTimeout(() => setXpToast(null), 4000);
+          }
+        }).catch(console.error);
+      }
     } catch {
       setFeedback({ correct: false, feedback: 'Could not assess. Try again.', modelAnswer: q.answer, marksAwarded: 0 });
     }
@@ -216,7 +307,15 @@ export default function QuizPage({
                   />
                 ) : (
                   <div>
-                    <FeedbackPanel feedback={feedback} maxMarks={questions[currentQ]?.marks || 0} />
+                    <FeedbackPanel
+                      feedback={feedback}
+                      maxMarks={questions[currentQ]?.marks || 0}
+                      questionType={questionType}
+                      onExplain={() => {
+                        setChatOpen(true);
+                        setChatInput(`I got this ${subject} question wrong: "${questions[currentQ]?.question}" — can you explain the full answer and why my approach was incorrect?`);
+                      }}
+                    />
                     <div className="flex gap-2.5">
                       {currentQ < questions.length - 1 ? (
                         <button
@@ -241,6 +340,17 @@ export default function QuizPage({
         </div>
         <ChatPanel subject={subject} board={boardName} />
       </div>
+
+      {/* XP Toast */}
+      {xpToast && (
+        <div className="fixed bottom-6 right-6 z-[100] animate-bounce">
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-bold">
+            <span className="text-lg">&#9889;</span>
+            +{xpToast.xp} XP
+            {xpToast.levelUp && <span className="ml-1">&#127881; Level Up!</span>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
+      max_tokens: questionType === 'past-paper' ? 1200 : 500,
       messages: [{ role: 'user', content: prompt }],
     });
 

@@ -37,7 +37,10 @@ export function hasBank(
   return !!((bank[type] as unknown[] | undefined)?.length && (bank[type] as unknown[]).length > 0);
 }
 
-// Get questions from the SUBTOPIC_BANK for selected subtopics
+// Get questions from the SUBTOPIC_BANK for selected subtopics.
+// IMPORTANT: Only falls back to the subject-level bank when NO specific subtopic
+// was selected. Otherwise cross-topic content would leak into a focused study session
+// (e.g. picking "Diffusion & Osmosis" and getting "Periodic Table" cards).
 export function getBankQuestionsForSelection(
   selectedSubject: string,
   topicMap: Record<string, string[]>,
@@ -46,23 +49,26 @@ export function getBankQuestionsForSelection(
   questionBank?: Record<string, Record<string, Question[]>>
 ): Question[] | null {
   const results: Question[] = [];
+  let hasSpecificSelection = false;
   Object.entries(topicMap).forEach(([topic, subs]) => {
     subs.forEach(sub => {
       if (selectedSubtopics[`${topic}||${sub}`]) {
-        const qs = SUBTOPIC_BANK?.[selectedSubject]?.[topic]?.[sub]?.[type] as Question[] | undefined;
+        hasSpecificSelection = true;
+        const qs = (SUBTOPIC_BANK?.[selectedSubject]?.[topic]?.[sub] as Record<string, Question[] | undefined> | undefined)?.[type];
         if (qs) results.push(...qs);
       }
     });
   });
-  // Also check subject-level bank if whole topics selected
-  if (results.length < 3) {
+  // Only fall back to whole-subject bank if user did NOT narrow to a subtopic
+  if (!hasSpecificSelection) {
     const subjectBank = questionBank?.[selectedSubject]?.[type];
     if (subjectBank) results.push(...subjectBank);
   }
   return results.length > 0 ? results : null;
 }
 
-// Get flashcards from the SUBTOPIC_BANK for selected subtopics
+// Get flashcards from the SUBTOPIC_BANK for selected subtopics.
+// Same rule as getBankQuestionsForSelection — no cross-topic fallback.
 export function getBankCardsForSelection(
   selectedSubject: string,
   topicMap: Record<string, string[]>,
@@ -70,15 +76,17 @@ export function getBankCardsForSelection(
   questionBank?: Record<string, Record<string, Flashcard[]>>
 ): Flashcard[] | null {
   const results: Flashcard[] = [];
+  let hasSpecificSelection = false;
   Object.entries(topicMap).forEach(([topic, subs]) => {
     subs.forEach(sub => {
       if (selectedSubtopics[`${topic}||${sub}`]) {
+        hasSpecificSelection = true;
         const cards = SUBTOPIC_BANK?.[selectedSubject]?.[topic]?.[sub]?.flashcard;
         if (cards) results.push(...cards);
       }
     });
   });
-  if (results.length < 3) {
+  if (!hasSpecificSelection) {
     const subjectCards = questionBank?.[selectedSubject]?.flashcard;
     if (subjectCards) results.push(...subjectCards);
   }

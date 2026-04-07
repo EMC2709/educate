@@ -23,6 +23,13 @@ Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
 [{"question":"Question text","answer":"Detailed model answer","marks":${cfg.marks},"hint":"Brief hint"}]`;
 }
 
+export function generatePastPaperPrompt(subject: string, board: string): string {
+  return `You are a GCSE ${subject} examiner for ${board}. Generate 3 realistic past paper essay questions at GCSE level (8-20 marks each).
+
+Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
+[{"question":"Full question text as it would appear on the exam paper","answer":"Detailed mark scheme / model answer covering key points examiners look for","marks":16,"hint":"Brief exam technique tip"}]`;
+}
+
 export function generateFlashcardsPrompt(
   subject: string,
   board: string,
@@ -47,6 +54,27 @@ export function checkAnswerPrompt(
   userAnswer: string,
   marks: number
 ): string {
+  if (questionType === 'past-paper') {
+    return `You are a GCSE ${subject} (${board}) examiner marking a past paper essay question worth ${marks} marks.
+
+QUESTION: ${question}
+
+MARK SCHEME: ${modelAnswer}
+
+STUDENT ANSWER: ${userAnswer}
+
+Mark this response using a levels-based approach as a real examiner would. Identify which level the response falls into, what it does well, and what is missing. Award marks proportionally.
+
+Set "correct" to true if the student scored 50% or more of the available marks.
+
+In the "feedback" field (3-5 sentences): state the level awarded, specific strengths (quoting the student's response where relevant), and specific improvements needed with reference to the mark scheme criteria.
+
+In the "modelAnswer" field: reproduce the mark scheme content from above verbatim, clearly formatted with each key point on a new line using **bold** for level descriptors.
+
+Respond ONLY with valid JSON, no backticks:
+{"correct":true or false,"marksAwarded":number,"feedback":"Level X awarded. [Specific strengths]. [Specific gaps with reference to mark scheme].","modelAnswer":"[Mark scheme content formatted clearly]"}`;
+  }
+
   const typeLabel: Record<string, string> = {
     short: 'short answer (1-2 marks)',
     mid: 'structured response (3-5 marks)',

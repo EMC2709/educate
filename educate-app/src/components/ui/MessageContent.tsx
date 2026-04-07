@@ -94,7 +94,7 @@ function RenderKaTeX({ latex, displayMode }: { latex: string; displayMode: boole
 }
 
 export function MessageContent({ content }: { content: string }) {
-  const parts = useMemo(() => parseContent(content), [content]);
+  const parts = useMemo(() => parseContent(content ?? ''), [content]);
 
   return (
     <div className="message-content">

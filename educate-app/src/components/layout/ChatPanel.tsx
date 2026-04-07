@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useChat } from '@/context/ChatContext';
 import { MessageContent } from '@/components/ui/MessageContent';
@@ -11,12 +11,10 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ subject, board }: ChatPanelProps) {
-  const { data: session } = useSession();
+  const { isSignedIn } = useUser();
   const { chatOpen, setChatOpen, chatMessages, chatInput, setChatInput, chatLoading, sendChat, chatEndRef } = useChat();
 
   if (!chatOpen) return null;
-
-  const isAuthenticated = !!session;
 
   return (
     <>
@@ -42,7 +40,7 @@ export function ChatPanel({ subject, board }: ChatPanelProps) {
         </div>
 
         {/* Messages or Sign-in prompt */}
-        {isAuthenticated ? (
+        {isSignedIn ? (
           <>
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col gap-2.5">
               {chatMessages.map((msg, i) => (

@@ -1,40 +1,74 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { Flashcard, ExamBoard } from '@/types';
 import { FlashcardCard } from './FlashcardCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Button } from '@/components/ui/Button';
 import { useChat } from '@/context/ChatContext';
+import { initCard, gradeCard, confidenceToGrade } from '@/lib/spaced-repetition';
+import { useToast } from '@/components/ui/Toast';
+import { recordActivity } from '@/lib/streak';
+import { unlockAchievement } from '@/lib/achievements';
 
 interface FlashcardDeckProps {
   cards: Flashcard[];
   board: ExamBoard;
   onBack: () => void;
   onNewDeck: () => void;
+  subject?: string;
 }
 
-export function FlashcardDeck({ cards, board, onBack, onNewDeck }: FlashcardDeckProps) {
+export function FlashcardDeck({ cards, board, onBack, onNewDeck, subject }: FlashcardDeckProps) {
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState<number[]>([]);
   const [unknown, setUnknown] = useState<number[]>([]);
   const [done, setDone] = useState(false);
   const { setChatOpen, setChatInput } = useChat();
+  const { showToast } = useToast();
 
   const card = cards[idx];
 
-  const mark = useCallback((isKnown: boolean) => {
+  // Initialize SR cards
+  useEffect(() => {
+    if (subject) {
+      cards.forEach(c => {
+        initCard(`${subject}:${c.term}`, c.term, c.definition);
+      });
+    }
+  }, [cards, subject]);
+
+  const markWithSR = useCallback((confidence: 'again' | 'hard' | 'good' | 'easy') => {
+    const isKnown = confidence === 'good' || confidence === 'easy';
     if (isKnown) setKnown(p => [...p, idx]);
     else setUnknown(p => [...p, idx]);
+
+    // Grade in SR system
+    if (subject && card) {
+      const grade = confidenceToGrade(confidence);
+      gradeCard(`${subject}:${card.term}`, grade);
+    }
+
     setFlipped(false);
     setTimeout(() => {
       if (idx < cards.length - 1) setIdx(p => p + 1);
       else setDone(true);
     }, 200);
-  }, [idx, cards.length]);
+  }, [idx, cards.length, subject, card]);
+
+  const mark = useCallback((isKnown: boolean) => {
+    markWithSR(isKnown ? 'good' : 'again');
+  }, [markWithSR]);
 
   if (done) {
+    // Record activity and achievement
+    recordActivity();
+    const a = unlockAchievement('flashcard-deck');
+    if (a) {
+      showToast({ icon: a.icon, title: 'Achievement Unlocked!', description: a.title, type: 'achievement', duration: 5000 });
+    }
+
     return (
       <div className="text-center py-10 sm:py-16 max-w-md mx-auto px-4">
         <div className="text-5xl mb-4">&#127881;</div>
@@ -83,25 +117,39 @@ export function FlashcardDeck({ cards, board, onBack, onNewDeck }: FlashcardDeck
         boardLightAccent={board.lightAccent}
       />
 
-      <p className="text-center text-neutral-500 text-sm mb-3">Did you know it?</p>
-      <div className="flex gap-3">
+      <p className="text-center text-neutral-500 text-sm mb-3">How well did you know it?</p>
+      <div className="grid grid-cols-4 gap-2">
         <button
-          onClick={() => mark(false)}
-          className="flex-1 bg-rose-500/10 border border-rose-500 rounded-xl py-3.5 text-rose-400 font-bold text-sm sm:text-base cursor-pointer hover:bg-rose-500/20 transition-colors"
+          onClick={() => markWithSR('again')}
+          className="bg-rose-500/10 border border-rose-500/40 rounded-xl py-3 text-rose-400 font-bold text-xs cursor-pointer hover:bg-rose-500/20 transition-colors"
         >
-          &#10007; Not yet
+          Again
         </button>
+        <button
+          onClick={() => markWithSR('hard')}
+          className="bg-orange-500/10 border border-orange-500/40 rounded-xl py-3 text-orange-400 font-bold text-xs cursor-pointer hover:bg-orange-500/20 transition-colors"
+        >
+          Hard
+        </button>
+        <button
+          onClick={() => markWithSR('good')}
+          className="bg-emerald-500/10 border border-emerald-500/40 rounded-xl py-3 text-emerald-400 font-bold text-xs cursor-pointer hover:bg-emerald-500/20 transition-colors"
+        >
+          Good
+        </button>
+        <button
+          onClick={() => markWithSR('easy')}
+          className="bg-blue-500/10 border border-blue-500/40 rounded-xl py-3 text-blue-400 font-bold text-xs cursor-pointer hover:bg-blue-500/20 transition-colors"
+        >
+          Easy
+        </button>
+      </div>
+      <div className="flex justify-center mt-2">
         <button
           onClick={() => { setChatOpen(true); setChatInput(`Can you explain "${card?.term}" in more detail for GCSE level?`); }}
-          className="bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3.5 text-neutral-400 cursor-pointer text-base hover:bg-neutral-700 transition-colors"
+          className="bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2 text-neutral-400 cursor-pointer text-sm hover:bg-neutral-700 transition-colors"
         >
-          &#128172;
-        </button>
-        <button
-          onClick={() => mark(true)}
-          className="flex-1 bg-emerald-500/10 border border-emerald-500 rounded-xl py-3.5 text-emerald-400 font-bold text-sm sm:text-base cursor-pointer hover:bg-emerald-500/20 transition-colors"
-        >
-          &#10003; Got it
+          {'\u{1F4AC}'} Ask AI Tutor
         </button>
       </div>
     </div>

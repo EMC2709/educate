@@ -1,4 +1,5 @@
 import type { Question } from '@/types';
+import { MessageContent } from '@/components/ui/MessageContent';
 
 interface QuestionCardProps {
   question: Question;
@@ -17,7 +18,9 @@ export function QuestionCard({ question, typeLabel, typeColor }: QuestionCardPro
           {typeLabel} &middot; {question.marks} marks
         </span>
       </div>
-      <p className="text-base sm:text-lg leading-relaxed m-0 font-medium">{question.question}</p>
+      <div className="text-base sm:text-lg leading-relaxed font-medium">
+        <MessageContent content={question.question} />
+      </div>
     </div>
   );
 }

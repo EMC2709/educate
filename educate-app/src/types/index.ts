@@ -3,6 +3,7 @@ export interface Question {
   answer: string;
   marks: number;
   hint: string;
+  topic?: string;
 }
 
 export interface Flashcard {
@@ -27,7 +28,7 @@ export interface SubtopicContent {
 
 export type SubtopicBank = Record<string, Record<string, Record<string, SubtopicContent>>>;
 
-export type QuestionType = 'short' | 'mid' | 'long' | 'flashcard';
+export type QuestionType = 'short' | 'mid' | 'long' | 'flashcard' | 'past-paper';
 
 export interface ExamBoard {
   color: string;

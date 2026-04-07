@@ -1,22 +1,22 @@
-import { auth } from '@/auth';
-import { NextResponse } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export default auth((req) => {
-  const isApiRoute = req.nextUrl.pathname.startsWith('/api/');
-  const isAuthRoute = req.nextUrl.pathname.startsWith('/api/auth');
-  const isProtectedApi = isApiRoute && !isAuthRoute;
+const isProtectedApi = createRouteMatcher(['/api/chat', '/api/check', '/api/generate']);
 
-  // Protect AI API routes — require authentication
-  if (isProtectedApi && !req.auth) {
-    return NextResponse.json(
-      { error: 'Sign in required to use AI features.' },
-      { status: 401 }
-    );
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedApi(req)) {
+    const { userId } = await auth();
+    if (!userId) {
+      return Response.json(
+        { error: 'Sign in required to use AI features.' },
+        { status: 401 }
+      );
+    }
   }
-
-  return NextResponse.next();
 });
 
 export const config = {
-  matcher: ['/api/chat', '/api/check', '/api/generate'],
+  matcher: [
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
 };

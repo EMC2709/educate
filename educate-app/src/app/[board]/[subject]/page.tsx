@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { EXAM_BOARDS } from '@/data/exam-boards';
 import { SUBJECT_ICONS } from '@/data/subject-icons';
 import { Q_TYPES } from '@/data/question-types';
+import { PAST_PAPERS_INDEX } from '@/data/past-papers-index';
 import { Navbar } from '@/components/layout/Navbar';
 import { ChatPanel } from '@/components/layout/ChatPanel';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +17,8 @@ export default function QuestionTypePage({ params }: { params: Promise<{ board: 
   const board = EXAM_BOARDS[boardName];
 
   if (!board || !board.subjects.includes(subject)) notFound();
+
+  const hasPastPapers = !!PAST_PAPERS_INDEX[subject]?.[boardName];
 
   return (
     <div className="min-h-screen">
@@ -63,6 +66,35 @@ export default function QuestionTypePage({ params }: { params: Promise<{ board: 
                   </div>
                 </Link>
               ))}
+
+              {hasPastPapers && (
+                <Link
+                  href={`/${boardName}/${encodeURIComponent(subject)}/papers`}
+                  className="no-underline sm:col-span-2"
+                >
+                  <div
+                    className="bg-neutral-900 border-2 border-neutral-800 rounded-2xl p-5 sm:p-6 cursor-pointer transition-all duration-200 text-center hover:scale-[1.02] flex flex-col items-center justify-center"
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = '#8b5cf6';
+                      e.currentTarget.style.backgroundColor = '#8b5cf618';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = '#2a2a2a';
+                      e.currentTarget.style.backgroundColor = '';
+                    }}
+                  >
+                    <div className="text-3xl sm:text-4xl mb-2.5">&#128196;</div>
+                    <div className="font-bold text-base sm:text-lg mb-1.5 text-white">Official Past Papers</div>
+                    <div
+                      className="text-[11px] px-2.5 py-0.5 rounded-lg inline-block mb-2.5"
+                      style={{ color: '#8b5cf6', backgroundColor: '#8b5cf622' }}
+                    >
+                      Real exam papers
+                    </div>
+                    <p className="text-neutral-500 text-xs leading-relaxed m-0">Download Paper 1, 2 &amp; 3 from the official exam board</p>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         </div>
