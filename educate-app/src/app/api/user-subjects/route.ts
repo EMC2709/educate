@@ -1,22 +1,21 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { sql } from '@/lib/db';
 import { ensureProfile } from '@/lib/xp';
 
 export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
-  const { data, error } = await supabaseAdmin
-    .from('user_subjects')
-    .select('subject, board')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true });
-
-  // If table doesn't exist yet, treat as empty
-  if (error) return NextResponse.json({ subjects: [] });
-
-  return NextResponse.json({ subjects: data ?? [] });
+  try {
+    const rows = await sql`
+      SELECT subject, board FROM user_subjects
+      WHERE user_id = ${userId} ORDER BY created_at ASC
+    `;
+    return NextResponse.json({ subjects: rows });
+  } catch {
+    return NextResponse.json({ subjects: [] });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -32,26 +31,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'At least one subject required' }, { status: 400 });
   }
 
-  // Update display name if provided
-  if (displayName && typeof displayName === 'string') {
-    const profile = await ensureProfile(userId);
-    await supabaseAdmin
-      .from('profiles')
-      .update({ display_name: displayName.slice(0, 30), updated_at: new Date().toISOString() })
-      .eq('user_id', userId);
+  try {
+    if (displayName && typeof displayName === 'string') {
+      await ensureProfile(userId);
+      await sql`
+        UPDATE profiles SET display_name = ${displayName.slice(0, 30)}, updated_at = now()
+        WHERE user_id = ${userId}
+      `;
+    }
+
+    await sql`DELETE FROM user_subjects WHERE user_id = ${userId}`;
+
+    for (const s of subjects) {
+      await sql`
+        INSERT INTO user_subjects (user_id, subject, board) VALUES (${userId}, ${s.subject}, ${s.board})
+        ON CONFLICT (user_id, subject, board) DO NOTHING
+      `;
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
-
-  // Clear existing subjects and insert new ones
-  await supabaseAdmin.from('user_subjects').delete().eq('user_id', userId);
-
-  const rows = subjects.map(s => ({
-    user_id: userId,
-    subject: s.subject,
-    board: s.board,
-  }));
-
-  const { error } = await supabaseAdmin.from('user_subjects').insert(rows);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  return NextResponse.json({ ok: true });
 }

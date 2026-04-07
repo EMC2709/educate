@@ -1,23 +1,18 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, supabaseConfigured } from '@/lib/supabase';
+import { sql } from '@/lib/db';
 
 export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
-  if (!supabaseConfigured) {
+  try {
+    const rows = await sql`
+      SELECT * FROM quiz_results WHERE user_id = ${userId}
+      ORDER BY created_at DESC LIMIT 100
+    `;
+    return NextResponse.json({ results: rows });
+  } catch {
     return NextResponse.json({ results: [] });
   }
-
-  const { data, error } = await supabaseAdmin
-    .from('quiz_results')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  if (error) return NextResponse.json({ results: [] });
-
-  return NextResponse.json({ results: data ?? [] });
 }

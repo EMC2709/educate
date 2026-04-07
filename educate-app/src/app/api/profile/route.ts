@@ -1,9 +1,8 @@
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureProfile, levelProgress, getLevelTitle } from '@/lib/xp';
-import { supabaseAdmin } from '@/lib/supabase';
+import { sql } from '@/lib/db';
 
-/** GET /api/profile — get current user's profile with XP/level info */
 export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
@@ -29,7 +28,6 @@ export async function GET() {
       nextLevelXP: progress.nextLevelXP,
     });
   } catch {
-    // profiles table may not exist yet — return defaults
     return NextResponse.json({
       userId,
       displayName: 'Student',
@@ -43,7 +41,6 @@ export async function GET() {
   }
 }
 
-/** PATCH /api/profile — update display name */
 export async function PATCH(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
@@ -54,10 +51,10 @@ export async function PATCH(req: NextRequest) {
   }
 
   await ensureProfile(userId);
-  await supabaseAdmin
-    .from('profiles')
-    .update({ display_name: displayName.slice(0, 30), updated_at: new Date().toISOString() })
-    .eq('user_id', userId);
+  await sql`
+    UPDATE profiles SET display_name = ${displayName.slice(0, 30)}, updated_at = now()
+    WHERE user_id = ${userId}
+  `;
 
   return NextResponse.json({ ok: true });
 }

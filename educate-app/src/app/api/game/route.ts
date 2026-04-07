@@ -1,8 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { sql } from '@/lib/db';
 
-/** POST /api/game — create a new game session */
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
@@ -10,25 +9,21 @@ export async function POST(req: NextRequest) {
   const { subject, opponentId } = await req.json();
   if (!subject) return NextResponse.json({ error: 'subject required' }, { status: 400 });
 
-  const { data, error } = await supabaseAdmin
-    .from('game_sessions')
-    .insert({
-      game_type: 'tic-tac-toe',
-      player_x: userId,
-      player_o: opponentId || null,
-      subject,
-      status: opponentId ? 'active' : 'waiting',
-      board_state: ['', '', '', '', '', '', '', '', ''],
-      current_turn: 'X',
-    })
-    .select('id')
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ gameId: data.id });
+  try {
+    const rows = await sql`
+      INSERT INTO game_sessions (game_type, player_x, player_o, subject, status, board_state, current_turn)
+      VALUES ('tic-tac-toe', ${userId}, ${opponentId || null}, ${subject},
+              ${opponentId ? 'active' : 'waiting'},
+              ${JSON.stringify(['', '', '', '', '', '', '', '', ''])}, 'X')
+      RETURNING id
+    `;
+    return NextResponse.json({ gameId: (rows[0] as { id: string }).id });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
-/** GET /api/game?id=xxx — get game state */
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
@@ -36,33 +31,26 @@ export async function GET(req: NextRequest) {
   const gameId = req.nextUrl.searchParams.get('id');
   if (!gameId) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
-  const { data } = await supabaseAdmin
-    .from('game_sessions')
-    .select('*')
-    .eq('id', gameId)
-    .single();
-
-  if (!data) return NextResponse.json({ error: 'Game not found' }, { status: 404 });
-  return NextResponse.json(data);
+  const rows = await sql`SELECT * FROM game_sessions WHERE id = ${gameId}`;
+  if (rows.length === 0) return NextResponse.json({ error: 'Game not found' }, { status: 404 });
+  return NextResponse.json(rows[0]);
 }
 
-/** PATCH /api/game — make a move */
 export async function PATCH(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
-  const { gameId, cellIndex, boardState, currentTurn, winner, status } = await req.json();
+  const { gameId, boardState, currentTurn, winner, status } = await req.json();
 
-  await supabaseAdmin
-    .from('game_sessions')
-    .update({
-      board_state: boardState,
-      current_turn: currentTurn,
-      winner: winner || null,
-      status: status || 'active',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', gameId);
+  await sql`
+    UPDATE game_sessions
+    SET board_state = ${JSON.stringify(boardState)},
+        current_turn = ${currentTurn},
+        winner = ${winner || null},
+        status = ${status || 'active'},
+        updated_at = now()
+    WHERE id = ${gameId}
+  `;
 
   return NextResponse.json({ ok: true });
 }
