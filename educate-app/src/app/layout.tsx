@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ChatProvider } from '@/context/ChatContext';
@@ -10,6 +10,13 @@ import { CookieBanner } from '@/components/layout/CookieBanner';
 export const metadata: Metadata = {
   title: 'Educate — GCSE Revision',
   description: 'AI-powered GCSE revision tool with question banks, flashcards, and an AI tutor. AQA, Edexcel, OCR, WJEC.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#0f0f0f',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

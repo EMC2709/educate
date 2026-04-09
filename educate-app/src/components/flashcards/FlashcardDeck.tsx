@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Flashcard, ExamBoard } from '@/types';
 import { FlashcardCard } from './FlashcardCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -25,6 +25,9 @@ export function FlashcardDeck({ cards, board, onBack, onNewDeck, subject }: Flas
   const [known, setKnown] = useState<number[]>([]);
   const [unknown, setUnknown] = useState<number[]>([]);
   const [done, setDone] = useState(false);
+  const [swipeHint, setSwipeHint] = useState<'left' | 'right' | null>(null);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const { setChatOpen, setChatInput } = useChat();
   const { showToast } = useToast();
 
@@ -59,6 +62,34 @@ export function FlashcardDeck({ cards, board, onBack, onNewDeck, subject }: Flas
 
   const mark = useCallback((isKnown: boolean) => {
     markWithSR(isKnown ? 'good' : 'again');
+  }, [markWithSR]);
+
+  // Touch swipe: left = Again, right = Easy, up/down = flip
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    // Require a meaningful swipe (>50px) that's more horizontal than vertical
+    if (absDx > 50 && absDx > absDy * 1.2) {
+      if (dx < 0) {
+        setSwipeHint('left');
+        setTimeout(() => setSwipeHint(null), 400);
+        markWithSR('again');
+      } else {
+        setSwipeHint('right');
+        setTimeout(() => setSwipeHint(null), 400);
+        markWithSR('easy');
+      }
+    } else if (absDy > 50 && absDy > absDx) {
+      // Vertical swipe = flip
+      setFlipped(p => !p);
+    }
   }, [markWithSR]);
 
   if (done) {
@@ -108,16 +139,34 @@ export function FlashcardDeck({ cards, board, onBack, onNewDeck, subject }: Flas
         <ProgressBar value={(idx / cards.length) * 100} />
       </div>
 
-      <FlashcardCard
-        card={card}
-        flipped={flipped}
-        onFlip={() => setFlipped(p => !p)}
-        boardColor={board.color}
-        boardAccent={board.accent}
-        boardLightAccent={board.lightAccent}
-      />
+      <div
+        className="relative"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {swipeHint === 'left' && (
+          <div className="absolute inset-0 flex items-center justify-start pl-4 z-10 pointer-events-none rounded-2xl bg-rose-500/20">
+            <span className="text-rose-400 font-bold text-lg">← Again</span>
+          </div>
+        )}
+        {swipeHint === 'right' && (
+          <div className="absolute inset-0 flex items-center justify-end pr-4 z-10 pointer-events-none rounded-2xl bg-blue-500/20">
+            <span className="text-blue-400 font-bold text-lg">Easy →</span>
+          </div>
+        )}
+        <FlashcardCard
+          card={card}
+          flipped={flipped}
+          onFlip={() => setFlipped(p => !p)}
+          boardColor={board.color}
+          boardAccent={board.accent}
+          boardLightAccent={board.lightAccent}
+        />
+      </div>
 
-      <p className="text-center text-neutral-500 text-sm mb-3">How well did you know it?</p>
+      <p className="text-center text-neutral-500 text-[11px] mb-3">
+        Tap to flip · Swipe left = Again · Swipe right = Easy
+      </p>
       <div className="grid grid-cols-4 gap-2">
         <button
           onClick={() => markWithSR('again')}

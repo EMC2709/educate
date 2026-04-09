@@ -6,6 +6,7 @@ import { useUser, useClerk } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 import { levelFromXP, levelProgress, getLevelTitle } from '@/lib/xp-client';
 import { getStreakData } from '@/lib/streak';
+import { useChat } from '@/context/ChatContext';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: '\u{1F3E0}' },
@@ -219,7 +220,7 @@ export function Sidebar() {
 
 const MOBILE_NAV_ITEMS = [
   { href: '/', label: 'Home', icon: '\u{1F3E0}' },
-  { href: '/timer', label: 'Timer', icon: '\u{23F0}' },
+  { href: '/mastery', label: 'Mastery', icon: '\u{1F5FA}\uFE0F' },
   { href: '/progress', label: 'Progress', icon: '\u{1F4CA}' },
   { href: '/notes', label: 'Notes', icon: '\u{1F4DD}' },
   { href: '/games', label: 'Games', icon: '\u{1F3AE}' },
@@ -228,9 +229,10 @@ const MOBILE_NAV_ITEMS = [
 /** Mobile bottom bar — shown on small screens instead of sidebar */
 export function MobileNav() {
   const pathname = usePathname();
+  const { chatOpen, setChatOpen } = useChat();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 flex items-center justify-around py-2 z-50 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900/95 backdrop-blur border-t border-neutral-800 flex items-center justify-around pt-2 pb-[max(8px,env(safe-area-inset-bottom))] z-50 md:hidden">
       {MOBILE_NAV_ITEMS.map(item => {
         const active = item.href === '/'
           ? pathname === '/'
@@ -239,15 +241,25 @@ export function MobileNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 text-[10px] no-underline px-3 py-1 rounded-lg transition-colors ${
+            className={`flex flex-col items-center gap-0.5 text-[10px] no-underline px-2 py-1 rounded-lg transition-colors min-w-[48px] min-h-[44px] justify-center ${
               active ? 'text-indigo-400' : 'text-neutral-500'
             }`}
           >
-            <span className="text-lg">{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="text-lg leading-none">{item.icon}</span>
+            <span className="leading-none mt-0.5">{item.label}</span>
           </Link>
         );
       })}
+      {/* AI Tutor toggle */}
+      <button
+        onClick={() => setChatOpen(!chatOpen)}
+        className={`flex flex-col items-center gap-0.5 text-[10px] px-2 py-1 rounded-lg transition-colors min-w-[48px] min-h-[44px] justify-center border-0 cursor-pointer ${
+          chatOpen ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-500 bg-transparent'
+        }`}
+      >
+        <span className="text-lg leading-none">{'\u{1F916}'}</span>
+        <span className="leading-none mt-0.5">Tutor</span>
+      </button>
     </nav>
   );
 }

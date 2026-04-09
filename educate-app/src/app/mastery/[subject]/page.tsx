@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, use } from 'react';
+import { useState, useEffect, useMemo, use, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
@@ -130,10 +130,16 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
     return { total, mastered, pct: total ? Math.round((mastered / total) * 100) : 0 };
   }, [flatTopics]);
 
-  // Layout nodes into a snake/zig-zag pattern
-  const NODES_PER_ROW = 4;
-  const ROW_HEIGHT = 160;
-  const NODE_SIZE = 88;
+  // Responsive layout — fewer columns on small screens
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 768);
+  useEffect(() => {
+    const handler = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  const NODES_PER_ROW = windowWidth < 400 ? 2 : windowWidth < 640 ? 3 : 4;
+  const NODE_SIZE = windowWidth < 400 ? 72 : windowWidth < 640 ? 80 : 88;
+  const ROW_HEIGHT = windowWidth < 640 ? 140 : 160;
 
   const rows: FlatTopic[][] = [];
   for (let i = 0; i < flatTopics.length; i += NODES_PER_ROW) {
