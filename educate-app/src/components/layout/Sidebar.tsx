@@ -43,10 +43,14 @@ export function Sidebar() {
   const [xp, setXp] = useState<number | null>(null);
   const [subjects, setSubjects] = useState<{ subject: string; board: string }[]>([]);
   const [streak, setStreak] = useState(0);
+  const [role, setRole] = useState<string>('student');
 
   useEffect(() => {
     if (isSignedIn) {
-      fetch('/api/profile').then(r => r.json()).then(d => { if (d.xp != null) setXp(d.xp); }).catch(() => {});
+      fetch('/api/profile').then(r => r.json()).then(d => {
+        if (d.xp != null) setXp(d.xp);
+        if (d.role) setRole(d.role);
+      }).catch(() => {});
       // Load subjects from localStorage
       try {
         const cached = localStorage.getItem('educate-user-subjects');
@@ -59,6 +63,8 @@ export function Sidebar() {
       } catch {}
     }
   }, [isSignedIn]);
+
+  const isTeacher = ['teacher', 'school_admin', 'super_admin'].includes(role);
 
   const level = xp != null ? levelFromXP(xp) : null;
   const progress = xp != null ? levelProgress(xp) : null;
@@ -102,6 +108,33 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Teacher Dashboard */}
+        {isTeacher && (
+          <div className="mt-3 pt-3 border-t border-neutral-800">
+            <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Teaching</p>
+            {[
+              { href: '/teacher', label: 'Teacher Dashboard', icon: '\u{1F4CA}' },
+              { href: '/teacher/classes', label: 'My Classes', icon: '\u{1F3EB}' },
+            ].map(item => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium no-underline transition-all duration-150 ${
+                    active
+                      ? 'bg-violet-500/15 text-violet-400'
+                      : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
+                  }`}
+                >
+                  <span className="text-base">{item.icon}</span>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {/* My Subjects */}
         {subjects.length > 0 && (
