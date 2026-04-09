@@ -45,6 +45,7 @@ export function Sidebar() {
   const [streak, setStreak] = useState(0);
   const [role, setRole] = useState<string>('student');
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [unreadAssignments, setUnreadAssignments] = useState(0);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -52,6 +53,13 @@ export function Sidebar() {
         if (d.xp != null) setXp(d.xp);
         if (d.role) setRole(d.role);
         setOrgId(d.org_id ?? null);
+        // Fetch unread assignments for school students
+        if (d.role === 'student' && d.org_id) {
+          fetch('/api/assignments/unread')
+            .then(r2 => r2.json())
+            .then((u: { count?: number }) => setUnreadAssignments(u.count ?? 0))
+            .catch(() => {});
+        }
       }).catch(() => {});
       // Load subjects from localStorage
       try {
@@ -118,8 +126,8 @@ export function Sidebar() {
           <div className="mt-3 pt-3 border-t border-neutral-800">
             <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">My School</p>
             {[
-              { href: '/student', label: 'Student Hub', icon: '\u{1F3EB}' },
-              { href: '/student/practice', label: 'Practice', icon: '\u{1F4DD}' },
+              { href: '/student', label: 'Student Hub', icon: '\u{1F3EB}', badge: unreadAssignments },
+              { href: '/student/practice', label: 'Practice', icon: '\u{1F4DD}', badge: 0 },
             ].map(item => {
               const active = item.href === '/student'
                 ? pathname === '/student'
@@ -135,7 +143,12 @@ export function Sidebar() {
                   }`}
                 >
                   <span className="text-base">{item.icon}</span>
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -348,6 +361,15 @@ export function MobileNav() {
 
   const isTeacher = ['teacher', 'school_admin', 'super_admin'].includes(role);
   const isSchoolStudent = role === 'student' && orgId !== null;
+  const [mobileUnread, setMobileUnread] = useState(0);
+
+  useEffect(() => {
+    if (!isSignedIn || !isSchoolStudent) return;
+    fetch('/api/assignments/unread')
+      .then(r => r.json())
+      .then((u: { count?: number }) => setMobileUnread(u.count ?? 0))
+      .catch(() => {});
+  }, [isSignedIn, isSchoolStudent]);
 
   const navItems = isTeacher
     ? TEACHER_MOBILE_NAV
@@ -361,15 +383,23 @@ export function MobileNav() {
         const active = item.exact
           ? pathname === item.href
           : pathname.startsWith(item.href);
+        const showBadge = isSchoolStudent && item.href === '/student' && mobileUnread > 0;
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 text-[10px] no-underline px-2 py-1 rounded-lg transition-colors min-w-[48px] min-h-[44px] justify-center ${
+            className={`relative flex flex-col items-center gap-0.5 text-[10px] no-underline px-2 py-1 rounded-lg transition-colors min-w-[48px] min-h-[44px] justify-center ${
               active ? 'text-indigo-400' : 'text-neutral-500'
             }`}
           >
-            <span className="text-lg leading-none">{item.icon}</span>
+            <span className="text-lg leading-none relative">
+              {item.icon}
+              {showBadge && (
+                <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] px-0.5 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                  {mobileUnread > 9 ? '9+' : mobileUnread}
+                </span>
+              )}
+            </span>
             <span className="leading-none mt-0.5">{item.label}</span>
           </Link>
         );
