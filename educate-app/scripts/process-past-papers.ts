@@ -19,6 +19,7 @@
 import { google, drive_v3 } from 'googleapis';
 import * as fs from 'fs';
 import * as path from 'path';
+import pdfParse from 'pdf-parse';
 import Anthropic from '@anthropic-ai/sdk';
 import { neon } from '@neondatabase/serverless';
 
@@ -129,9 +130,7 @@ async function downloadPDF(drive: drive_v3.Drive, fileId: string, dest: string):
 
 // ── PDF text extraction ───────────────────────────────────────────────────────
 async function extractText(filePath: string): Promise<{ fullText: string; pages: string[] }> {
-  const mod      = await import('pdf-parse');
-  const pdfParse = (mod.default ?? mod) as (buf: Buffer, opts?: Record<string, unknown>) => Promise<{ text: string }>;
-  const buffer   = fs.readFileSync(filePath);
+  const buffer = fs.readFileSync(filePath);
   const pages: string[] = [];
 
   const data = await pdfParse(buffer, {
