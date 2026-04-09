@@ -219,6 +219,12 @@ export default function StudentHub() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
                 Hey {profile?.displayName?.split(' ')[0] ?? 'there'}
               </h1>
+              <Link
+                href="/student/profile"
+                className="inline-block text-xs text-indigo-400 hover:text-indigo-300 no-underline transition-colors mt-1"
+              >
+                View profile →
+              </Link>
               {joinSuccess ? (
                 <p className="text-emerald-400 text-sm mt-1 font-semibold">✓ Joined {joinSuccess}!</p>
               ) : dueThisWeek > 0 ? (
