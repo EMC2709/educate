@@ -1,29 +1,28 @@
 /**
- * Past Papers Processor
- * ─────────────────────
- * Recursively crawls the Google Drive folder, downloads PDFs,
- * extracts text (pdf-parse) + uses Claude Vision for image-heavy pages,
- * and stores structured data in Neon Postgres.
+ * Past Papers Processor  — normalised schema edition
+ * ────────────────────────────────────────────────────
+ * Crawls Google Drive, downloads PDFs, extracts structured questions,
+ * stores in Neon (past_papers + questions tables).  PDFs are never
+ * stored in the DB — only the Drive file ID is kept for on-demand access.
  *
  * Prerequisites:
- *   1. Run: npx tsx scripts/auth-drive.ts  (creates token.json)
- *   2. DATABASE_URL in .env.local
- *   3. ANTHROPIC_API_KEY in .env.local
+ *   npx tsx scripts/auth-drive.ts     (creates token.json)
+ *   npx tsx scripts/migrate-past-papers.ts  (creates tables)
  *
  * Usage:
- *   npx tsx scripts/process-past-papers.ts
- *   npx tsx scripts/process-past-papers.ts --dry-run   (no DB writes)
- *   npx tsx scripts/process-past-papers.ts --limit 5   (process first 5 files)
+ *   npx tsx scripts/process-past-papers.ts                    # full run
+ *   npx tsx scripts/process-past-papers.ts --limit 5          # test 5 files
+ *   npx tsx scripts/process-past-papers.ts --concurrency 8    # 8 parallel
+ *   npx tsx scripts/process-past-papers.ts --dry-run          # no DB writes
  */
 
 import { google, drive_v3 } from 'googleapis';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import Anthropic from '@anthropic-ai/sdk';
 import { neon } from '@neondatabase/serverless';
 
-// ── Load env ──────────────────────────────────────────────────────────────────
+// ── Env ───────────────────────────────────────────────────────────────────────
 const envPath = path.join(__dirname, '..', '.env.local');
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, 'utf-8').split('\n')) {
@@ -33,402 +32,317 @@ if (fs.existsSync(envPath)) {
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const ROOT_FOLDER_ID = '1wTYT4FwqFLTuTcY_nc-UJM7pla5PbvW9';
+const ROOT_FOLDER_ID   = '1wTYT4FwqFLTuTcY_nc-UJM7pla5PbvW9';
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
-const TOKEN_PATH        = path.join(__dirname, 'token.json');
-const DOWNLOAD_DIR      = path.join(__dirname, 'downloaded-papers');
-const DRY_RUN           = process.argv.includes('--dry-run');
-const LIMIT_ARG         = process.argv.indexOf('--limit');
-const MAX_FILES         = LIMIT_ARG >= 0 ? parseInt(process.argv[LIMIT_ARG + 1] ?? '99999') : 99999;
-const CONCURRENCY_ARG   = process.argv.indexOf('--concurrency');
-const CONCURRENCY       = CONCURRENCY_ARG >= 0 ? parseInt(process.argv[CONCURRENCY_ARG + 1] ?? '5') : 5;
+const TOKEN_PATH       = path.join(__dirname, 'token.json');
+const DOWNLOAD_DIR     = path.join(__dirname, 'downloaded-papers');
 
-// Pages with fewer than this many characters of text are treated as image-heavy
-const IMAGE_PAGE_TEXT_THRESHOLD = 100;
+const DRY_RUN         = process.argv.includes('--dry-run');
+const LIMIT_ARG       = process.argv.indexOf('--limit');
+const MAX_FILES       = LIMIT_ARG >= 0 ? parseInt(process.argv[LIMIT_ARG + 1] ?? '99999') : 99999;
+const CONC_ARG        = process.argv.indexOf('--concurrency');
+const CONCURRENCY     = CONC_ARG >= 0 ? parseInt(process.argv[CONC_ARG + 1] ?? '5') : 5;
 
-interface PageAnalysis {
-  page: number;
-  text: string;
-  has_image: boolean;
-  vision_desc?: string;
-}
+// Pages with < this many chars are treated as image-heavy
+const IMAGE_THRESHOLD = 100;
 
-interface ProcessedPaper {
-  drive_file_id: string;
-  country: string;
-  exam_type: string;
-  subject: string;
-  title: string;
-  year: number | null;
-  paper_number: string | null;
-  raw_text: string;
-  page_analyses: PageAnalysis[];
-  questions: Record<string, unknown>[];
+interface DriveFile { id: string; name: string; mimeType: string }
+interface PaperEntry { file: DriveFile; country: string; exam_type: string; subject: string }
+
+interface ExtractedQuestion {
+  question_number: string;
+  question_text: string;
+  marks: number;
+  topic: string;
+  mark_scheme?: string;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-function getAuthClient() {
-  if (!fs.existsSync(CREDENTIALS_PATH)) {
-    throw new Error('credentials.json not found. Run: npx tsx scripts/auth-drive.ts first.');
-  }
-  if (!fs.existsSync(TOKEN_PATH)) {
-    throw new Error('token.json not found. Run: npx tsx scripts/auth-drive.ts first.');
-  }
-
+function getAuth() {
+  if (!fs.existsSync(CREDENTIALS_PATH)) throw new Error('credentials.json not found. Run: npx tsx scripts/auth-drive.ts');
+  if (!fs.existsSync(TOKEN_PATH))       throw new Error('token.json not found. Run: npx tsx scripts/auth-drive.ts');
   const creds  = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
   const tokens = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
-  const { client_secret, client_id } = creds.installed;
-
-  const auth = new google.auth.OAuth2(client_id, client_secret, 'http://localhost:3333/callback');
+  const auth   = new google.auth.OAuth2(creds.installed.client_id, creds.installed.client_secret, 'http://localhost:3333/callback');
   auth.setCredentials(tokens);
   return auth;
 }
 
-// ── Drive helpers ──────────────────────────────────────────────────────────────
-interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  parents?: string[];
-}
-
-async function listFolderContents(drive: drive_v3.Drive, folderId: string): Promise<DriveFile[]> {
+// ── Drive helpers ─────────────────────────────────────────────────────────────
+async function listFolder(drive: drive_v3.Drive, folderId: string): Promise<DriveFile[]> {
   const items: DriveFile[] = [];
   let pageToken: string | undefined;
-
   do {
     const res = await drive.files.list({
       q: `'${folderId}' in parents and trashed = false`,
       fields: 'nextPageToken, files(id, name, mimeType)',
-      pageToken,
-      pageSize: 200,
+      pageToken, pageSize: 200,
     });
-    for (const f of res.data.files ?? []) {
-      items.push({ id: f.id!, name: f.name!, mimeType: f.mimeType!, parents: [folderId] });
-    }
+    for (const f of res.data.files ?? []) items.push({ id: f.id!, name: f.name!, mimeType: f.mimeType! });
     pageToken = res.data.nextPageToken ?? undefined;
   } while (pageToken);
-
   return items;
 }
 
-interface PaperEntry {
-  file: DriveFile;
-  country: string;
-  exam_type: string;
-  subject: string;
-}
-
 async function crawlDrive(drive: drive_v3.Drive): Promise<PaperEntry[]> {
-  console.log('🔍 Crawling Google Drive structure...');
+  console.log('🔍 Crawling Google Drive...');
   const papers: PaperEntry[] = [];
+  const isPDF = (f: DriveFile) => f.mimeType === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+  const isDir = (f: DriveFile) => f.mimeType === 'application/vnd.google-apps.folder';
 
-  // Level 1: countries (England, Northern_Ireland, Scotland, Wales)
-  const countryFolders = await listFolderContents(drive, ROOT_FOLDER_ID);
-  for (const countryFolder of countryFolders) {
-    if (countryFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
+  const countries = (await listFolder(drive, ROOT_FOLDER_ID)).filter(isDir);
+  for (const countryFolder of countries) {
     const country = countryFolder.name.replace(/_/g, ' ');
-
-    // Level 2: exam types (GCSE, A-Level, ...)
-    const examTypeFolders = await listFolderContents(drive, countryFolder.id);
-    for (const examTypeFolder of examTypeFolders) {
-      if (examTypeFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
-      const examType = examTypeFolder.name;
-
-      // Level 3: subjects (Maths, Physics, ...)
-      const subjectFolders = await listFolderContents(drive, examTypeFolder.id);
-      for (const subjectFolder of subjectFolders) {
-        if (subjectFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
-        const subject = subjectFolder.name;
-
-        // Level 4: actual PDF files
-        const files = await listFolderContents(drive, subjectFolder.id);
-        for (const file of files) {
-          if (file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-            papers.push({ file, country, exam_type: examType, subject });
+    const examTypes = await listFolder(drive, countryFolder.id);
+    for (const examFolder of examTypes) {
+      if (!isDir(examFolder)) continue;
+      const examType = examFolder.name;
+      const subjects = await listFolder(drive, examFolder.id);
+      for (const subjectItem of subjects) {
+        if (isDir(subjectItem)) {
+          // subject folder → files inside
+          const files = await listFolder(drive, subjectItem.id);
+          for (const f of files) {
+            if (isPDF(f)) papers.push({ file: f, country, exam_type: examType, subject: subjectItem.name });
           }
-        }
-      }
-
-      // Also handle PDFs directly in exam_type folder (if subject = examType folder)
-      for (const item of subjectFolders) {
-        if (item.mimeType === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf')) {
-          papers.push({ file: item, country, exam_type: examType, subject: examType });
+        } else if (isPDF(subjectItem)) {
+          // PDF directly in exam folder
+          papers.push({ file: subjectItem, country, exam_type: examType, subject: examType });
         }
       }
     }
   }
-
   console.log(`   Found ${papers.length} PDF files\n`);
   return papers;
 }
 
-// ── Download PDF ───────────────────────────────────────────────────────────────
-async function downloadPDF(drive: drive_v3.Drive, fileId: string, destPath: string): Promise<void> {
-  const dest = fs.createWriteStream(destPath);
-  const res  = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'stream' });
+// ── Download ──────────────────────────────────────────────────────────────────
+async function downloadPDF(drive: drive_v3.Drive, fileId: string, dest: string): Promise<void> {
+  const out = fs.createWriteStream(dest);
+  const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'stream' });
   await new Promise<void>((resolve, reject) => {
-    (res.data as NodeJS.ReadableStream).pipe(dest);
-    dest.on('finish', resolve);
-    dest.on('error', reject);
+    (res.data as NodeJS.ReadableStream).pipe(out);
+    out.on('finish', resolve);
+    out.on('error', reject);
   });
 }
 
-// ── PDF text extraction ────────────────────────────────────────────────────────
-async function extractPDFText(filePath: string): Promise<{ fullText: string; pages: string[] }> {
-  // pdf-parse is CJS; handle both .default and direct export
+// ── PDF text extraction ───────────────────────────────────────────────────────
+async function extractText(filePath: string): Promise<{ fullText: string; pages: string[] }> {
   const mod      = await import('pdf-parse');
   const pdfParse = (mod.default ?? mod) as (buf: Buffer, opts?: Record<string, unknown>) => Promise<{ text: string }>;
   const buffer   = fs.readFileSync(filePath);
+  const pages: string[] = [];
 
-  let pages: string[] = [];
   const data = await pdfParse(buffer, {
-    pagerender: (pageData: { getTextContent: () => Promise<{ items: { str: string; transform: number[] }[] }> }) => {
-      return pageData.getTextContent().then((textContent) => {
+    pagerender: (pageData: { getTextContent: () => Promise<{ items: { str: string; transform: number[] }[] }> }) =>
+      pageData.getTextContent().then(tc => {
         let text = '';
         let lastY: number | null = null;
-        for (const item of textContent.items) {
+        for (const item of tc.items) {
           if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) text += '\n';
           text += item.str;
           lastY = item.transform[5];
         }
         pages.push(text);
         return text;
-      });
-    },
+      }),
   });
 
   return { fullText: data.text, pages };
 }
 
-// ── Claude Vision for image pages ─────────────────────────────────────────────
-async function analysePageWithVision(
-  anthropic: Anthropic,
-  pdfPath: string,
-  pageNum: number
-): Promise<string> {
+// ── Claude Vision for image-heavy pages ───────────────────────────────────────
+async function visionAnalysePage(anthropic: Anthropic, pdfPath: string, pageNum: number): Promise<string> {
   try {
-    // Convert PDF page to image using sharp + pdf.js would be complex.
-    // Instead, send the whole PDF and ask Claude to describe page N.
-    // For now we use a text prompt; full rasterisation requires poppler/ghostscript.
-    const pdfBuffer = fs.readFileSync(pdfPath);
-    const base64PDF = pdfBuffer.toString('base64');
-
-    const response = await anthropic.messages.create({
+    const base64 = fs.readFileSync(pdfPath).toString('base64');
+    const res = await anthropic.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 1024,
+      max_tokens: 512,
       messages: [{
         role: 'user',
         content: [
-          {
-            type: 'document',
-            source: {
-              type: 'base64',
-              media_type: 'application/pdf',
-              data: base64PDF,
-            },
-          } as Parameters<typeof anthropic.messages.create>[0]['messages'][0]['content'][0],
-          {
-            type: 'text',
-            text: `This is a past exam paper. Page ${pageNum} appears to contain diagrams or images (the text extraction was poor). Please describe what is shown on page ${pageNum} in detail, including: any diagrams, graphs, tables, equations, or visual elements. Format your response as structured text that could be used to generate similar exam questions. Focus especially on: the question being asked, what the diagram shows, and any measurements or values shown.`,
-          },
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } } as unknown as Anthropic.MessageParam['content'][0],
+          { type: 'text', text: `Describe page ${pageNum} of this exam paper in detail: what question is asked, what diagram/graph/table is shown, any measurements or values. Be concise but complete.` },
         ],
       }],
     });
-
-    return (response.content[0] as { text: string }).text;
-  } catch (err) {
-    console.warn(`     ⚠️  Vision analysis failed for page ${pageNum}:`, (err as Error).message);
-    return '';
-  }
+    return (res.content[0] as { text: string }).text;
+  } catch { return ''; }
 }
 
-// ── Metadata extraction ────────────────────────────────────────────────────────
-function extractMetadata(filename: string): { year: number | null; paper_number: string | null } {
-  const yearMatch   = filename.match(/\b(20\d{2}|19\d{2})\b/);
-  const paperMatch  = filename.match(/\bpaper\s*(\d+)\b/i) ?? filename.match(/\bp(\d)\b/i);
-  return {
-    year:         yearMatch  ? parseInt(yearMatch[1])  : null,
-    paper_number: paperMatch ? `Paper ${paperMatch[1]}` : null,
-  };
-}
-
-// ── Question extraction ────────────────────────────────────────────────────────
+// ── Question extraction via Claude Haiku ──────────────────────────────────────
 async function extractQuestions(
   anthropic: Anthropic,
-  rawText: string,
+  fullText: string,
   subject: string,
   examType: string
-): Promise<Record<string, unknown>[]> {
-  if (!rawText || rawText.length < 50) return [];
-
+): Promise<ExtractedQuestion[]> {
+  if (!fullText || fullText.trim().length < 100) return [];
   try {
-    const truncated = rawText.slice(0, 8000); // stay within token budget
-    const response  = await anthropic.messages.create({
+    const res = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 2048,
       messages: [{
         role: 'user',
-        content: `You are processing a ${examType} ${subject} past exam paper. Extract all questions from the following text. Return a JSON array where each element has: { "question_number": "1a", "question_text": "...", "marks": 3, "topic": "algebra" }. Only return the JSON array, no other text.\n\n${truncated}`,
+        content: `Extract all questions from this ${examType} ${subject} past paper. Return ONLY a JSON array, no other text. Each object: { "question_number": "1a", "question_text": "full question text", "marks": 3, "topic": "one word topic like algebra/forces/genetics", "mark_scheme": "answer if this is a mark scheme" }
+
+PAPER TEXT:
+${fullText.slice(0, 10000)}`,
       }],
     });
-
-    const text = (response.content[0] as { text: string }).text.trim();
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
-  } catch {
-    // If extraction fails, return empty
-  }
+    const text = (res.content[0] as { text: string }).text.trim();
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) return JSON.parse(match[0]) as ExtractedQuestion[];
+  } catch { /* ignore */ }
   return [];
 }
 
-// ── DB write ──────────────────────────────────────────────────────────────────
-async function savePaper(sql: ReturnType<typeof neon>, paper: ProcessedPaper): Promise<void> {
-  await sql`
-    INSERT INTO past_papers
-      (drive_file_id, country, exam_type, subject, title, year, paper_number,
-       raw_text, page_analyses, questions)
-    VALUES
-      (${paper.drive_file_id}, ${paper.country}, ${paper.exam_type}, ${paper.subject},
-       ${paper.title}, ${paper.year}, ${paper.paper_number},
-       ${paper.raw_text},
-       ${JSON.stringify(paper.page_analyses)},
-       ${JSON.stringify(paper.questions)})
-    ON CONFLICT (drive_file_id) DO UPDATE SET
-      raw_text      = EXCLUDED.raw_text,
-      page_analyses = EXCLUDED.page_analyses,
-      questions     = EXCLUDED.questions,
-      processed_at  = now()
-  `;
+// ── Metadata from filename ────────────────────────────────────────────────────
+function parseMeta(filename: string) {
+  const year  = filename.match(/\b(20\d{2}|19\d{2})\b/)?.[1];
+  const paper = filename.match(/\bpaper\s*(\d+)\b/i)?.[1] ?? filename.match(/\b[pP](\d)\b/)?.[1];
+  return {
+    year:         year  ? parseInt(year)        : null,
+    paper_number: paper ? `Paper ${paper}`      : null,
+  };
 }
 
-// ── Process single paper ──────────────────────────────────────────────────────
+// ── DB write ──────────────────────────────────────────────────────────────────
+async function saveToDB(
+  sql: ReturnType<typeof neon>,
+  entry: PaperEntry,
+  questions: ExtractedQuestion[],
+  hasImages: boolean,
+  imageDescs: { page: number; desc: string }[]
+): Promise<void> {
+  const { year, paper_number } = parseMeta(entry.file.name);
+  const title = entry.file.name.replace(/\.pdf$/i, '');
+
+  // Upsert paper record
+  const rows = await sql`
+    INSERT INTO past_papers (drive_file_id, country, exam_type, subject, title, year, paper_number,
+                             total_questions, has_images, processed, processed_at)
+    VALUES (${entry.file.id}, ${entry.country}, ${entry.exam_type}, ${entry.subject},
+            ${title}, ${year}, ${paper_number},
+            ${questions.length}, ${hasImages}, true, now())
+    ON CONFLICT (drive_file_id) DO UPDATE SET
+      total_questions = EXCLUDED.total_questions,
+      has_images      = EXCLUDED.has_images,
+      processed       = true,
+      processed_at    = now()
+    RETURNING id
+  `;
+  const paperId = (rows[0] as { id: string }).id;
+
+  // Delete old questions for this paper (re-process case)
+  await sql`DELETE FROM questions WHERE paper_id = ${paperId}`;
+
+  // Insert questions
+  for (const q of questions) {
+    // Find image description if this question is on an image page
+    const imageDesc = imageDescs.length > 0 ? imageDescs[0]?.desc : null;
+    await sql`
+      INSERT INTO questions (paper_id, question_number, question_text, marks, topic,
+                             has_image, image_desc, mark_scheme)
+      VALUES (${paperId}, ${q.question_number ?? null}, ${q.question_text}, ${q.marks ?? null},
+              ${q.topic ?? null}, ${!!imageDesc}, ${imageDesc ?? null}, ${q.mark_scheme ?? null})
+    `;
+  }
+}
+
+// ── Process one paper ─────────────────────────────────────────────────────────
 async function processPaper(
   entry: PaperEntry,
   drive: drive_v3.Drive,
   anthropic: Anthropic,
   sqlClient: ReturnType<typeof neon>,
-  index: number,
+  idx: number,
   total: number,
   counters: { processed: number; skipped: number; errored: number }
 ): Promise<void> {
-  const { file, country, exam_type, subject } = entry;
-  const title = file.name.replace(/\.pdf$/i, '');
-  const tag = `[${index}/${total}]`;
+  const tag   = `[${idx}/${total}]`;
+  const label = `${entry.country} › ${entry.exam_type} › ${entry.subject} › ${entry.file.name.slice(0, 40)}`;
 
   try {
-    // Check if already processed
     if (!DRY_RUN) {
-      const existing = await sqlClient`SELECT id FROM past_papers WHERE drive_file_id = ${file.id} LIMIT 1`;
-      if (existing.length > 0) {
-        console.log(`${tag} ⏭  ${subject} › ${title} (already done)`);
-        counters.skipped++;
-        return;
-      }
+      const existing = await sqlClient`SELECT id FROM past_papers WHERE drive_file_id = ${entry.file.id} AND processed = true LIMIT 1`;
+      if (existing.length > 0) { counters.skipped++; return; }
     }
 
-    console.log(`${tag} ⬇  ${country} › ${exam_type} › ${subject} › ${title}`);
+    console.log(`${tag} ⬇  ${label}`);
+    const tmpFile = path.join(DOWNLOAD_DIR, `${entry.file.id}.pdf`);
+    await downloadPDF(drive, entry.file.id, tmpFile);
 
-    const tmpFile = path.join(DOWNLOAD_DIR, `${file.id}.pdf`);
-    await downloadPDF(drive, file.id, tmpFile);
+    const { fullText, pages } = await extractText(tmpFile);
 
-    const { fullText, pages } = await extractPDFText(tmpFile);
-
-    // Analyse pages
-    const pageAnalyses: PageAnalysis[] = [];
+    // Vision pass for image-heavy pages
+    const imageDescs: { page: number; desc: string }[] = [];
     for (let i = 0; i < pages.length; i++) {
-      const pageText = pages[i] ?? '';
-      const hasImage = pageText.trim().length < IMAGE_PAGE_TEXT_THRESHOLD;
-      let visionDesc: string | undefined;
-      if (hasImage) {
-        visionDesc = await analysePageWithVision(anthropic, tmpFile, i + 1);
+      if ((pages[i] ?? '').trim().length < IMAGE_THRESHOLD) {
+        const desc = await visionAnalysePage(anthropic, tmpFile, i + 1);
+        if (desc) imageDescs.push({ page: i + 1, desc });
       }
-      pageAnalyses.push({ page: i + 1, text: pageText, has_image: hasImage, vision_desc: visionDesc });
     }
 
-    const questions = await extractQuestions(anthropic, fullText, subject, exam_type);
-    const { year, paper_number } = extractMetadata(file.name);
-
-    const paperData: ProcessedPaper = {
-      drive_file_id: file.id,
-      country, exam_type, subject, title, year, paper_number,
-      raw_text: fullText,
-      page_analyses: pageAnalyses,
-      questions,
-    };
+    const questions = await extractQuestions(anthropic, fullText, entry.subject, entry.exam_type);
 
     if (!DRY_RUN) {
-      await savePaper(sqlClient, paperData);
+      await saveToDB(sqlClient, entry, questions, imageDescs.length > 0, imageDescs);
     }
-
-    console.log(`${tag} ✅ ${title} — ${questions.length} questions, ${pageAnalyses.filter(p => p.has_image).length} image pages`);
-    counters.processed++;
 
     try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
 
+    console.log(`${tag} ✅  ${questions.length} questions | ${imageDescs.length} image pages`);
+    counters.processed++;
   } catch (err) {
-    console.error(`${tag} ❌ ${title}: ${(err as Error).message}`);
+    console.error(`${tag} ❌  ${label}: ${(err as Error).message}`);
     counters.errored++;
   }
 }
 
 // ── Concurrency pool ──────────────────────────────────────────────────────────
-async function runPool<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T, index: number) => Promise<void>
-): Promise<void> {
+async function runPool<T>(items: T[], concurrency: number, fn: (item: T, i: number) => Promise<void>) {
   let i = 0;
-  const workers = Array.from({ length: concurrency }, async () => {
-    while (i < items.length) {
-      const idx = i++;
-      await fn(items[idx], idx + 1);
-    }
-  });
-  await Promise.all(workers);
+  await Promise.all(Array.from({ length: concurrency }, async () => {
+    while (i < items.length) { const idx = i++; await fn(items[idx], idx + 1); }
+  }));
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('\n📚 Educate Past Papers Processor');
-  console.log('═'.repeat(50));
-  if (DRY_RUN) console.log('⚠️  DRY RUN — no database writes\n');
+  console.log('═'.repeat(55));
+  console.log(`   Concurrency: ${CONCURRENCY} | Limit: ${MAX_FILES} | Dry run: ${DRY_RUN}`);
+  console.log('═'.repeat(55) + '\n');
 
-  if (!process.env.DATABASE_URL)      throw new Error('DATABASE_URL not set in .env.local');
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set in .env.local');
+  if (!process.env.DATABASE_URL)      throw new Error('DATABASE_URL not set');
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
 
-  const auth      = getAuthClient();
+  const auth      = getAuth();
   const drive     = google.drive({ version: 'v3', auth });
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const sqlClient = neon(process.env.DATABASE_URL);
 
   if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 
-  const papers    = await crawlDrive(drive);
-  const toProcess = papers.slice(0, MAX_FILES);
+  const all       = await crawlDrive(drive);
+  const toProcess = all.slice(0, MAX_FILES);
+  const counters  = { processed: 0, skipped: 0, errored: 0 };
+  const t0        = Date.now();
 
-  console.log(`Processing ${toProcess.length} of ${papers.length} files (concurrency: ${CONCURRENCY})...\n`);
-
-  const counters = { processed: 0, skipped: 0, errored: 0 };
-  const startTime = Date.now();
-
-  await runPool(toProcess, CONCURRENCY, (entry, index) =>
-    processPaper(entry, drive, anthropic, sqlClient, index, toProcess.length, counters)
+  await runPool(toProcess, CONCURRENCY, (entry, idx) =>
+    processPaper(entry, drive, anthropic, sqlClient, idx, toProcess.length, counters)
   );
 
-  const elapsed = Math.round((Date.now() - startTime) / 1000);
-  const perFile = counters.processed > 0 ? Math.round(elapsed / counters.processed) : 0;
+  const secs    = Math.round((Date.now() - t0) / 1000);
+  const perFile = counters.processed > 0 ? secs / counters.processed : 0;
+  const etaMins = perFile > 0 ? Math.round((all.length - counters.processed - counters.skipped) * perFile / CONCURRENCY / 60) : 0;
 
-  console.log('\n' + '═'.repeat(50));
-  console.log(`✅ Done in ${elapsed}s — ${counters.processed} processed (${perFile}s/file), ${counters.skipped} skipped, ${counters.errored} errors`);
-  if (counters.processed > 0 && papers.length > toProcess.length) {
-    const remaining = papers.length - toProcess.length;
-    const eta = Math.round((remaining * perFile) / CONCURRENCY / 60);
-    console.log(`📊 Full crawl ETA at ${CONCURRENCY}x concurrency: ~${eta} minutes (~${Math.round(eta/60)} hours)`);
-  }
+  console.log('\n' + '═'.repeat(55));
+  console.log(`✅  ${counters.processed} processed | ${counters.skipped} skipped | ${counters.errored} errors`);
+  console.log(`⏱   ${secs}s elapsed | ${perFile.toFixed(1)}s per file`);
+  if (etaMins > 0) console.log(`📊  Full crawl ETA at ${CONCURRENCY}x: ~${etaMins}min (~${(etaMins/60).toFixed(1)}h)`);
 }
 
-main().catch(err => {
-  console.error('\n💥 Fatal error:', err.message);
-  process.exit(1);
-});
+main().catch(err => { console.error('\n💥', err.message); process.exit(1); });
