@@ -302,6 +302,7 @@ export function Sidebar() {
   );
 }
 
+// Independent student (default)
 const MOBILE_NAV_ITEMS = [
   { href: '/', label: 'Home', icon: '\u{1F3E0}' },
   { href: '/mastery', label: 'Mastery', icon: '\u{1F5FA}\uFE0F' },
@@ -310,16 +311,55 @@ const MOBILE_NAV_ITEMS = [
   { href: '/games', label: 'Games', icon: '\u{1F3AE}' },
 ];
 
+// School student
+const SCHOOL_STUDENT_MOBILE_NAV = [
+  { href: '/student', label: 'Hub', icon: '\u{1F3EB}', exact: true },
+  { href: '/student/practice', label: 'Practice', icon: '\u{1F4DD}', exact: false },
+  { href: '/progress', label: 'Progress', icon: '\u{1F4CA}', exact: false },
+  { href: '/games', label: 'Games', icon: '\u{1F3AE}', exact: false },
+];
+
+// Teacher
+const TEACHER_MOBILE_NAV = [
+  { href: '/teacher', label: 'Dashboard', icon: '\u{1F4CA}', exact: true },
+  { href: '/teacher/classes', label: 'Classes', icon: '\u{1F3EB}', exact: false },
+  { href: '/progress', label: 'Progress', icon: '\u{1F4C8}', exact: false },
+  { href: '/games', label: 'Games', icon: '\u{1F3AE}', exact: false },
+];
+
 /** Mobile bottom bar — shown on small screens instead of sidebar */
 export function MobileNav() {
   const pathname = usePathname();
   const { chatOpen, setChatOpen } = useChat();
+  const { isSignedIn } = useUser();
+  const [role, setRole] = useState<string>('');
+  const [orgId, setOrgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then((d: { role?: string; org_id?: string | null }) => {
+        setRole(d.role ?? 'student');
+        setOrgId(d.org_id ?? null);
+      })
+      .catch(() => {});
+  }, [isSignedIn]);
+
+  const isTeacher = ['teacher', 'school_admin', 'super_admin'].includes(role);
+  const isSchoolStudent = role === 'student' && orgId !== null;
+
+  const navItems = isTeacher
+    ? TEACHER_MOBILE_NAV
+    : isSchoolStudent
+    ? SCHOOL_STUDENT_MOBILE_NAV
+    : MOBILE_NAV_ITEMS.map(i => ({ ...i, exact: i.href === '/' }));
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900/95 backdrop-blur border-t border-neutral-800 flex items-center justify-around pt-2 pb-[max(8px,env(safe-area-inset-bottom))] z-50 md:hidden">
-      {MOBILE_NAV_ITEMS.map(item => {
-        const active = item.href === '/'
-          ? pathname === '/'
+      {navItems.map(item => {
+        const active = item.exact
+          ? pathname === item.href
           : pathname.startsWith(item.href);
         return (
           <Link
