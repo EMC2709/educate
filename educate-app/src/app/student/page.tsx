@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AssignmentCard, type Assignment, type AssignmentProgress } from './_components/AssignmentCard';
 import { SubjectPracticeButtons } from './_components/SubjectPracticeButton';
@@ -45,6 +45,66 @@ function countDueThisWeek(assignments: AssignmentWithClass[]): number {
   }).length;
 }
 
+function JoinClassModal({ onClose, onJoined }: { onClose: () => void; onJoined: (name: string) => void }) {
+  const [code, setCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = code.trim().toUpperCase();
+    if (trimmed.length !== 6) { setError('Code must be 6 characters.'); return; }
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/classes/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: trimmed }),
+      });
+      const data = await res.json() as { ok?: boolean; class?: { name: string }; error?: string };
+      if (!res.ok) { setError(data.error ?? 'Invalid code.'); setSubmitting(false); return; }
+      onJoined(data.class?.name ?? 'your class');
+    } catch {
+      setError('Network error. Please try again.');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-white">Join a Class</h2>
+          <button onClick={onClose} className="text-neutral-500 hover:text-white transition-colors cursor-pointer text-xl leading-none">&times;</button>
+        </div>
+        <p className="text-neutral-400 text-sm mb-5">Enter the 6-character code your teacher shared with you.</p>
+        {error && (
+          <div className="mb-4 px-4 py-2.5 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl">{error}</div>
+        )}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="text"
+            value={code}
+            onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+            placeholder="e.g. ABC123"
+            maxLength={6}
+            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-white text-2xl font-mono tracking-[0.3em] text-center focus:outline-none focus:border-indigo-500 placeholder-neutral-600"
+            autoFocus
+          />
+          <button
+            type="submit"
+            disabled={submitting || code.trim().length !== 6}
+            className="w-full px-5 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors cursor-pointer"
+          >
+            {submitting ? 'Joining…' : 'Join Class'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentHub() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [assignments, setAssignments] = useState<AssignmentWithClass[]>([]);
@@ -53,6 +113,8 @@ export default function StudentHub() {
   const [subjects, setSubjects] = useState<SubjectEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinSuccess, setJoinSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     // Load subjects from localStorage
@@ -151,23 +213,35 @@ export default function StudentHub() {
 
         {/* Welcome banner */}
         <div className="bg-gradient-to-r from-indigo-600/20 to-indigo-500/5 border border-indigo-500/30 rounded-2xl p-6">
-          <p className="text-neutral-400 text-sm mb-1">Welcome back</p>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            Hey {profile?.displayName?.split(' ')[0] ?? 'there'}
-          </h1>
-          {dueThisWeek > 0 ? (
-            <p className="text-neutral-300 text-sm mt-1">
-              You have{' '}
-              <span className="text-amber-400 font-semibold">
-                {dueThisWeek} assignment{dueThisWeek !== 1 ? 's' : ''}
-              </span>{' '}
-              due this week.
-            </p>
-          ) : (
-            <p className="text-neutral-400 text-sm mt-1">
-              No assignments due this week — great time for free practice!
-            </p>
-          )}
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-neutral-400 text-sm mb-1">Welcome back</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+                Hey {profile?.displayName?.split(' ')[0] ?? 'there'}
+              </h1>
+              {joinSuccess ? (
+                <p className="text-emerald-400 text-sm mt-1 font-semibold">✓ Joined {joinSuccess}!</p>
+              ) : dueThisWeek > 0 ? (
+                <p className="text-neutral-300 text-sm mt-1">
+                  You have{' '}
+                  <span className="text-amber-400 font-semibold">
+                    {dueThisWeek} assignment{dueThisWeek !== 1 ? 's' : ''}
+                  </span>{' '}
+                  due this week.
+                </p>
+              ) : (
+                <p className="text-neutral-400 text-sm mt-1">
+                  No assignments due this week — great time for free practice!
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setShowJoinModal(true)}
+              className="px-4 py-2 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-sm font-semibold rounded-xl transition-colors cursor-pointer shrink-0"
+            >
+              + Join a class
+            </button>
+          </div>
         </div>
 
         {/* My Assignments */}
@@ -226,6 +300,19 @@ export default function StudentHub() {
           </section>
         </div>
       </div>
+
+      {showJoinModal && (
+        <JoinClassModal
+          onClose={() => setShowJoinModal(false)}
+          onJoined={(name) => {
+            setShowJoinModal(false);
+            setJoinSuccess(name);
+            setTimeout(() => setJoinSuccess(null), 5000);
+            // Reload assignments (student is now in a class)
+            window.location.reload();
+          }}
+        />
+      )}
     </main>
   );
 }

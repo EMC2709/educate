@@ -16,6 +16,73 @@ interface StudentsTabProps {
   classId: string;
 }
 
+function JoinCodeCard({ classId }: { classId: string }) {
+  const [code, setCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [rotating, setRotating] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/classes/${classId}/join-code`)
+      .then(r => r.json())
+      .then(d => setCode(d.code ?? null))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [classId]);
+
+  const handleCopy = () => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRotate = async () => {
+    setRotating(true);
+    try {
+      const res = await fetch(`/api/classes/${classId}/join-code`, { method: 'POST' });
+      const d = await res.json() as { code?: string };
+      if (d.code) setCode(d.code);
+    } catch {}
+    setRotating(false);
+  };
+
+  return (
+    <div className="bg-gradient-to-r from-indigo-600/15 to-indigo-500/5 border border-indigo-500/30 rounded-2xl p-5">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h3 className="text-white font-semibold mb-0.5">Class Join Code</h3>
+          <p className="text-neutral-400 text-sm">Share this code with students. They enter it on their Student Hub to join.</p>
+        </div>
+        <button
+          onClick={handleRotate}
+          disabled={rotating}
+          className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer shrink-0"
+        >
+          {rotating ? 'Rotating…' : '↻ New code'}
+        </button>
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        {loading ? (
+          <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <>
+            <span className="text-3xl font-extrabold tracking-[0.25em] text-white font-mono">
+              {code ?? '—'}
+            </span>
+            <button
+              onClick={handleCopy}
+              className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 text-sm font-semibold rounded-xl transition-colors cursor-pointer"
+            >
+              {copied ? '✓ Copied' : 'Copy'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function StudentsTab({ classId }: StudentsTabProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +165,9 @@ export function StudentsTab({ classId }: StudentsTabProps) {
 
   return (
     <div className="space-y-4">
+      {/* Join code */}
+      <JoinCodeCard classId={classId} />
+
       {/* Add student */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
         <h3 className="text-white font-semibold mb-3">Add Student</h3>
