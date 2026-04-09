@@ -4,14 +4,23 @@ import { z } from 'zod';
 import { saveQuizResult } from '@/lib/progress';
 import { calculateXP, awardXP } from '@/lib/xp';
 
+// Accept both quiz-page format (scoreCorrect/scoreTotal/board/questionType)
+// and practice-page format (score/total/examType/topic)
 const schema = z.object({
   subject: z.string(),
-  board: z.string(),
-  questionType: z.string(),
-  scoreCorrect: z.number(),
-  scoreTotal: z.number(),
+  // Quiz page fields
+  board: z.string().optional(),
+  questionType: z.string().optional(),
+  scoreCorrect: z.number().optional(),
+  scoreTotal: z.number().optional(),
   marksAwarded: z.number().optional(),
   totalMarks: z.number().optional(),
+  // Practice page fields
+  examType: z.string().optional(),
+  topic: z.string().optional().nullable(),
+  score: z.number().optional(),
+  total: z.number().optional(),
+  questions_done: z.number().optional(),
 });
 
 export async function POST(request: Request) {
@@ -19,11 +28,27 @@ export async function POST(request: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
   const body = schema.parse(await request.json());
-  await saveQuizResult({ userId, ...body });
 
-  // Award XP based on marks earned
-  const marks = body.marksAwarded ?? body.scoreCorrect;
-  const xpGained = calculateXP(body.questionType, marks);
+  // Normalise to a single shape
+  const scoreCorrect = body.scoreCorrect ?? body.score ?? 0;
+  const scoreTotal   = body.scoreTotal   ?? body.total  ?? 0;
+  const board        = body.board        ?? body.examType ?? '';
+  const questionType = body.questionType ?? 'practice';
+  const topic        = body.topic ?? null;
+
+  await saveQuizResult({
+    userId,
+    subject: body.subject,
+    board,
+    questionType,
+    scoreCorrect,
+    scoreTotal,
+    topic,
+  });
+
+  // Award XP
+  const marks = body.marksAwarded ?? scoreCorrect;
+  const xpGained = calculateXP(questionType, marks);
 
   let xpResult = null;
   if (xpGained > 0) {
