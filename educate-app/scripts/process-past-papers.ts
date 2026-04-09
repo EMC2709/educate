@@ -39,7 +39,9 @@ const TOKEN_PATH        = path.join(__dirname, 'token.json');
 const DOWNLOAD_DIR      = path.join(__dirname, 'downloaded-papers');
 const DRY_RUN           = process.argv.includes('--dry-run');
 const LIMIT_ARG         = process.argv.indexOf('--limit');
-const MAX_FILES         = LIMIT_ARG >= 0 ? parseInt(process.argv[LIMIT_ARG + 1] ?? '999') : 999;
+const MAX_FILES         = LIMIT_ARG >= 0 ? parseInt(process.argv[LIMIT_ARG + 1] ?? '99999') : 99999;
+const CONCURRENCY_ARG   = process.argv.indexOf('--concurrency');
+const CONCURRENCY       = CONCURRENCY_ARG >= 0 ? parseInt(process.argv[CONCURRENCY_ARG + 1] ?? '5') : 5;
 
 // Pages with fewer than this many characters of text are treated as image-heavy
 const IMAGE_PAGE_TEXT_THRESHOLD = 100;
@@ -174,8 +176,9 @@ async function downloadPDF(drive: drive_v3.Drive, fileId: string, destPath: stri
 
 // ── PDF text extraction ────────────────────────────────────────────────────────
 async function extractPDFText(filePath: string): Promise<{ fullText: string; pages: string[] }> {
-  // Dynamic import because pdf-parse uses require internally
-  const pdfParse = (await import('pdf-parse')).default;
+  // pdf-parse is CJS; handle both .default and direct export
+  const mod      = await import('pdf-parse');
+  const pdfParse = (mod.default ?? mod) as (buf: Buffer, opts?: Record<string, unknown>) => Promise<{ text: string }>;
   const buffer   = fs.readFileSync(filePath);
 
   let pages: string[] = [];
@@ -299,104 +302,130 @@ async function savePaper(sql: ReturnType<typeof neon>, paper: ProcessedPaper): P
   `;
 }
 
+// ── Process single paper ──────────────────────────────────────────────────────
+async function processPaper(
+  entry: PaperEntry,
+  drive: drive_v3.Drive,
+  anthropic: Anthropic,
+  sqlClient: ReturnType<typeof neon>,
+  index: number,
+  total: number,
+  counters: { processed: number; skipped: number; errored: number }
+): Promise<void> {
+  const { file, country, exam_type, subject } = entry;
+  const title = file.name.replace(/\.pdf$/i, '');
+  const tag = `[${index}/${total}]`;
+
+  try {
+    // Check if already processed
+    if (!DRY_RUN) {
+      const existing = await sqlClient`SELECT id FROM past_papers WHERE drive_file_id = ${file.id} LIMIT 1`;
+      if (existing.length > 0) {
+        console.log(`${tag} ⏭  ${subject} › ${title} (already done)`);
+        counters.skipped++;
+        return;
+      }
+    }
+
+    console.log(`${tag} ⬇  ${country} › ${exam_type} › ${subject} › ${title}`);
+
+    const tmpFile = path.join(DOWNLOAD_DIR, `${file.id}.pdf`);
+    await downloadPDF(drive, file.id, tmpFile);
+
+    const { fullText, pages } = await extractPDFText(tmpFile);
+
+    // Analyse pages
+    const pageAnalyses: PageAnalysis[] = [];
+    for (let i = 0; i < pages.length; i++) {
+      const pageText = pages[i] ?? '';
+      const hasImage = pageText.trim().length < IMAGE_PAGE_TEXT_THRESHOLD;
+      let visionDesc: string | undefined;
+      if (hasImage) {
+        visionDesc = await analysePageWithVision(anthropic, tmpFile, i + 1);
+      }
+      pageAnalyses.push({ page: i + 1, text: pageText, has_image: hasImage, vision_desc: visionDesc });
+    }
+
+    const questions = await extractQuestions(anthropic, fullText, subject, exam_type);
+    const { year, paper_number } = extractMetadata(file.name);
+
+    const paperData: ProcessedPaper = {
+      drive_file_id: file.id,
+      country, exam_type, subject, title, year, paper_number,
+      raw_text: fullText,
+      page_analyses: pageAnalyses,
+      questions,
+    };
+
+    if (!DRY_RUN) {
+      await savePaper(sqlClient, paperData);
+    }
+
+    console.log(`${tag} ✅ ${title} — ${questions.length} questions, ${pageAnalyses.filter(p => p.has_image).length} image pages`);
+    counters.processed++;
+
+    try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+
+  } catch (err) {
+    console.error(`${tag} ❌ ${title}: ${(err as Error).message}`);
+    counters.errored++;
+  }
+}
+
+// ── Concurrency pool ──────────────────────────────────────────────────────────
+async function runPool<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<void>
+): Promise<void> {
+  let i = 0;
+  const workers = Array.from({ length: concurrency }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      await fn(items[idx], idx + 1);
+    }
+  });
+  await Promise.all(workers);
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('\n📚 Educate Past Papers Processor');
   console.log('═'.repeat(50));
   if (DRY_RUN) console.log('⚠️  DRY RUN — no database writes\n');
 
-  // Validate environment
-  if (!process.env.DATABASE_URL)     throw new Error('DATABASE_URL not set in .env.local');
+  if (!process.env.DATABASE_URL)      throw new Error('DATABASE_URL not set in .env.local');
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set in .env.local');
 
   const auth      = getAuthClient();
   const drive     = google.drive({ version: 'v3', auth });
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const sql       = neon(process.env.DATABASE_URL);
+  const sqlClient = neon(process.env.DATABASE_URL);
 
   if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 
-  const papers = await crawlDrive(drive);
+  const papers    = await crawlDrive(drive);
   const toProcess = papers.slice(0, MAX_FILES);
 
-  console.log(`Processing ${toProcess.length} of ${papers.length} files...\n`);
+  console.log(`Processing ${toProcess.length} of ${papers.length} files (concurrency: ${CONCURRENCY})...\n`);
 
-  let processed = 0, skipped = 0, errored = 0;
+  const counters = { processed: 0, skipped: 0, errored: 0 };
+  const startTime = Date.now();
 
-  for (const entry of toProcess) {
-    const { file, country, exam_type, subject } = entry;
-    const title = file.name.replace(/\.pdf$/i, '');
-    console.log(`[${processed + skipped + errored + 1}/${toProcess.length}] ${country} › ${exam_type} › ${subject} › ${title}`);
+  await runPool(toProcess, CONCURRENCY, (entry, index) =>
+    processPaper(entry, drive, anthropic, sqlClient, index, toProcess.length, counters)
+  );
 
-    try {
-      // Check if already processed
-      if (!DRY_RUN) {
-        const existing = await sql`SELECT id FROM past_papers WHERE drive_file_id = ${file.id} LIMIT 1`;
-        if (existing.length > 0) {
-          console.log('   ⏭  Already processed, skipping');
-          skipped++;
-          continue;
-        }
-      }
-
-      // Download PDF to temp
-      const tmpFile = path.join(DOWNLOAD_DIR, `${file.id}.pdf`);
-      console.log('   ⬇  Downloading...');
-      await downloadPDF(drive, file.id, tmpFile);
-
-      // Extract text
-      console.log('   📄 Extracting text...');
-      const { fullText, pages } = await extractPDFText(tmpFile);
-
-      // Analyse each page
-      const pageAnalyses: PageAnalysis[] = [];
-      for (let i = 0; i < pages.length; i++) {
-        const pageText  = pages[i] ?? '';
-        const hasImage  = pageText.trim().length < IMAGE_PAGE_TEXT_THRESHOLD;
-        let visionDesc: string | undefined;
-
-        if (hasImage) {
-          console.log(`   🖼  Page ${i + 1} has images — running Claude Vision...`);
-          visionDesc = await analysePageWithVision(anthropic, tmpFile, i + 1);
-        }
-
-        pageAnalyses.push({ page: i + 1, text: pageText, has_image: hasImage, vision_desc: visionDesc });
-      }
-
-      // Extract questions
-      console.log('   🧠 Extracting questions...');
-      const questions = await extractQuestions(anthropic, fullText, subject, exam_type);
-
-      const { year, paper_number } = extractMetadata(file.name);
-
-      const paperData: ProcessedPaper = {
-        drive_file_id: file.id,
-        country, exam_type, subject, title, year, paper_number,
-        raw_text: fullText,
-        page_analyses: pageAnalyses,
-        questions,
-      };
-
-      if (!DRY_RUN) {
-        await savePaper(sql, paperData);
-        console.log(`   ✅ Saved (${questions.length} questions, ${pageAnalyses.filter(p => p.has_image).length} image pages)`);
-      } else {
-        console.log(`   ✅ DRY RUN OK (${questions.length} questions, ${pageAnalyses.filter(p => p.has_image).length} image pages)`);
-      }
-
-      processed++;
-
-      // Clean up temp file
-      fs.unlinkSync(tmpFile);
-
-    } catch (err) {
-      console.error(`   ❌ Error:`, (err as Error).message);
-      errored++;
-    }
-  }
+  const elapsed = Math.round((Date.now() - startTime) / 1000);
+  const perFile = counters.processed > 0 ? Math.round(elapsed / counters.processed) : 0;
 
   console.log('\n' + '═'.repeat(50));
-  console.log(`✅ Done — ${processed} processed, ${skipped} skipped, ${errored} errors`);
+  console.log(`✅ Done in ${elapsed}s — ${counters.processed} processed (${perFile}s/file), ${counters.skipped} skipped, ${counters.errored} errors`);
+  if (counters.processed > 0 && papers.length > toProcess.length) {
+    const remaining = papers.length - toProcess.length;
+    const eta = Math.round((remaining * perFile) / CONCURRENCY / 60);
+    console.log(`📊 Full crawl ETA at ${CONCURRENCY}x concurrency: ~${eta} minutes (~${Math.round(eta/60)} hours)`);
+  }
 }
 
 main().catch(err => {
