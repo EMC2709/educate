@@ -17,6 +17,18 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
   try {
+    const role = await getUserRole(userId);
+
+    // super_admin gets all organisations
+    if (role === 'super_admin') {
+      const rows = await sql`
+        SELECT id, name, slug, domain, country, created_at
+        FROM organisations
+        ORDER BY name ASC
+      ` as OrganisationRow[];
+      return NextResponse.json({ organisations: rows });
+    }
+
     const orgId = await getUserOrg(userId);
     if (!orgId) return NextResponse.json({ organisation: null });
 
@@ -40,8 +52,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const role = await getUserRole(userId);
-    if (!['school_admin', 'super_admin'].includes(role)) {
-      return NextResponse.json({ error: 'Requires school_admin role' }, { status: 403 });
+    if (!['teacher', 'school_admin', 'super_admin'].includes(role)) {
+      return NextResponse.json({ error: 'Requires teacher role or above' }, { status: 403 });
     }
 
     const body = await req.json() as {
