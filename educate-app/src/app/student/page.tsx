@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AssignmentCard, type Assignment, type AssignmentProgress } from './_components/AssignmentCard';
 import { SubjectPracticeButtons } from './_components/SubjectPracticeButton';
 import { RecentActivity } from './_components/RecentActivity';
+import { ClassLeaderboard } from './_components/ClassLeaderboard';
 
 interface Profile {
   userId: string;
@@ -216,11 +217,14 @@ export default function StudentHub() {
           </div>
         </section>
 
-        {/* Recent Activity */}
-        <section>
-          <h2 className="text-lg font-bold text-white mb-4">Recent Activity</h2>
-          <RecentActivity results={recentResults} />
-        </section>
+        {/* Leaderboard + Recent Activity side by side on large screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <ClassLeaderboard currentUserId={profile?.userId ?? null} />
+          <section>
+            <h2 className="text-lg font-bold text-white mb-4">Recent Activity</h2>
+            <RecentActivity results={recentResults} />
+          </section>
+        </div>
       </div>
     </main>
   );
