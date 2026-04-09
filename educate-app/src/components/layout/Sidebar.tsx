@@ -10,10 +10,11 @@ import { useChat } from '@/context/ChatContext';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: '\u{1F3E0}' },
+  { href: '/practice', label: 'Practice Hub', icon: '\u{1F4DD}' },
   { href: '/timetable', label: 'Timetable', icon: '\u{1F4C5}' },
   { href: '/exams', label: 'Exam Countdown', icon: '\u{23F3}' },
   { href: '/timer', label: 'Study Timer', icon: '\u{23F0}' },
-  { href: '/notes', label: 'Notes', icon: '\u{1F4DD}' },
+  { href: '/notes', label: 'Notes', icon: '\u{1F5C2}\uFE0F' },
   { href: '/mastery', label: 'Topic Mastery', icon: '\u{1F5FA}\uFE0F' },
   { href: '/progress', label: 'Progress', icon: '\u{1F4CA}' },
   { href: '/achievements', label: 'Achievements', icon: '\u{1F3C6}' },
