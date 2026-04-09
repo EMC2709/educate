@@ -39,6 +39,7 @@ const TOKEN_PATH       = path.join(__dirname, 'token.json');
 const DOWNLOAD_DIR     = path.join(__dirname, 'downloaded-papers');
 
 const DRY_RUN         = process.argv.includes('--dry-run');
+const FORCE           = process.argv.includes('--force');
 const LIMIT_ARG       = process.argv.indexOf('--limit');
 const MAX_FILES       = LIMIT_ARG >= 0 ? parseInt(process.argv[LIMIT_ARG + 1] ?? '99999') : 99999;
 const CONC_ARG        = process.argv.indexOf('--concurrency');
@@ -264,7 +265,7 @@ async function processPaper(
   const label = `${entry.country} › ${entry.exam_type} › ${entry.subject} › ${entry.file.name.slice(0, 40)}`;
 
   try {
-    if (!DRY_RUN) {
+    if (!DRY_RUN && !FORCE) {
       const existing = await sqlClient`SELECT id FROM past_papers WHERE drive_file_id = ${entry.file.id} AND processed = true LIMIT 1`;
       if (existing.length > 0) { counters.skipped++; return; }
     }
