@@ -44,12 +44,14 @@ export function Sidebar() {
   const [subjects, setSubjects] = useState<{ subject: string; board: string }[]>([]);
   const [streak, setStreak] = useState(0);
   const [role, setRole] = useState<string>('student');
+  const [orgId, setOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isSignedIn) {
       fetch('/api/profile').then(r => r.json()).then(d => {
         if (d.xp != null) setXp(d.xp);
         if (d.role) setRole(d.role);
+        setOrgId(d.org_id ?? null);
       }).catch(() => {});
       // Load subjects from localStorage
       try {
@@ -65,6 +67,8 @@ export function Sidebar() {
   }, [isSignedIn]);
 
   const isTeacher = ['teacher', 'school_admin', 'super_admin'].includes(role);
+  const isSchoolStudent = role === 'student' && orgId !== null;
+  const isSuperAdmin = role === 'super_admin';
 
   const level = xp != null ? levelFromXP(xp) : null;
   const progress = xp != null ? levelProgress(xp) : null;
@@ -109,6 +113,35 @@ export function Sidebar() {
           );
         })}
 
+        {/* School Student Hub */}
+        {isSchoolStudent && (
+          <div className="mt-3 pt-3 border-t border-neutral-800">
+            <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">My School</p>
+            {[
+              { href: '/student', label: 'Student Hub', icon: '\u{1F3EB}' },
+              { href: '/student/practice', label: 'Practice', icon: '\u{1F4DD}' },
+            ].map(item => {
+              const active = item.href === '/student'
+                ? pathname === '/student'
+                : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium no-underline transition-all duration-150 ${
+                    active
+                      ? 'bg-emerald-500/15 text-emerald-400'
+                      : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
+                  }`}
+                >
+                  <span className="text-base">{item.icon}</span>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         {/* Teacher Dashboard */}
         {isTeacher && (
           <div className="mt-3 pt-3 border-t border-neutral-800">
@@ -133,6 +166,24 @@ export function Sidebar() {
                 </Link>
               );
             })}
+          </div>
+        )}
+
+        {/* Super Admin */}
+        {isSuperAdmin && (
+          <div className="mt-3 pt-3 border-t border-neutral-800">
+            <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Platform</p>
+            <Link
+              href="/admin"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium no-underline transition-all duration-150 ${
+                pathname.startsWith('/admin')
+                  ? 'bg-rose-500/15 text-rose-400'
+                  : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
+              }`}
+            >
+              <span className="text-base">{'\u2699\uFE0F'}</span>
+              Admin Panel
+            </Link>
           </div>
         )}
 

@@ -61,40 +61,62 @@ export default function HomePage() {
       return;
     }
 
-    // Check localStorage first (reliable even if Supabase table is missing)
-    const cached = localStorage.getItem('educate-user-subjects');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSubjects(parsed);
-          setLoading(false);
-          // Also try syncing from API in background
-          fetch('/api/user-subjects')
-            .then(r => r.json())
-            .then(data => {
-              if (data.subjects && data.subjects.length > 0) {
-                setSubjects(data.subjects);
-                localStorage.setItem('educate-user-subjects', JSON.stringify(data.subjects));
-              }
-            })
-            .catch(() => {});
+    // Fetch role first — teachers and school students have dedicated hubs
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then((profileData: { role?: string; org_id?: string | null }) => {
+        const role = profileData.role ?? 'student';
+
+        if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
+          setRedirecting(true);
+          router.replace('/teacher');
           return;
         }
-      } catch {}
-    }
 
-    fetch('/api/user-subjects')
-      .then(r => r.json())
-      .then(data => {
-        if (!data.subjects || data.subjects.length === 0) {
+        if (role === 'student' && profileData.org_id) {
           setRedirecting(true);
-          router.push('/onboarding');
-        } else {
-          setSubjects(data.subjects);
-          localStorage.setItem('educate-user-subjects', JSON.stringify(data.subjects));
-          setLoading(false);
+          router.replace('/student');
+          return;
         }
+
+        // Independent student — load subjects
+        const cached = localStorage.getItem('educate-user-subjects');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setSubjects(parsed);
+              setLoading(false);
+              fetch('/api/user-subjects')
+                .then(r2 => r2.json())
+                .then(data => {
+                  if (data.subjects?.length > 0) {
+                    setSubjects(data.subjects);
+                    localStorage.setItem('educate-user-subjects', JSON.stringify(data.subjects));
+                  }
+                })
+                .catch(() => {});
+              return;
+            }
+          } catch {}
+        }
+
+        fetch('/api/user-subjects')
+          .then(r2 => r2.json())
+          .then(data => {
+            if (!data.subjects || data.subjects.length === 0) {
+              setRedirecting(true);
+              router.push('/onboarding');
+            } else {
+              setSubjects(data.subjects);
+              localStorage.setItem('educate-user-subjects', JSON.stringify(data.subjects));
+              setLoading(false);
+            }
+          })
+          .catch(() => {
+            setRedirecting(true);
+            router.push('/onboarding');
+          });
       })
       .catch(() => {
         setRedirecting(true);

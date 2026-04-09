@@ -51,23 +51,49 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // On mount, hydrate from localStorage. If subjects already exist, jump
-  // straight to the subject picker (skip name + board intro).
+  // On mount: teachers go straight to their dashboard; for students hydrate from localStorage.
   useEffect(() => {
-    try {
-      const rawSubs = localStorage.getItem('educate-user-subjects');
-      const rawName = localStorage.getItem('educate-display-name');
-      if (rawName) setDisplayName(rawName);
-      if (rawSubs) {
-        const subs: SelectedSubject[] = JSON.parse(rawSubs);
-        if (Array.isArray(subs) && subs.length > 0) {
-          setSelected(subs);
-          setSelectedBoard(subs[0].board);
-          setIsEditMode(true);
-          setStep(2);
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then((d: { role?: string }) => {
+        const role = d.role ?? 'student';
+        if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
+          router.replace('/teacher');
+          return;
         }
-      }
-    } catch {}
+        // Hydrate subjects for student
+        try {
+          const rawSubs = localStorage.getItem('educate-user-subjects');
+          const rawName = localStorage.getItem('educate-display-name');
+          if (rawName) setDisplayName(rawName);
+          if (rawSubs) {
+            const subs: SelectedSubject[] = JSON.parse(rawSubs);
+            if (Array.isArray(subs) && subs.length > 0) {
+              setSelected(subs);
+              setSelectedBoard(subs[0].board);
+              setIsEditMode(true);
+              setStep(2);
+            }
+          }
+        } catch {}
+      })
+      .catch(() => {
+        // fallback: try localStorage
+        try {
+          const rawSubs = localStorage.getItem('educate-user-subjects');
+          const rawName = localStorage.getItem('educate-display-name');
+          if (rawName) setDisplayName(rawName);
+          if (rawSubs) {
+            const subs: SelectedSubject[] = JSON.parse(rawSubs);
+            if (Array.isArray(subs) && subs.length > 0) {
+              setSelected(subs);
+              setSelectedBoard(subs[0].board);
+              setIsEditMode(true);
+              setStep(2);
+            }
+          }
+        } catch {}
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CreateClassModal } from './components/CreateClassModal';
 import { ClassroomSyncPanel } from './components/ClassroomSyncPanel';
@@ -10,6 +10,101 @@ interface Profile {
   displayName: string;
   role: string;
   org_id: string | null;
+}
+
+function slugify(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+}
+
+function SchoolSetupPanel({ onComplete }: { onComplete: () => void }) {
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [country, setCountry] = useState('England');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleNameChange = (v: string) => {
+    setName(v);
+    setSlug(slugify(v));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !slug.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/organisations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), slug, country: country.trim() || 'England' }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) { setError(data.error ?? 'Failed to create school'); setSaving(false); return; }
+      onComplete();
+    } catch {
+      setError('Network error. Please try again.');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-screen p-6">
+      <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
+        <div className="text-4xl mb-4 text-center">🏫</div>
+        <h2 className="text-xl font-bold text-white text-center mb-1">Set up your school</h2>
+        <p className="text-neutral-400 text-sm text-center mb-6">
+          Create your organisation to start building classes and assigning work.
+        </p>
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl">{error}</div>
+        )}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-neutral-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">School / Organisation Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => handleNameChange(e.target.value)}
+              placeholder="e.g. Calday Grange Grammar School"
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-neutral-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">URL Slug</label>
+            <input
+              type="text"
+              value={slug}
+              onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+              placeholder="calday-grange"
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-neutral-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Country</label>
+            <select
+              value={country}
+              onChange={e => setCountry(e.target.value)}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+            >
+              {['England', 'Wales', 'Scotland', 'Northern Ireland', 'Other'].map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            disabled={saving || !name.trim() || !slug.trim()}
+            className="mt-2 px-5 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer"
+          >
+            {saving ? 'Creating…' : 'Create School'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 interface ClassItem {
@@ -103,6 +198,11 @@ export default function TeacherDashboard() {
         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+
+  // Teacher has no org yet — must set up school first
+  if (!profile?.org_id) {
+    return <SchoolSetupPanel onComplete={fetchData} />;
   }
 
   return (
