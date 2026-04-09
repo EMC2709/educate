@@ -26,6 +26,9 @@ export async function GET() {
       progress: progress.progress,
       currentLevelXP: progress.currentLevelXP,
       nextLevelXP: progress.nextLevelXP,
+      role: (profile as Record<string, unknown>).role ?? 'student',
+      org_id: (profile as Record<string, unknown>).org_id ?? null,
+      year_group: (profile as Record<string, unknown>).year_group ?? null,
     });
   } catch {
     return NextResponse.json({
