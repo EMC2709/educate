@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CreateClassModal } from './components/CreateClassModal';
+import { ClassroomSyncPanel } from './components/ClassroomSyncPanel';
 
 interface Profile {
   userId: string;
@@ -191,6 +192,9 @@ export default function TeacherDashboard() {
             </div>
           )}
         </section>
+
+        {/* Google Classroom Sync */}
+        <ClassroomSyncPanel classes={classes} />
 
         {/* Recent Assignments */}
         <section>
