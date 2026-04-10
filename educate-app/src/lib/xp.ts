@@ -53,17 +53,17 @@ export function getLevelTitle(level: number): string {
 
 // ── Database helpers ──────────────────────────────────────────────────────────
 
-export async function ensureProfile(userId: string, displayName?: string): Promise<{ xp: number; level: number; display_name: string }> {
-  const rows = await sql`SELECT xp, level, display_name FROM profiles WHERE user_id = ${userId}`;
-  if (rows.length > 0) return rows[0] as { xp: number; level: number; display_name: string };
+export async function ensureProfile(userId: string, displayName?: string): Promise<{ xp: number; level: number; display_name: string; role: string; org_id: string | null; year_group: number | null }> {
+  const rows = await sql`SELECT xp, level, display_name, role, org_id, year_group FROM profiles WHERE user_id = ${userId}`;
+  if (rows.length > 0) return rows[0] as { xp: number; level: number; display_name: string; role: string; org_id: string | null; year_group: number | null };
 
   const created = await sql`
     INSERT INTO profiles (user_id, display_name)
     VALUES (${userId}, ${displayName || 'Student'})
     ON CONFLICT (user_id) DO UPDATE SET display_name = EXCLUDED.display_name
-    RETURNING xp, level, display_name
+    RETURNING xp, level, display_name, role, org_id, year_group
   `;
-  return (created[0] as { xp: number; level: number; display_name: string }) ?? { xp: 0, level: 1, display_name: displayName || 'Student' };
+  return (created[0] as { xp: number; level: number; display_name: string; role: string; org_id: string | null; year_group: number | null }) ?? { xp: 0, level: 1, display_name: displayName || 'Student', role: 'student', org_id: null, year_group: null };
 }
 
 export async function awardXP(userId: string, xpGained: number): Promise<{ newXP: number; newLevel: number; leveledUp: boolean }> {
