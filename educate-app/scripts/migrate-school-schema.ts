@@ -38,7 +38,7 @@ async function main() {
   const profileAlters = [
     sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES organisations(id)`,
     sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'student' CHECK (role IN ('student','teacher','school_admin','super_admin'))`,
-    sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS year_group INTEGER CHECK (year_group BETWEEN 7 AND 13)`,
+    sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS year_group INTEGER CHECK (year_group BETWEEN 6 AND 13)`,
     sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS google_classroom_id TEXT`,
   ];
   await Promise.all(profileAlters);

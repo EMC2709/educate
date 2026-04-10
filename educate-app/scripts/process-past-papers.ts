@@ -5,15 +5,21 @@
  * stores in Neon (past_papers + questions tables).  PDFs are never
  * stored in the DB — only the Drive file ID is kept for on-demand access.
  *
+ * Text extraction strategy (in order):
+ *   1. pdf-parse  — fast, free, works on text-based PDFs
+ *   2. Drive OCR  — copies PDF as Google Doc (triggers OCR), exports as text
+ *   3. Claude PDF — sends PDF bytes to Claude as last resort (vision-capable)
+ *
  * Prerequisites:
  *   npx tsx scripts/auth-drive.ts     (creates token.json)
  *   npx tsx scripts/migrate-past-papers.ts  (creates tables)
  *
  * Usage:
- *   npx tsx scripts/process-past-papers.ts                    # full run
- *   npx tsx scripts/process-past-papers.ts --limit 5          # test 5 files
- *   npx tsx scripts/process-past-papers.ts --concurrency 8    # 8 parallel
- *   npx tsx scripts/process-past-papers.ts --dry-run          # no DB writes
+ *   npx tsx scripts/process-past-papers.ts                       # full run
+ *   npx tsx scripts/process-past-papers.ts --limit 20            # test 20 files
+ *   npx tsx scripts/process-past-papers.ts --concurrency 4       # 4 parallel
+ *   npx tsx scripts/process-past-papers.ts --dry-run             # no DB writes
+ *   npx tsx scripts/process-past-papers.ts --force               # reprocess all
  */
 
 import { google, drive_v3 } from 'googleapis';
@@ -24,11 +30,22 @@ import Anthropic from '@anthropic-ai/sdk';
 import { neon } from '@neondatabase/serverless';
 
 // ── Env ───────────────────────────────────────────────────────────────────────
+// Only load from file if vars aren't already set (dotenvx pre-injects them decrypted).
+// Unconditionally overwriting would replace decrypted values with encrypted blobs.
 const envPath = path.join(__dirname, '..', '.env.local');
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, 'utf-8').split('\n')) {
     const m = line.match(/^([^#=]+)=(.*)$/);
-    if (m) process.env[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g, '');
+    if (m) {
+      const key = m[1].trim();
+      if (!process.env[key]) {  // ← only set if not already injected by dotenvx
+        // Strip surrounding quotes, then strip literal \n Vercel artifacts
+        process.env[key] = m[2].trim()
+          .replace(/^["']|["']$/g, '')
+          .replace(/\\n$/, '')
+          .trim();
+      }
+    }
   }
 }
 
@@ -38,15 +55,15 @@ const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 const TOKEN_PATH       = path.join(__dirname, 'token.json');
 const DOWNLOAD_DIR     = path.join(__dirname, 'downloaded-papers');
 
-const DRY_RUN         = process.argv.includes('--dry-run');
-const FORCE           = process.argv.includes('--force');
-const LIMIT_ARG       = process.argv.indexOf('--limit');
-const MAX_FILES       = LIMIT_ARG >= 0 ? parseInt(process.argv[LIMIT_ARG + 1] ?? '99999') : 99999;
-const CONC_ARG        = process.argv.indexOf('--concurrency');
-const CONCURRENCY     = CONC_ARG >= 0 ? parseInt(process.argv[CONC_ARG + 1] ?? '5') : 5;
+const DRY_RUN     = process.argv.includes('--dry-run');
+const FORCE       = process.argv.includes('--force');
+const LIMIT_ARG   = process.argv.indexOf('--limit');
+const MAX_FILES   = LIMIT_ARG >= 0 ? parseInt(process.argv[LIMIT_ARG + 1] ?? '99999') : 99999;
+const CONC_ARG    = process.argv.indexOf('--concurrency');
+const CONCURRENCY = CONC_ARG >= 0 ? parseInt(process.argv[CONC_ARG + 1] ?? '4') : 4;
 
-// Pages with < this many chars are treated as image-heavy
-const IMAGE_THRESHOLD = 100;
+// Minimum characters to consider a PDF text-based
+const TEXT_THRESHOLD = 300;
 
 interface DriveFile { id: string; name: string; mimeType: string }
 interface PaperEntry { file: DriveFile; country: string; exam_type: string; subject: string }
@@ -68,6 +85,19 @@ function getAuth() {
   const auth   = new google.auth.OAuth2(creds.installed.client_id, creds.installed.client_secret, 'http://localhost:3333/callback');
   auth.setCredentials(tokens);
   return auth;
+}
+
+// ── Retry wrapper ─────────────────────────────────────────────────────────────
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 2000): Promise<T> {
+  let lastErr: Error = new Error('unknown');
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn(); }
+    catch (e) {
+      lastErr = e as Error;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 // ── Drive helpers ─────────────────────────────────────────────────────────────
@@ -102,13 +132,11 @@ async function crawlDrive(drive: drive_v3.Drive): Promise<PaperEntry[]> {
       const subjects = await listFolder(drive, examFolder.id);
       for (const subjectItem of subjects) {
         if (isDir(subjectItem)) {
-          // subject folder → files inside
           const files = await listFolder(drive, subjectItem.id);
           for (const f of files) {
             if (isPDF(f)) papers.push({ file: f, country, exam_type: examType, subject: subjectItem.name });
           }
         } else if (isPDF(subjectItem)) {
-          // PDF directly in exam folder
           papers.push({ file: subjectItem, country, exam_type: examType, subject: examType });
         }
       }
@@ -129,66 +157,81 @@ async function downloadPDF(drive: drive_v3.Drive, fileId: string, dest: string):
   });
 }
 
-// ── PDF text extraction ───────────────────────────────────────────────────────
-async function extractText(filePath: string): Promise<{ fullText: string; pages: string[] }> {
-  const buffer = fs.readFileSync(filePath);
-  const pages: string[] = [];
-
-  const data = await pdfParse(buffer, {
-    pagerender: (pageData: { getTextContent: () => Promise<{ items: { str: string; transform: number[] }[] }> }) =>
-      pageData.getTextContent().then(tc => {
-        let text = '';
-        let lastY: number | null = null;
-        for (const item of tc.items) {
-          if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) text += '\n';
-          text += item.str;
-          lastY = item.transform[5];
-        }
-        pages.push(text);
-        return text;
-      }),
-  });
-
-  return { fullText: data.text, pages };
-}
-
-// ── Claude Vision for image-heavy pages ───────────────────────────────────────
-async function visionAnalysePage(anthropic: Anthropic, pdfPath: string, pageNum: number): Promise<string> {
+// ── PDF text extraction via pdf-parse ─────────────────────────────────────────
+async function extractTextLocal(filePath: string): Promise<string> {
   try {
-    const base64 = fs.readFileSync(pdfPath).toString('base64');
-    const res = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } } as unknown as Anthropic.MessageParam['content'][0],
-          { type: 'text', text: `Describe page ${pageNum} of this exam paper in detail: what question is asked, what diagram/graph/table is shown, any measurements or values. Be concise but complete.` },
-        ],
-      }],
+    const buffer = fs.readFileSync(filePath);
+    const data = await pdfParse(buffer, {
+      pagerender: (pageData: { getTextContent: () => Promise<{ items: { str: string; transform: number[] }[] }> }) =>
+        pageData.getTextContent().then(tc => {
+          let text = '';
+          let lastY: number | null = null;
+          for (const item of tc.items) {
+            if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) text += '\n';
+            text += item.str;
+            lastY = item.transform[5];
+          }
+          return text;
+        }),
     });
-    return (res.content[0] as { text: string }).text;
+    return data.text;
   } catch { return ''; }
 }
 
-// ── Question extraction via Claude Haiku ──────────────────────────────────────
-async function extractQuestions(
-  anthropic: Anthropic,
-  fullText: string,
-  subject: string,
-  examType: string
-): Promise<ExtractedQuestion[]> {
-  if (!fullText || fullText.trim().length < 100) return [];
+// ── Drive OCR fallback ────────────────────────────────────────────────────────
+// Copies the PDF as a Google Doc (triggers Drive's built-in OCR), exports plain text.
+// Deletes the temp Doc afterwards.
+async function extractTextViaOCR(drive: drive_v3.Drive, fileId: string): Promise<string> {
+  let docId: string | null = null;
   try {
+    const copy = await drive.files.copy({
+      fileId,
+      requestBody: { mimeType: 'application/vnd.google-apps.document', name: `__ocr_tmp_${fileId}` },
+      fields: 'id',
+    });
+    docId = copy.data.id ?? null;
+    if (!docId) return '';
+    const exported = await drive.files.export({ fileId: docId, mimeType: 'text/plain' });
+    return typeof exported.data === 'string' ? exported.data : '';
+  } catch { return ''; }
+  finally {
+    if (docId) {
+      try { await drive.files.delete({ fileId: docId }); } catch { /* best effort */ }
+    }
+  }
+}
+
+// ── Claude Vision fallback (last resort for complex image PDFs) ───────────────
+async function extractQuestionsFromPDFVision(
+  anthropic: Anthropic,
+  pdfPath: string,
+  subject: string,
+  examType: string,
+): Promise<ExtractedQuestion[]> {
+  try {
+    // Only send if file < 10 MB to avoid hitting API limits
+    const stats = fs.statSync(pdfPath);
+    if (stats.size > 10 * 1024 * 1024) return [];
+
+    const base64 = fs.readFileSync(pdfPath).toString('base64');
     const res = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [{
         role: 'user',
-        content: `Extract all questions from this ${examType} ${subject} past paper. Return ONLY a JSON array, no other text. Each object: { "question_number": "1a", "question_text": "full question text", "marks": 3, "topic": "one word topic like algebra/forces/genetics", "mark_scheme": "answer if this is a mark scheme" }
-
-PAPER TEXT:
-${fullText.slice(0, 10000)}`,
+        content: [
+          {
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+          } as unknown as Anthropic.ContentBlock,
+          {
+            type: 'text',
+            text: `This is a ${examType} ${subject} past paper or mark scheme. Extract ALL exam questions.
+Return ONLY a JSON array — no other text:
+[{ "question_number": "1a", "question_text": "full question text here", "marks": 3, "topic": "algebra", "mark_scheme": "model answer if this is a mark scheme" }]
+If this is a mark scheme, put the mark scheme answers in the mark_scheme field.`,
+          },
+        ],
       }],
     });
     const text = (res.content[0] as { text: string }).text.trim();
@@ -198,13 +241,43 @@ ${fullText.slice(0, 10000)}`,
   return [];
 }
 
+// ── Question extraction via Claude Haiku (text-based) ────────────────────────
+async function extractQuestions(
+  anthropic: Anthropic,
+  fullText: string,
+  subject: string,
+  examType: string,
+): Promise<ExtractedQuestion[]> {
+  if (!fullText || fullText.trim().length < TEXT_THRESHOLD) return [];
+  try {
+    const res = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: `Extract all questions from this ${examType} ${subject} past paper. Return ONLY a JSON array, no other text.
+Each object: { "question_number": "1a", "question_text": "full question text", "marks": 3, "topic": "algebra", "mark_scheme": "answer if this is a mark scheme" }
+
+PAPER TEXT:
+${fullText.slice(0, 12000)}`,
+      }],
+    });
+    const text = (res.content[0] as { text: string }).text.trim();
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) return JSON.parse(match[0]) as ExtractedQuestion[];
+  } catch (e) {
+    process.stderr.write(`  [extractQuestions warn] ${(e as Error).message}\n`);
+  }
+  return [];
+}
+
 // ── Metadata from filename ────────────────────────────────────────────────────
 function parseMeta(filename: string) {
   const year  = filename.match(/\b(20\d{2}|19\d{2})\b/)?.[1];
   const paper = filename.match(/\bpaper\s*(\d+)\b/i)?.[1] ?? filename.match(/\b[pP](\d)\b/)?.[1];
   return {
-    year:         year  ? parseInt(year)        : null,
-    paper_number: paper ? `Paper ${paper}`      : null,
+    year:         year  ? parseInt(year)   : null,
+    paper_number: paper ? `Paper ${paper}` : null,
   };
 }
 
@@ -214,13 +287,11 @@ async function saveToDB(
   entry: PaperEntry,
   questions: ExtractedQuestion[],
   hasImages: boolean,
-  imageDescs: { page: number; desc: string }[]
 ): Promise<void> {
   const { year, paper_number } = parseMeta(entry.file.name);
   const title = entry.file.name.replace(/\.pdf$/i, '');
 
-  // Upsert paper record
-  const rows = await sql`
+  const rows = await withRetry(() => sql`
     INSERT INTO past_papers (drive_file_id, country, exam_type, subject, title, year, paper_number,
                              total_questions, has_images, processed, processed_at)
     VALUES (${entry.file.id}, ${entry.country}, ${entry.exam_type}, ${entry.subject},
@@ -232,22 +303,24 @@ async function saveToDB(
       processed       = true,
       processed_at    = now()
     RETURNING id
-  `;
+  `);
   const paperId = (rows[0] as { id: string }).id;
 
-  // Delete old questions for this paper (re-process case)
-  await sql`DELETE FROM questions WHERE paper_id = ${paperId}`;
-
-  // Insert questions
-  for (const q of questions) {
-    // Find image description if this question is on an image page
-    const imageDesc = imageDescs.length > 0 ? imageDescs[0]?.desc : null;
-    await sql`
-      INSERT INTO questions (paper_id, question_number, question_text, marks, topic,
-                             has_image, image_desc, mark_scheme)
-      VALUES (${paperId}, ${q.question_number ?? null}, ${q.question_text}, ${q.marks ?? null},
-              ${q.topic ?? null}, ${!!imageDesc}, ${imageDesc ?? null}, ${q.mark_scheme ?? null})
-    `;
+  if (questions.length > 0) {
+    await withRetry(() => sql`DELETE FROM questions WHERE paper_id = ${paperId}`);
+    // Insert in batches of 20 to reduce round-trips
+    for (let i = 0; i < questions.length; i += 20) {
+      const batch = questions.slice(i, i + 20);
+      for (const q of batch) {
+        await withRetry(() => sql`
+          INSERT INTO questions (paper_id, question_number, question_text, marks, topic,
+                                 has_image, image_desc, mark_scheme)
+          VALUES (${paperId}, ${q.question_number ?? null}, ${q.question_text},
+                  ${q.marks ?? null}, ${q.topic ?? null}, false, null,
+                  ${q.mark_scheme ?? null})
+        `);
+      }
+    }
   }
 }
 
@@ -259,14 +332,21 @@ async function processPaper(
   sqlClient: ReturnType<typeof neon>,
   idx: number,
   total: number,
-  counters: { processed: number; skipped: number; errored: number }
+  counters: { processed: number; skipped: number; errored: number },
 ): Promise<void> {
   const tag   = `[${idx}/${total}]`;
-  const label = `${entry.country} › ${entry.exam_type} › ${entry.subject} › ${entry.file.name.slice(0, 40)}`;
+  const label = `${entry.country} › ${entry.exam_type} › ${entry.subject} › ${entry.file.name.slice(0, 35)}`;
 
   try {
+    // Skip only if already processed AND has questions extracted (unless --force)
     if (!DRY_RUN && !FORCE) {
-      const existing = await sqlClient`SELECT id FROM past_papers WHERE drive_file_id = ${entry.file.id} AND processed = true LIMIT 1`;
+      const existing = await withRetry(() => sqlClient`
+        SELECT id FROM past_papers
+        WHERE drive_file_id = ${entry.file.id}
+          AND processed = true
+          AND total_questions > 0
+        LIMIT 1
+      `);
       if (existing.length > 0) { counters.skipped++; return; }
     }
 
@@ -274,26 +354,40 @@ async function processPaper(
     const tmpFile = path.join(DOWNLOAD_DIR, `${entry.file.id}.pdf`);
     await downloadPDF(drive, entry.file.id, tmpFile);
 
-    const { fullText, pages } = await extractText(tmpFile);
+    // ── Text extraction: 3-tier ─────────────────────────────────────────────
+    let fullText = await extractTextLocal(tmpFile);
+    let usedOCR  = false;
+    let usedVision = false;
 
-    // Vision pass for image-heavy pages
-    const imageDescs: { page: number; desc: string }[] = [];
-    for (let i = 0; i < pages.length; i++) {
-      if ((pages[i] ?? '').trim().length < IMAGE_THRESHOLD) {
-        const desc = await visionAnalysePage(anthropic, tmpFile, i + 1);
-        if (desc) imageDescs.push({ page: i + 1, desc });
-      }
+    if (fullText.trim().length < TEXT_THRESHOLD) {
+      // Tier 2: Drive OCR
+      console.log(`${tag} 🔍 OCR (text too short: ${fullText.trim().length} chars)`);
+      fullText = await extractTextViaOCR(drive, entry.file.id);
+      usedOCR  = true;
     }
 
-    const questions = await extractQuestions(anthropic, fullText, entry.subject, entry.exam_type);
+    // ── Question extraction ─────────────────────────────────────────────────
+    let questions: ExtractedQuestion[];
+
+    if (fullText.trim().length >= TEXT_THRESHOLD) {
+      questions = await extractQuestions(anthropic, fullText, entry.subject, entry.exam_type);
+    } else {
+      // Tier 3: Claude Vision on the raw PDF bytes
+      console.log(`${tag} 👁  Vision fallback`);
+      questions = await extractQuestionsFromPDFVision(anthropic, tmpFile, entry.subject, entry.exam_type);
+      usedVision = true;
+    }
+
+    const hasImages = usedOCR || usedVision;
 
     if (!DRY_RUN) {
-      await saveToDB(sqlClient, entry, questions, imageDescs.length > 0, imageDescs);
+      await saveToDB(sqlClient, entry, questions, hasImages);
     }
 
     try { fs.unlinkSync(tmpFile); } catch { /* ignore */ }
 
-    console.log(`${tag} ✅  ${questions.length} questions | ${imageDescs.length} image pages`);
+    const method = usedVision ? '👁 vision' : usedOCR ? '🔍 ocr' : '📄 text';
+    console.log(`${tag} ✅  ${questions.length} questions | ${method}`);
     counters.processed++;
   } catch (err) {
     console.error(`${tag} ❌  ${label}: ${(err as Error).message}`);
@@ -311,9 +405,11 @@ async function runPool<T>(items: T[], concurrency: number, fn: (item: T, i: numb
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('\n📚 Educate Past Papers Processor');
+  console.log('\n📚 Educate Past Papers Processor  (3-tier extraction)');
   console.log('═'.repeat(55));
-  console.log(`   Concurrency: ${CONCURRENCY} | Limit: ${MAX_FILES} | Dry run: ${DRY_RUN}`);
+  console.log(`   Concurrency: ${CONCURRENCY} | Limit: ${MAX_FILES} | Dry run: ${DRY_RUN} | Force: ${FORCE}`);
+  console.log('   Extraction: pdf-parse → Drive OCR → Claude Vision');
+  console.log('   Skip logic: only skip papers with total_questions > 0');
   console.log('═'.repeat(55) + '\n');
 
   if (!process.env.DATABASE_URL)      throw new Error('DATABASE_URL not set');
@@ -337,12 +433,15 @@ async function main() {
 
   const secs    = Math.round((Date.now() - t0) / 1000);
   const perFile = counters.processed > 0 ? secs / counters.processed : 0;
-  const etaMins = perFile > 0 ? Math.round((all.length - counters.processed - counters.skipped) * perFile / CONCURRENCY / 60) : 0;
+  const remaining = all.length - counters.processed - counters.skipped;
+  const etaMins = perFile > 0 && remaining > 0
+    ? Math.round(remaining * perFile / CONCURRENCY / 60)
+    : 0;
 
   console.log('\n' + '═'.repeat(55));
   console.log(`✅  ${counters.processed} processed | ${counters.skipped} skipped | ${counters.errored} errors`);
   console.log(`⏱   ${secs}s elapsed | ${perFile.toFixed(1)}s per file`);
-  if (etaMins > 0) console.log(`📊  Full crawl ETA at ${CONCURRENCY}x: ~${etaMins}min (~${(etaMins/60).toFixed(1)}h)`);
+  if (etaMins > 0) console.log(`📊  Remaining ETA at ${CONCURRENCY}x: ~${etaMins}min (~${(etaMins / 60).toFixed(1)}h)`);
 }
 
 main().catch(err => { console.error('\n💥', err.message); process.exit(1); });
