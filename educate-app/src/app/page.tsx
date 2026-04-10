@@ -66,6 +66,7 @@ export default function HomePage() {
       .then(r => r.json())
       .then((profileData: { role?: string; org_id?: string | null }) => {
         const role = profileData.role ?? 'student';
+        console.log('[Educate] profile response:', JSON.stringify(profileData));
 
         if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
           setRedirecting(true);
