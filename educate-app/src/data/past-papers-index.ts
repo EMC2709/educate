@@ -457,4 +457,14 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
       ],
     },
   },
+
+  // ─── WELSH ───────────────────────────────────────────────────────────────────
+  // Welsh is a WJEC/Eduqas-exclusive subject. Past papers are available directly
+  // from WJEC — use the official link below to download.
+  'Welsh': {
+    WJEC: {
+      officialUrl: 'https://www.wjec.co.uk/qualifications/welsh-second-language/wjec-gcse-welsh-second-language.html',
+      papers: [],
+    },
+  },
 };

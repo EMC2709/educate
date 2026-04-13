@@ -26,6 +26,7 @@ import { musicBank } from './music';
 import { artDesignBank } from './art-design';
 import { chineseBank } from './chinese';
 import { graphicCommunicationBank } from './graphic-communication';
+import { welshBank } from './welsh';
 
 export const QUESTION_BANK: Record<string, SubjectBank> = {
   "Mathematics": mathematicsBank,
@@ -54,4 +55,5 @@ export const QUESTION_BANK: Record<string, SubjectBank> = {
   "Art & Design": artDesignBank,
   "Chinese": chineseBank,
   "Graphic Communication": graphicCommunicationBank,
+  "Welsh": welshBank,
 };

@@ -25,6 +25,7 @@ import { artDesignPastPaper } from './art-design';
 import { foodNutritionPastPaper } from './food-nutrition';
 import { designTechnologyPastPaper } from './design-technology';
 import { graphicCommunicationPastPaper } from './graphic-communication';
+import { welshPastPaper } from './welsh';
 
 export const PAST_PAPER_BANK: Record<string, Question[]> = {
   'English Literature': englishLiteraturePastPaper,
@@ -53,4 +54,5 @@ export const PAST_PAPER_BANK: Record<string, Question[]> = {
   'Food Preparation & Nutrition': foodNutritionPastPaper,
   'Design & Technology': designTechnologyPastPaper,
   'Graphic Communication': graphicCommunicationPastPaper,
+  'Welsh': welshPastPaper,
 };

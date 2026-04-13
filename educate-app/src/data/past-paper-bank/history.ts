@@ -3,7 +3,7 @@ import type { Question } from '@/types';
 export const historyPastPaper: Question[] = [
   {
     topic: "Weimar & Rise of Hitler",
-    question: "Explain why the Weimar Republic faced so many problems in the years 1919–1923.\n\nYou may use the following in your answer:\n• the Treaty of Versailles\n• hyperinflation\n\nYou must also use information of your own.\n\n```mermaid\nflowchart TD\n    A[Weimar Republic born\n1919 - associated with\nGermany's defeat] --> B[Treaty of Versailles\nWar guilt, reparations,\nterritory loss]\n    A --> C[Left-wing threat\nSpartacist Rising 1919]\n    A --> D[Right-wing threat\nKapp Putsch 1920]\n    B --> E[French occupy the Ruhr\n1923 - Germany defaults]\n    E --> F[Hyperinflation 1923\nGovernment prints money\nWheelbarrow of cash\ncannot buy bread]\n    C --> G[Republic survives\nbut badly weakened]\n    D --> G\n    F --> G\n```",
+    question: "Explain why the Weimar Republic faced so many problems in the years 1919–1923.\n\nYou may use the following in your answer:\n• the Treaty of Versailles\n• hyperinflation\n\nYou must also use information of your own.",
     answer: "The Weimar Republic faced problems from multiple directions. The 'stab in the back' myth damaged its legitimacy — many Germans blamed the Republic for accepting the humiliating Treaty of Versailles (war guilt, £6.6bn reparations, loss of territory). Political violence was endemic: the Spartacist Rising (1919) from the left, the Kapp Putsch (1920) from the right. The French occupation of the Ruhr (1923) triggered hyperinflation as the government printed money to pay striking workers — a wheelbarrow of cash couldn't buy bread. However, the Republic had some support and survived. Students should also add own knowledge: Munich Putsch (1923), political assassinations, lack of coalition stability.",
     marks: 16,
     hint: "Use the given stimulus points as a starting structure but make sure you add a third factor of your own. Explain the causes, don't just describe events.",
@@ -23,7 +23,7 @@ export const historyPastPaper: Question[] = [
     hint: "Give a specific feature and then explain why it was significant — don't just list facts.",
   },
   {
-    topic: "Weimar & Rise of Hitler",
+    topic: "Nazi Germany",
     question: "How far did the lives of people in Germany change between 1933 and 1939?\n\nExplain your answer.",
     answer: "Life changed significantly for many groups but the extent varied. Jewish Germans faced systematic persecution: Nuremberg Laws (1935) stripped citizenship, Kristallnacht (1938) destroyed businesses. Women were pushed back into domestic roles (Kinder, Küche, Kirche) — many welcomed this during the Depression. Young people were indoctrinated through the Hitler Youth and League of German Girls. Workers experienced reduced unemployment (from 6m to under 1m by 1938) through rearmament and public works but lost trade union rights. For some ordinary Germans who accepted Nazi ideology, life appeared stable and prosperous. The changes were profound but not uniform — some groups suffered catastrophically while others experienced relative prosperity.",
     marks: 16,
@@ -44,17 +44,52 @@ export const historyPastPaper: Question[] = [
     hint: "Show that the Cold War developed gradually — it wasn't a single cause. The ideological difference was always there; specific events triggered the open confrontation.",
   },
   {
-    topic: "Cold War",
+    topic: "Civil Rights USA",
     question: "How significant was Martin Luther King Jr's contribution to the Civil Rights Movement in the USA in the years 1955–1968?",
     answer: "King was enormously significant: his philosophy of non-violent direct action (influenced by Gandhi) gave the movement moral authority and international visibility. Key campaigns: Montgomery Bus Boycott (1955–56), Birmingham Campaign (1963), March on Washington 'I Have a Dream' (1963), Selma to Montgomery March (1965) — all led directly to legislative change (Civil Rights Act 1964, Voting Rights Act 1965). However, King was not the only factor: SNCC's grassroots organising, Rosa Parks's individual courage, the NAACP's legal work (Brown v Board 1954), media coverage of white violence, and President Johnson's political will were all crucial. Malcolm X's more radical challenge also made King appear a moderate acceptable to white liberals. King's contribution was central but not singular.",
     marks: 16,
     hint: "Acknowledge King's huge importance but then challenge with other factors. 'How significant' requires a comparative judgement.",
   },
   {
-    topic: "Weimar & Rise of Hitler",
+    topic: "Nazi Germany",
     question: "Describe two features of the Nazi propaganda methods used to control the German population in the 1930s.",
     answer: "Goebbels's Ministry of Propaganda used rallies and film to create a cult of Hitler — the Nuremberg Rallies were carefully staged spectacles using lighting, architecture and choreography to project power. The 1934 film 'Triumph of the Will' by Riefenstahl glorified Hitler as a messianic leader. Radio was also crucial: cheap 'People's Receivers' (Volksempfänger) were sold so the Nazi message could reach every home — by 1939 over 70% of households had one, ensuring Germans could not easily access foreign broadcasts.",
     marks: 4,
     hint: "Give specific examples with named evidence — actual rallies, films, or policies rather than general statements.",
+  },
+  {
+    topic: "World War One",
+    question: "Was the assassination of Archduke Franz Ferdinand the main cause of World War One? Explain your answer.",
+    answer: "The assassination on 28 June 1914 was the immediate trigger but not the main cause. Long-term causes (MAIN): Militarism — European powers had been in an arms race for decades; Anglo-German naval rivalry. Alliance systems — Triple Alliance (Germany, Austria-Hungary, Italy) vs Triple Entente (France, Russia, Britain) ensured a local conflict would escalate. Imperialism — colonial rivalries had caused crises (Morocco 1905, 1911). Nationalism — pan-Slavic nationalism in the Balkans threatened Austria-Hungary. The assassination activated these pre-existing tensions. A different incident might have had the same result. The assassination was the spark, but the gunpowder had been accumulating for decades.",
+    marks: 16,
+    hint: "Use MAIN for long-term causes. Explain why the assassination mattered but argue it was not the main cause. Reach a clear judgement.",
+  },
+  {
+    topic: "American West",
+    question: "Describe two features of the way of life of the Plains Indians before European settlement.",
+    answer: "The Plains Indians (e.g. Sioux, Cheyenne, Comanche) were nomadic hunters who followed the buffalo herds across the Great Plains. The buffalo provided everything: food, clothing, shelter (hides for tipis), tools (bones) and fuel (dried dung). Land was held communally — they believed the land could not be owned by individuals and was sacred. The tribal structure and system of warrior prestige (counting coup) were central to their society. Women had important roles in processing buffalo and moving camp. Spiritual beliefs connected closely to the natural world and ancestors.",
+    marks: 4,
+    hint: "Focus on the nomadic lifestyle, dependence on the buffalo, communal land ownership and spiritual beliefs",
+  },
+  {
+    topic: "Cold War",
+    question: "How effectively did the USA contain communism in the years 1947–1975? Explain your answer.",
+    answer: "Containment had mixed results. Successes: Truman Doctrine and Marshall Plan (1947) stabilised Western Europe. Berlin Airlift (1948–49) resisted Soviet pressure. Korea (1950–53) preserved a non-communist South Korea. NATO (1949) created a defensive Western alliance. Failures: China fell to Mao in 1949. Cuba became communist in 1959. Vietnam War (1965–75) ended in defeat — 58,000 US deaths, fall of Saigon 1975. Detente (1970s Nixon-Kissinger) acknowledged limits of containment through confrontation. Overall: containment preserved the European status quo but failed in Asia. Military intervention alone could not contain guerrilla movements with popular support.",
+    marks: 16,
+    hint: "Balance successes (Europe, Korea) against failures (China, Cuba, Vietnam). Assess the overall effectiveness with a clear judgement.",
+  },
+  {
+    topic: "Medicine Through Time",
+    question: "How significant was the work of Louis Pasteur in the development of medicine in the nineteenth century?",
+    answer: "Pasteur's development of germ theory (published 1861) was transformative. He proved through the swan-neck flask experiment that microorganisms in the air cause decay — overturning miasma theory. His work on fermentation and pasteurisation had immediate practical applications. He developed vaccines for chicken cholera (1880), anthrax (1881) and rabies (1885), building on Jenner's work by creating deliberate vaccines for specific diseases. Koch built on Pasteur's work to identify specific bacteria (TB 1882, cholera 1883). Germ theory enabled Lister's antiseptic surgery and eventually the development of antibiotics. Without Pasteur's foundational theoretical work, none of these advances would have been possible. However, practical benefits (penicillin) took until the 1940s to reach patients widely.",
+    marks: 16,
+    hint: "Explain germ theory and its direct significance. Connect to Lister, Koch, and later antibiotic development. Reach a judgement about how 'significant' — foundational but slow to yield practical results.",
+  },
+  {
+    topic: "Weimar & Rise of Hitler",
+    question: "Explain the main features of the Nazi state by 1934.",
+    answer: "By 1934, Hitler had established a totalitarian one-party state. The Reichstag Fire (February 1933) and Enabling Act (March 1933) gave Hitler dictatorial powers. All other political parties were banned by July 1933. Trade unions were abolished and replaced by the German Labour Front (DAF). The Night of the Long Knives (June 1934) eliminated rivals in the SA. When Hindenburg died in August 1934, Hitler merged Chancellor and President roles to become Führer. The SS under Himmler and the Gestapo (secret police) enforced conformity through fear. The press, radio and arts were controlled by Goebbels's Ministry of Propaganda. Germany was a police state with no free speech, free press or political opposition.",
+    marks: 8,
+    hint: "Cover: Enabling Act, ban on parties, Night of Long Knives, Hindenburg's death, SS/Gestapo, propaganda. Show how power was both gained and consolidated.",
   },
 ];
