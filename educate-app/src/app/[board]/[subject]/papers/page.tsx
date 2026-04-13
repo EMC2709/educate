@@ -201,9 +201,11 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                     {selectedYearPaper && (
                       <div className="flex flex-col gap-3">
                         <div className="flex flex-col sm:flex-row gap-3">
-                          {/* Question Paper — direct PDF from AQA filestore, or official board page */}
+                          {/* Question Paper — proxied through app for PDF, direct link for board pages */}
                           <a
-                            href={selectedYearPaper.qpUrl}
+                            href={selectedYearPaper.qpUrl.endsWith('.PDF')
+                              ? `/api/download-paper?url=${encodeURIComponent(selectedYearPaper.qpUrl)}`
+                              : selectedYearPaper.qpUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex-1 py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 no-underline flex items-center justify-center gap-2 border-2"
@@ -214,9 +216,11 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                             {selectedYearPaper.qpUrl.endsWith('.PDF') ? '⬋ Download Paper' : `⬋ Find Paper on ${boardName}`}
                           </a>
 
-                          {/* Mark Scheme — direct PDF or official board page */}
+                          {/* Mark Scheme — proxied through app for PDF, direct link for board pages */}
                           <a
-                            href={selectedYearPaper.msUrl}
+                            href={selectedYearPaper.msUrl.endsWith('.PDF')
+                              ? `/api/download-paper?url=${encodeURIComponent(selectedYearPaper.msUrl)}`
+                              : selectedYearPaper.msUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex-1 py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 no-underline flex items-center justify-center gap-2 border-2"
