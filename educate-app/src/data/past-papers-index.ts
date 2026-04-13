@@ -14,9 +14,10 @@ export interface PaperEntry {
   duration?: string;
   marks?: number;
   tiered?: boolean;           // Has Foundation/Higher variants
-  pmtSubject: string;         // PMT CDN subject key
-  pmtBoard: string;           // PMT CDN board key
-  pmtPaper: string;           // PMT CDN paper folder (without tier suffix)
+  pmtSubject: string;         // kept for reference only
+  pmtBoard: string;
+  pmtPaper: string;
+  aqaCode?: string;           // AQA filestore paper unit code e.g. "83001"
   years: string[];            // Available June years
   novemberYears?: string[];   // Available November years
 }
@@ -26,46 +27,50 @@ export interface BoardPastPapers {
   officialUrl: string;
 }
 
-// ── PMT URL Builder ──────────────────────────────────────────────────────────
+// ── AQA Filestore URL Builder ────────────────────────────────────────────────
+// AQA hosts past papers at filestore.aqa.org.uk with predictable filenames.
+// Pattern: /sample-papers-and-mark-schemes/{YYYY}/{month}/AQA-{code}{tier}-{type}-{MON}{yy}.PDF
 
-const PMT_BASE = 'https://pmt.physicsandmathstutor.com/download';
+const AQA_FILESTORE = 'https://filestore.aqa.org.uk/sample-papers-and-mark-schemes';
 
-export function buildPdfUrl(
-  pmtSubject: string,
-  pmtBoard: string,
-  pmtPaper: string,
-  type: 'QP' | 'MS',
-  session: string,
-  tier?: 'H' | 'F',
-): string {
-  // PMT CDN uses "Past Papers" (with space) and tier as " Higher" / " Foundation"
-  const tierLabel = tier === 'H' ? ' Higher' : tier === 'F' ? ' Foundation' : '';
-  const paperFolder = encodeURIComponent(`${pmtPaper}${tierLabel}`);
-  const filename = encodeURIComponent(`${session} ${type}.pdf`);
-  return `${PMT_BASE}/${pmtSubject}/GCSE/Past%20Papers/${pmtBoard}/${paperFolder}/${type}/${filename}`;
+function buildAqaUrl(code: string, tier: 'H' | 'F' | undefined, type: 'QP' | 'MS', session: string): string {
+  const [month, year] = session.split(' '); // "June 2023" → ["June", "2023"]
+  const yy = year.slice(2);                 // "23"
+  const monthLower = month.toLowerCase();   // "june"
+  const monthUpper = month.slice(0, 3).toUpperCase(); // "JUN"
+  const tierSuffix = tier ?? '';
+  return `${AQA_FILESTORE}/${year}/${monthLower}/AQA-${code}${tierSuffix}-${type}-${monthUpper}${yy}.PDF`;
 }
 
-/** Get all year papers for a paper entry */
-export function getYearPapers(paper: PaperEntry, tier?: 'H' | 'F'): YearPaper[] {
+/** Get all year papers for a paper entry.
+ *  @param officialUrl  Board's past-papers page — used as fallback when no direct PDF URL is available.
+ */
+export function getYearPapers(paper: PaperEntry, tier?: 'H' | 'F', officialUrl?: string): YearPaper[] {
   const result: YearPaper[] = [];
+
+  function makeUrls(session: string) {
+    if (paper.aqaCode) {
+      const t = paper.tiered ? tier : undefined;
+      return {
+        qpUrl: buildAqaUrl(paper.aqaCode, t, 'QP', session),
+        msUrl: buildAqaUrl(paper.aqaCode, t, 'MS', session),
+      };
+    }
+    // No direct PDF available — link to the board's official past papers page.
+    const fallback = officialUrl ?? '#';
+    return { qpUrl: fallback, msUrl: fallback };
+  }
+
   for (const y of paper.years) {
     const session = `June ${y}`;
-    result.push({
-      year: y,
-      session,
-      qpUrl: buildPdfUrl(paper.pmtSubject, paper.pmtBoard, paper.pmtPaper, 'QP', session, paper.tiered ? (tier ?? 'H') : undefined),
-      msUrl: buildPdfUrl(paper.pmtSubject, paper.pmtBoard, paper.pmtPaper, 'MS', session, paper.tiered ? (tier ?? 'H') : undefined),
-    });
+    const { qpUrl, msUrl } = makeUrls(session);
+    result.push({ year: y, session, qpUrl, msUrl });
   }
   if (paper.novemberYears) {
     for (const y of paper.novemberYears) {
       const session = `November ${y}`;
-      result.push({
-        year: `Nov ${y}`,
-        session,
-        qpUrl: buildPdfUrl(paper.pmtSubject, paper.pmtBoard, paper.pmtPaper, 'QP', session, paper.tiered ? (tier ?? 'H') : undefined),
-        msUrl: buildPdfUrl(paper.pmtSubject, paper.pmtBoard, paper.pmtPaper, 'MS', session, paper.tiered ? (tier ?? 'H') : undefined),
-      });
+      const { qpUrl, msUrl } = makeUrls(session);
+      result.push({ year: `Nov ${y}`, session, qpUrl, msUrl });
     }
   }
   return result;
@@ -91,9 +96,9 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: Non-Calculator', description: 'No calculator allowed. Covers all areas of the specification.', duration: '1hr 30min', marks: 80, tiered: true, pmtSubject: 'Maths', pmtBoard: 'AQA', pmtPaper: 'Paper 1', years: MATHS_YEARS, novemberYears: MATHS_NOV },
-        { number: 2, title: 'Paper 2: Calculator', description: 'Calculator allowed. Covers all areas of the specification.', duration: '1hr 30min', marks: 80, tiered: true, pmtSubject: 'Maths', pmtBoard: 'AQA', pmtPaper: 'Paper 2', years: MATHS_YEARS, novemberYears: MATHS_NOV },
-        { number: 3, title: 'Paper 3: Calculator', description: 'Calculator allowed. Covers all areas of the specification.', duration: '1hr 30min', marks: 80, tiered: true, pmtSubject: 'Maths', pmtBoard: 'AQA', pmtPaper: 'Paper 3', years: MATHS_YEARS, novemberYears: MATHS_NOV },
+        { number: 1, title: 'Paper 1: Non-Calculator', description: 'No calculator allowed. Covers all areas of the specification.', duration: '1hr 30min', marks: 80, tiered: true, pmtSubject: 'Maths', pmtBoard: 'AQA', pmtPaper: 'Paper 1', aqaCode: '83001', years: MATHS_YEARS, novemberYears: MATHS_NOV },
+        { number: 2, title: 'Paper 2: Calculator', description: 'Calculator allowed. Covers all areas of the specification.', duration: '1hr 30min', marks: 80, tiered: true, pmtSubject: 'Maths', pmtBoard: 'AQA', pmtPaper: 'Paper 2', aqaCode: '83002', years: MATHS_YEARS, novemberYears: MATHS_NOV },
+        { number: 3, title: 'Paper 3: Calculator', description: 'Calculator allowed. Covers all areas of the specification.', duration: '1hr 30min', marks: 80, tiered: true, pmtSubject: 'Maths', pmtBoard: 'AQA', pmtPaper: 'Paper 3', aqaCode: '83003', years: MATHS_YEARS, novemberYears: MATHS_NOV },
       ],
     },
     Edexcel: {
@@ -155,8 +160,8 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/science/gcse/biology-8461/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: Cell Biology, Organisation, Infection, Bioenergetics', description: 'Topics 1-4. Multiple choice, short and long answer questions.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Biology', pmtBoard: 'AQA', pmtPaper: 'Paper 1', years: SCI_YEARS },
-        { number: 2, title: 'Paper 2: Homeostasis, Inheritance, Ecology', description: 'Topics 5-7. Multiple choice, short and long answer questions.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Biology', pmtBoard: 'AQA', pmtPaper: 'Paper 2', years: SCI_YEARS },
+        { number: 1, title: 'Paper 1: Cell Biology, Organisation, Infection, Bioenergetics', description: 'Topics 1-4. Multiple choice, short and long answer questions.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Biology', pmtBoard: 'AQA', pmtPaper: 'Paper 1', aqaCode: '84611', years: SCI_YEARS },
+        { number: 2, title: 'Paper 2: Homeostasis, Inheritance, Ecology', description: 'Topics 5-7. Multiple choice, short and long answer questions.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Biology', pmtBoard: 'AQA', pmtPaper: 'Paper 2', aqaCode: '84612', years: SCI_YEARS },
       ],
     },
     Edexcel: {
@@ -173,8 +178,8 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/science/gcse/chemistry-8462/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: Atomic Structure, Bonding, Quantitative, Chemical Changes, Energy', description: 'Topics 1-5.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Chemistry', pmtBoard: 'AQA', pmtPaper: 'Paper 1', years: SCI_YEARS },
-        { number: 2, title: 'Paper 2: Rates, Organic, Analysis, Atmosphere, Resources', description: 'Topics 6-10.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Chemistry', pmtBoard: 'AQA', pmtPaper: 'Paper 2', years: SCI_YEARS },
+        { number: 1, title: 'Paper 1: Atomic Structure, Bonding, Quantitative, Chemical Changes, Energy', description: 'Topics 1-5.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Chemistry', pmtBoard: 'AQA', pmtPaper: 'Paper 1', aqaCode: '84621', years: SCI_YEARS },
+        { number: 2, title: 'Paper 2: Rates, Organic, Analysis, Atmosphere, Resources', description: 'Topics 6-10.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Chemistry', pmtBoard: 'AQA', pmtPaper: 'Paper 2', aqaCode: '84622', years: SCI_YEARS },
       ],
     },
     Edexcel: {
@@ -191,8 +196,8 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/science/gcse/physics-8463/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: Energy, Electricity, Particles, Atomic Structure', description: 'Topics 1-4.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Physics', pmtBoard: 'AQA', pmtPaper: 'Paper 1', years: SCI_YEARS },
-        { number: 2, title: 'Paper 2: Forces, Waves, Magnetism, Space', description: 'Topics 5-8.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Physics', pmtBoard: 'AQA', pmtPaper: 'Paper 2', years: SCI_YEARS },
+        { number: 1, title: 'Paper 1: Energy, Electricity, Particles, Atomic Structure', description: 'Topics 1-4.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Physics', pmtBoard: 'AQA', pmtPaper: 'Paper 1', aqaCode: '84631', years: SCI_YEARS },
+        { number: 2, title: 'Paper 2: Forces, Waves, Magnetism, Space', description: 'Topics 5-8.', duration: '1hr 45min', marks: 100, tiered: true, pmtSubject: 'Physics', pmtBoard: 'AQA', pmtPaper: 'Paper 2', aqaCode: '84632', years: SCI_YEARS },
       ],
     },
     Edexcel: {
@@ -289,8 +294,8 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/psychology/gcse/psychology-8182/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: Cognition and Behaviour', description: 'Memory, perception, development, research methods.', duration: '1hr 45min', marks: 100, pmtSubject: 'Psychology', pmtBoard: 'AQA', pmtPaper: 'Paper 1', years: OTHER_YEARS },
-        { number: 2, title: 'Paper 2: Social Context and Behaviour', description: 'Social influence, language, brain, psychological problems.', duration: '1hr 45min', marks: 100, pmtSubject: 'Psychology', pmtBoard: 'AQA', pmtPaper: 'Paper 2', years: OTHER_YEARS },
+        { number: 1, title: 'Paper 1: Cognition and Behaviour', description: 'Memory, perception, development, research methods.', duration: '1hr 45min', marks: 100, pmtSubject: 'Psychology', pmtBoard: 'AQA', pmtPaper: 'Paper 1', aqaCode: '81821', years: OTHER_YEARS },
+        { number: 2, title: 'Paper 2: Social Context and Behaviour', description: 'Social influence, language, brain, psychological problems.', duration: '1hr 45min', marks: 100, pmtSubject: 'Psychology', pmtBoard: 'AQA', pmtPaper: 'Paper 2', aqaCode: '81822', years: OTHER_YEARS },
       ],
     },
   },
@@ -311,8 +316,8 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/business/gcse/business-8132/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: Influences of Operations and HRM on Business Activity', description: 'Business in the real world, influences, operations, HRM.', duration: '1hr 45min', marks: 90, pmtSubject: 'Business-Studies', pmtBoard: 'AQA', pmtPaper: 'Paper 1', years: OTHER_YEARS },
-        { number: 2, title: 'Paper 2: Influences of Marketing and Finance on Business Activity', description: 'Marketing, finance, external influences.', duration: '1hr 45min', marks: 90, pmtSubject: 'Business-Studies', pmtBoard: 'AQA', pmtPaper: 'Paper 2', years: OTHER_YEARS },
+        { number: 1, title: 'Paper 1: Influences of Operations and HRM on Business Activity', description: 'Business in the real world, influences, operations, HRM.', duration: '1hr 45min', marks: 90, pmtSubject: 'Business-Studies', pmtBoard: 'AQA', pmtPaper: 'Paper 1', aqaCode: '81321', years: OTHER_YEARS },
+        { number: 2, title: 'Paper 2: Influences of Marketing and Finance on Business Activity', description: 'Marketing, finance, external influences.', duration: '1hr 45min', marks: 90, pmtSubject: 'Business-Studies', pmtBoard: 'AQA', pmtPaper: 'Paper 2', aqaCode: '81322', years: OTHER_YEARS },
       ],
     },
     Edexcel: {
@@ -329,8 +334,8 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/economics/gcse/economics-8136/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: How Markets Work', description: 'Economic foundations, markets, market failure.', duration: '1hr 45min', marks: 80, pmtSubject: 'Economics', pmtBoard: 'AQA', pmtPaper: 'Paper 1', years: OTHER_YEARS },
-        { number: 2, title: 'Paper 2: How the Economy Works', description: 'UK economy, international trade, macro policy.', duration: '1hr 45min', marks: 80, pmtSubject: 'Economics', pmtBoard: 'AQA', pmtPaper: 'Paper 2', years: OTHER_YEARS },
+        { number: 1, title: 'Paper 1: How Markets Work', description: 'Economic foundations, markets, market failure.', duration: '1hr 45min', marks: 80, pmtSubject: 'Economics', pmtBoard: 'AQA', pmtPaper: 'Paper 1', aqaCode: '81361', years: OTHER_YEARS },
+        { number: 2, title: 'Paper 2: How the Economy Works', description: 'UK economy, international trade, macro policy.', duration: '1hr 45min', marks: 80, pmtSubject: 'Economics', pmtBoard: 'AQA', pmtPaper: 'Paper 2', aqaCode: '81362', years: OTHER_YEARS },
       ],
     },
   },
@@ -360,8 +365,8 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/physical-education/gcse/physical-education-8582/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: The Human Body and Movement in Physical Activity', description: 'Applied anatomy, movement analysis, physical training, sports psychology.', duration: '1hr 15min', marks: 78, pmtSubject: 'Physical-Education', pmtBoard: 'AQA', pmtPaper: 'Paper 1', years: OTHER_YEARS },
-        { number: 2, title: 'Paper 2: Socio-cultural Influences and Well-being', description: 'Socio-cultural influences, health, fitness, well-being.', duration: '1hr 15min', marks: 78, pmtSubject: 'Physical-Education', pmtBoard: 'AQA', pmtPaper: 'Paper 2', years: OTHER_YEARS },
+        { number: 1, title: 'Paper 1: The Human Body and Movement in Physical Activity', description: 'Applied anatomy, movement analysis, physical training, sports psychology.', duration: '1hr 15min', marks: 78, pmtSubject: 'Physical-Education', pmtBoard: 'AQA', pmtPaper: 'Paper 1', aqaCode: '85821', years: OTHER_YEARS },
+        { number: 2, title: 'Paper 2: Socio-cultural Influences and Well-being', description: 'Socio-cultural influences, health, fitness, well-being.', duration: '1hr 15min', marks: 78, pmtSubject: 'Physical-Education', pmtBoard: 'AQA', pmtPaper: 'Paper 2', aqaCode: '85822', years: OTHER_YEARS },
       ],
     },
     Edexcel: {
