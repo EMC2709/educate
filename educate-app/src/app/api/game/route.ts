@@ -1,23 +1,81 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
-export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+async function ensureTables() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS game_sessions (
+      id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      room_code     text UNIQUE NOT NULL,
+      game_type     text NOT NULL DEFAULT 'tic-tac-toe',
+      player_x      text NOT NULL,
+      player_x_name text NOT NULL DEFAULT 'Player X',
+      player_o      text,
+      player_o_name text,
+      board_state   jsonb NOT NULL DEFAULT '["","","","","","","","",""]',
+      current_turn  text NOT NULL DEFAULT 'X',
+      winner        text,
+      subject       text NOT NULL,
+      status        text NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting','active','finished')),
+      created_at    timestamptz NOT NULL DEFAULT now(),
+      updated_at    timestamptz NOT NULL DEFAULT now()
+    )
+  `;
+}
 
-  const { subject, opponentId } = await req.json();
+function generateRoomCode(uuid: string): string {
+  // Take first 6 chars of UUID (hex digits), uppercase them
+  return uuid.replace(/-/g, '').slice(0, 6).toUpperCase();
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    await ensureTables();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    if (msg.includes('DATABASE_URL')) {
+      return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+
+  let body: { subject?: string; playerName?: string; playerId?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const { subject, playerName, playerId } = body;
   if (!subject) return NextResponse.json({ error: 'subject required' }, { status: 400 });
+  if (!playerId) return NextResponse.json({ error: 'playerId required' }, { status: 400 });
+
+  const hostName = playerName?.trim() || 'Player X';
 
   try {
+    // Generate a temporary UUID to derive room code from, then insert with that code
+    const tempIdRows = await sql`SELECT gen_random_uuid()::text AS id`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tempId = ((tempIdRows as any[])[0] as { id: string }).id;
+    const roomCode = generateRoomCode(tempId);
+
     const rows = await sql`
-      INSERT INTO game_sessions (game_type, player_x, player_o, subject, status, board_state, current_turn)
-      VALUES ('tic-tac-toe', ${userId}, ${opponentId || null}, ${subject},
-              ${opponentId ? 'active' : 'waiting'},
-              ${JSON.stringify(['', '', '', '', '', '', '', '', ''])}, 'X')
-      RETURNING id
+      INSERT INTO game_sessions (room_code, game_type, player_x, player_x_name, subject, status, board_state, current_turn)
+      VALUES (
+        ${roomCode},
+        'tic-tac-toe',
+        ${playerId},
+        ${hostName},
+        ${subject},
+        'waiting',
+        ${JSON.stringify(['', '', '', '', '', '', '', '', ''])}::jsonb,
+        'X'
+      )
+      RETURNING id, room_code
     `;
-    return NextResponse.json({ gameId: (rows[0] as { id: string }).id });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row = (rows as any[])[0] as { id: string; room_code: string };
+    return NextResponse.json({ gameId: row.id, roomCode: row.room_code });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });
@@ -25,32 +83,124 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  try {
+    await ensureTables();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    if (msg.includes('DATABASE_URL')) {
+      return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   const gameId = req.nextUrl.searchParams.get('id');
-  if (!gameId) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  const roomCode = req.nextUrl.searchParams.get('code');
 
-  const rows = await sql`SELECT * FROM game_sessions WHERE id = ${gameId}`;
-  if (rows.length === 0) return NextResponse.json({ error: 'Game not found' }, { status: 404 });
-  return NextResponse.json(rows[0]);
+  if (!gameId && !roomCode) {
+    return NextResponse.json({ error: 'id or code required' }, { status: 400 });
+  }
+
+  try {
+    let rows;
+    if (gameId) {
+      rows = await sql`SELECT * FROM game_sessions WHERE id = ${gameId}`;
+    } else {
+      rows = await sql`SELECT * FROM game_sessions WHERE room_code = ${roomCode!.toUpperCase()}`;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rowArr = rows as any[];
+    if (rowArr.length === 0) return NextResponse.json({ error: 'Game not found' }, { status: 404 });
+    return NextResponse.json(rowArr[0]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  try {
+    await ensureTables();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    if (msg.includes('DATABASE_URL')) {
+      return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
-  const { gameId, boardState, currentTurn, winner, status } = await req.json();
+  let body: { gameId?: string; boardState?: string[]; currentTurn?: string; winner?: string | null; status?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
 
-  await sql`
-    UPDATE game_sessions
-    SET board_state = ${JSON.stringify(boardState)},
-        current_turn = ${currentTurn},
-        winner = ${winner || null},
-        status = ${status || 'active'},
-        updated_at = now()
-    WHERE id = ${gameId}
-  `;
+  const { gameId, boardState, currentTurn, winner, status } = body;
+  if (!gameId) return NextResponse.json({ error: 'gameId required' }, { status: 400 });
 
-  return NextResponse.json({ ok: true });
+  try {
+    await sql`
+      UPDATE game_sessions
+      SET board_state   = ${JSON.stringify(boardState)}::jsonb,
+          current_turn  = ${currentTurn ?? 'X'},
+          winner        = ${winner ?? null},
+          status        = ${status ?? 'active'},
+          updated_at    = now()
+      WHERE id = ${gameId}
+    `;
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    await ensureTables();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    if (msg.includes('DATABASE_URL')) {
+      return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 503 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+
+  let body: { roomCode?: string; playerName?: string; playerId?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const { roomCode, playerName, playerId } = body;
+  if (!roomCode) return NextResponse.json({ error: 'roomCode required' }, { status: 400 });
+  if (!playerId) return NextResponse.json({ error: 'playerId required' }, { status: 400 });
+
+  const joinerName = playerName?.trim() || 'Player O';
+
+  try {
+    const rows = await sql`
+      UPDATE game_sessions
+      SET player_o      = ${playerId},
+          player_o_name = ${joinerName},
+          status        = 'active',
+          updated_at    = now()
+      WHERE room_code = ${roomCode.toUpperCase()}
+        AND status    = 'waiting'
+      RETURNING *
+    `;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rowArr = rows as any[];
+    if (rowArr.length === 0) {
+      return NextResponse.json({ error: 'Game not found or already started' }, { status: 404 });
+    }
+
+    return NextResponse.json(rowArr[0]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
