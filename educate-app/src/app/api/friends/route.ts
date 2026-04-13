@@ -3,11 +3,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { ensureProfile } from '@/lib/xp';
 
+/** Create tables if they don't exist yet (idempotent, safe to call every request). */
+async function ensureTables() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS profiles (
+      user_id      text PRIMARY KEY,
+      display_name text NOT NULL DEFAULT 'Student',
+      avatar_url   text,
+      xp           integer NOT NULL DEFAULT 0,
+      level        integer NOT NULL DEFAULT 1,
+      created_at   timestamptz NOT NULL DEFAULT now(),
+      updated_at   timestamptz NOT NULL DEFAULT now()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS friendships (
+      id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      requester_id text NOT NULL,
+      addressee_id text NOT NULL,
+      status       text NOT NULL DEFAULT 'pending'
+                   CHECK (status IN ('pending','accepted','declined')),
+      created_at   timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (requester_id, addressee_id)
+    )
+  `;
+}
+
 export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
   try {
+    await ensureTables();
     await ensureProfile(userId);
 
     const friendships = await sql`
@@ -65,6 +92,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    await ensureTables();
+    await ensureProfile(userId);
+
     const matches = await sql`
       SELECT user_id, display_name FROM profiles
       WHERE user_id = ${friendCode} OR display_name ILIKE ${friendCode} LIMIT 1
@@ -78,12 +108,14 @@ export async function POST(req: NextRequest) {
         const users = await client.users.getUserList({ emailAddress: [friendCode] });
         if (users.data.length > 0) {
           targetUserId = users.data[0].id;
-          await ensureProfile(targetUserId, users.data[0].fullName || 'Student');
+          await ensureProfile(targetUserId, users.data[0].fullName ?? users.data[0].emailAddresses?.[0]?.emailAddress ?? 'Student');
         }
-      } catch { /* ignore */ }
+      } catch (clerkErr) {
+        console.error('[friends] Clerk lookup failed:', clerkErr);
+      }
     }
 
-    if (!targetUserId) return NextResponse.json({ error: 'User not found. Try their email address.' }, { status: 404 });
+    if (!targetUserId) return NextResponse.json({ error: 'No account found with that email. Ask them to sign in to Educate first, then try again.' }, { status: 404 });
     if (targetUserId === userId) return NextResponse.json({ error: "You can't add yourself!" }, { status: 400 });
 
     const existing = await sql`
@@ -115,6 +147,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'friendshipId and action (accept/decline) required' }, { status: 400 });
   }
 
+  await ensureTables();
   const newStatus = action === 'accept' ? 'accepted' : 'declined';
   await sql`UPDATE friendships SET status = ${newStatus} WHERE id = ${friendshipId} AND addressee_id = ${userId}`;
   return NextResponse.json({ ok: true });
