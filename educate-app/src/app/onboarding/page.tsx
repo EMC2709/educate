@@ -46,6 +46,8 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState(0);
   const [displayName, setDisplayName] = useState(user?.firstName ?? '');
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   const [selectedBoard, setSelectedBoard] = useState<string>('');
   const [selected, setSelected] = useState<SelectedSubject[]>([]);
   const [saving, setSaving] = useState(false);
@@ -65,7 +67,9 @@ export default function OnboardingPage() {
         try {
           const rawSubs = localStorage.getItem('educate-user-subjects');
           const rawName = localStorage.getItem('educate-display-name');
+          const rawUsername = localStorage.getItem('educate-username');
           if (rawName) setDisplayName(rawName);
+          if (rawUsername) setUsername(rawUsername);
           if (rawSubs) {
             const subs: SelectedSubject[] = JSON.parse(rawSubs);
             if (Array.isArray(subs) && subs.length > 0) {
@@ -82,7 +86,9 @@ export default function OnboardingPage() {
         try {
           const rawSubs = localStorage.getItem('educate-user-subjects');
           const rawName = localStorage.getItem('educate-display-name');
+          const rawUsername = localStorage.getItem('educate-username');
           if (rawName) setDisplayName(rawName);
+          if (rawUsername) setUsername(rawUsername);
           if (rawSubs) {
             const subs: SelectedSubject[] = JSON.parse(rawSubs);
             if (Array.isArray(subs) && subs.length > 0) {
@@ -113,6 +119,18 @@ export default function OnboardingPage() {
     return selected.some(s => s.subject === subject && s.board === selectedBoard);
   }
 
+  function validateUsername(val: string) {
+    if (!val.trim()) return 'Username is required';
+    if (val.trim().length < 3) return 'At least 3 characters';
+    if (val.trim().length > 20) return 'Max 20 characters';
+    if (!/^[a-zA-Z0-9_]+$/.test(val.trim())) return 'Letters, numbers, and _ only';
+    return '';
+  }
+
+  function canProceedStep0() {
+    return displayName.trim().length > 0 && !validateUsername(username);
+  }
+
   async function finish() {
     if (selected.length === 0) return;
     setSaving(true);
@@ -122,12 +140,16 @@ export default function OnboardingPage() {
       if (displayName.trim()) {
         localStorage.setItem('educate-display-name', displayName.trim());
       }
+      if (username.trim()) {
+        localStorage.setItem('educate-username', username.trim());
+      }
 
       // Also try saving to Supabase (may fail if table doesn't exist yet)
+      // Use username as the public display name for leaderboard/friends
       await fetch('/api/user-subjects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName: displayName.trim() || undefined, subjects: selected }),
+        body: JSON.stringify({ displayName: username.trim() || displayName.trim() || undefined, subjects: selected }),
       });
 
       router.push('/');
@@ -157,27 +179,62 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 0: Name */}
+        {/* Step 0: Name + Username */}
         {step === 0 && (
           <div className="text-center">
             <div className="text-5xl mb-4">{'\u{1F44B}'}</div>
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome to Educate</h1>
-            <p className="text-neutral-400 text-sm mb-8">Let&apos;s get you set up. What should we call you?</p>
-            <input
-              type="text"
-              value={displayName}
-              onChange={e => setDisplayName(e.target.value)}
-              placeholder="Your name"
-              maxLength={30}
-              className="w-full bg-neutral-900 border-2 border-neutral-700 rounded-xl px-4 py-3 text-white text-center text-lg focus:outline-none focus:border-indigo-500 transition-colors"
-              autoFocus
-              onKeyDown={e => { if (e.key === 'Enter' && displayName.trim()) setStep(1); }}
-            />
+            <p className="text-neutral-400 text-sm mb-8">Let&apos;s get you set up.</p>
+
+            <div className="space-y-4 text-left">
+              <div>
+                <label className="text-xs font-semibold text-neutral-400 block mb-1.5 ml-1">Your name</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  placeholder="e.g. Alex"
+                  maxLength={30}
+                  className="w-full bg-neutral-900 border-2 border-neutral-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-neutral-400 block mb-1.5 ml-1">
+                  Username <span className="text-neutral-600 font-normal">(shown on leaderboard &amp; friend requests)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 text-sm select-none">@</span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => {
+                      setUsername(e.target.value);
+                      setUsernameError(validateUsername(e.target.value));
+                    }}
+                    onBlur={() => setUsernameError(validateUsername(username))}
+                    placeholder="coolstudent99"
+                    maxLength={20}
+                    className="w-full bg-neutral-900 border-2 rounded-xl pl-8 pr-4 py-3 text-white text-sm focus:outline-none transition-colors"
+                    style={{ borderColor: usernameError ? '#ef4444' : username && !usernameError ? '#22c55e' : '#404040' }}
+                    onKeyDown={e => { if (e.key === 'Enter' && canProceedStep0()) setStep(1); }}
+                  />
+                </div>
+                {usernameError && username && (
+                  <p className="text-red-400 text-xs mt-1 ml-1">{usernameError}</p>
+                )}
+                {!usernameError && username.trim().length >= 3 && (
+                  <p className="text-green-400 text-xs mt-1 ml-1">Looks good!</p>
+                )}
+              </div>
+            </div>
+
             <button
               onClick={() => setStep(1)}
-              disabled={!displayName.trim()}
+              disabled={!canProceedStep0()}
               className="mt-6 w-full py-3 rounded-xl font-semibold text-white transition-all duration-150 border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: displayName.trim() ? '#6366f1' : '#333' }}
+              style={{ backgroundColor: canProceedStep0() ? '#6366f1' : '#333' }}
             >
               Continue
             </button>
