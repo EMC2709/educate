@@ -201,9 +201,9 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                     {selectedYearPaper && (
                       <div className="flex flex-col gap-3">
                         <div className="flex flex-col sm:flex-row gap-3">
-                          {/* Download Question Paper — opens official board resources */}
+                          {/* Download Question Paper — proxied from PMT CDN */}
                           <a
-                            href={officialUrl ?? selectedYearPaper.qpUrl}
+                            href={`/api/download-paper?url=${encodeURIComponent(selectedYearPaper.qpUrl)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex-1 py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 no-underline flex items-center justify-center gap-2 border-2"
@@ -214,9 +214,9 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                             &#11123; Download Paper
                           </a>
 
-                          {/* Download Mark Scheme — opens official board resources */}
+                          {/* Download Mark Scheme — proxied from PMT CDN */}
                           <a
-                            href={officialUrl ?? selectedYearPaper.msUrl}
+                            href={`/api/download-paper?url=${encodeURIComponent(selectedYearPaper.msUrl)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex-1 py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 no-underline flex items-center justify-center gap-2 border-2"
