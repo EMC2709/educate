@@ -3,11 +3,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { ensureProfile } from '@/lib/xp';
 
+async function ensureTables() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_subjects (
+      id         SERIAL PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      subject    TEXT NOT NULL,
+      board      TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE (user_id, subject, board)
+    )
+  `;
+}
+
 export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
   try {
+    await ensureTables();
     const rows = await sql`
       SELECT subject, board FROM user_subjects
       WHERE user_id = ${userId} ORDER BY created_at ASC
@@ -32,6 +46,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    await ensureTables();
+
     if (displayName && typeof displayName === 'string') {
       await ensureProfile(userId);
       await sql`

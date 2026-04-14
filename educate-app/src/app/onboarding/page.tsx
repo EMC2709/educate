@@ -53,8 +53,35 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // On mount: teachers go straight to their dashboard; for students hydrate from localStorage.
+  // On mount: teachers go straight to their dashboard; students with existing setup go home.
   useEffect(() => {
+    // Read ?edit=true from the URL without useSearchParams (avoids Suspense requirement)
+    const isEditMode = new URLSearchParams(window.location.search).get('edit') === 'true';
+
+    function hydrateFromStorage(skipHomeRedirect = false) {
+      try {
+        const rawSubs = localStorage.getItem('educate-user-subjects');
+        const rawName = localStorage.getItem('educate-display-name');
+        const rawUsername = localStorage.getItem('educate-username');
+        if (rawName) setDisplayName(rawName);
+        if (rawUsername) setUsername(rawUsername);
+        if (rawSubs) {
+          const subs: SelectedSubject[] = JSON.parse(rawSubs);
+          if (Array.isArray(subs) && subs.length > 0) {
+            if (!isEditMode && !skipHomeRedirect) {
+              // Already set up — send straight to the app
+              router.replace('/');
+              return;
+            }
+            setSelected(subs);
+            setSelectedBoard(subs[0].board);
+            setIsEditMode(true);
+            setStep(2);
+          }
+        }
+      } catch {}
+    }
+
     fetch('/api/profile')
       .then(r => r.json())
       .then((d: { role?: string }) => {
@@ -63,43 +90,9 @@ export default function OnboardingPage() {
           router.replace('/teacher');
           return;
         }
-        // Hydrate subjects for student
-        try {
-          const rawSubs = localStorage.getItem('educate-user-subjects');
-          const rawName = localStorage.getItem('educate-display-name');
-          const rawUsername = localStorage.getItem('educate-username');
-          if (rawName) setDisplayName(rawName);
-          if (rawUsername) setUsername(rawUsername);
-          if (rawSubs) {
-            const subs: SelectedSubject[] = JSON.parse(rawSubs);
-            if (Array.isArray(subs) && subs.length > 0) {
-              setSelected(subs);
-              setSelectedBoard(subs[0].board);
-              setIsEditMode(true);
-              setStep(2);
-            }
-          }
-        } catch {}
+        hydrateFromStorage();
       })
-      .catch(() => {
-        // fallback: try localStorage
-        try {
-          const rawSubs = localStorage.getItem('educate-user-subjects');
-          const rawName = localStorage.getItem('educate-display-name');
-          const rawUsername = localStorage.getItem('educate-username');
-          if (rawName) setDisplayName(rawName);
-          if (rawUsername) setUsername(rawUsername);
-          if (rawSubs) {
-            const subs: SelectedSubject[] = JSON.parse(rawSubs);
-            if (Array.isArray(subs) && subs.length > 0) {
-              setSelected(subs);
-              setSelectedBoard(subs[0].board);
-              setIsEditMode(true);
-              setStep(2);
-            }
-          }
-        } catch {}
-      });
+      .catch(() => hydrateFromStorage());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

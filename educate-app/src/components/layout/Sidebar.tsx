@@ -286,7 +286,7 @@ export function Sidebar() {
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
               <div className="absolute bottom-full left-3 right-3 mb-1 z-50 bg-neutral-800 border border-neutral-700 rounded-xl shadow-lg overflow-hidden">
                 <Link
-                  href="/onboarding"
+                  href="/onboarding?edit=true"
                   onClick={() => setMenuOpen(false)}
                   className="block px-4 py-2.5 text-sm text-neutral-300 no-underline hover:bg-neutral-700 transition-colors"
                 >
