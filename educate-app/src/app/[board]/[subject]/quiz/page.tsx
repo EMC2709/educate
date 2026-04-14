@@ -21,6 +21,7 @@ import { useUser } from '@clerk/nextjs';
 import { useChat } from '@/context/ChatContext';
 import { shuffle } from '@/lib/shuffle';
 import { getBankQuestionsForSelection, getBankCardsForSelection } from '@/lib/question-helpers';
+import { checkAchievements, type Achievement } from '@/lib/achievements';
 import type { Question, Flashcard, FeedbackResult, QuestionType } from '@/types';
 
 export default function QuizPage({
@@ -53,6 +54,7 @@ export default function QuizPage({
   const [loadingSource, setLoadingSource] = useState<string | null>(null);
   const resultSavedRef = useRef(false);
   const [xpToast, setXpToast] = useState<{ xp: number; levelUp?: boolean } | null>(null);
+  const [achievementToast, setAchievementToast] = useState<Achievement | null>(null);
   const totalMarksAwarded = useRef(0);
 
   if (!board || !board.subjects.includes(subject) || !qTypeCfg) notFound();
@@ -210,6 +212,15 @@ export default function QuizPage({
       setScore(newScore);
       totalMarksAwarded.current += (parsed.marksAwarded ?? (parsed.correct ? q.marks : 0));
 
+      // Check time-based achievements on every answer
+      if (isSignedIn) {
+        const timeBased = checkAchievements({});
+        if (timeBased.length > 0) {
+          setAchievementToast(timeBased[0]);
+          setTimeout(() => setAchievementToast(null), 4000);
+        }
+      }
+
       // Show XP toast for marks earned this question
       if (isSignedIn && parsed.marksAwarded > 0) {
         const xpRates: Record<string, number> = { 'past-paper': 10, long: 8, mid: 6, short: 5 };
@@ -223,6 +234,8 @@ export default function QuizPage({
       // Save result when quiz is complete (last question answered)
       if (currentQ === questions.length - 1 && isSignedIn && !resultSavedRef.current) {
         resultSavedRef.current = true;
+        const isPerfect = newScore.total > 0 && newScore.correct === newScore.total;
+
         fetch('/api/save-result', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -232,12 +245,31 @@ export default function QuizPage({
             scoreTotal: newScore.total,
             marksAwarded: totalMarksAwarded.current,
           }),
-        }).then(r => r.json()).then(data => {
-          if (data.xpResult?.leveledUp) {
-            setXpToast({ xp: data.xpGained, levelUp: true });
-            setTimeout(() => setXpToast(null), 4000);
-          }
-        }).catch(console.error);
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data.xpResult?.leveledUp) {
+              setXpToast({ xp: data.xpGained, levelUp: true });
+              setTimeout(() => setXpToast(null), 4000);
+            }
+            // Check achievements using fresh DB stats
+            return fetch('/api/achievements').then(r => r.json());
+          })
+          .then((stats: { quizCount: number; perfectCount: number; xp: number; streak: number }) => {
+            // Also factor in time-based and local checks
+            const newlyUnlocked = checkAchievements({
+              quizCount: stats.quizCount,
+              perfectCount: stats.perfectCount + (isPerfect ? 0 : 0), // DB already counted this quiz
+              xp: stats.xp,
+              streak: stats.streak,
+            });
+            // Show the first newly unlocked achievement as a toast
+            if (newlyUnlocked.length > 0) {
+              setAchievementToast(newlyUnlocked[0]);
+              setTimeout(() => setAchievementToast(null), 4000);
+            }
+          })
+          .catch(console.error);
       }
     } catch {
       setFeedback({ correct: false, feedback: 'Could not assess. Try again.', modelAnswer: q.answer, marksAwarded: 0 });
@@ -351,6 +383,27 @@ export default function QuizPage({
           </div>
         </div>
       )}
+
+      {/* Achievement Toast */}
+      {achievementToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]" style={{ animation: 'slideUp 0.4s ease' }}>
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[260px]">
+            <span className="text-3xl">{achievementToast.icon}</span>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-200 m-0">Achievement Unlocked</p>
+              <p className="text-sm font-bold m-0">{achievementToast.title}</p>
+              <p className="text-xs text-indigo-200 m-0">{achievementToast.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
