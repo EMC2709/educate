@@ -59,43 +59,29 @@ function ConvertModal({
   async function generate() {
     setLoading(true);
     setError('');
-    const prompt = mode === 'flashcards'
-      ? `Based on these revision notes about "${note.title}" (${note.subject}), generate exactly 8 flashcards as JSON.\n\nNotes:\n${note.content}\n\nReturn ONLY a JSON array like:\n[{"front":"Term or question","back":"Definition or answer"},...]`
-      : `Based on these revision notes about "${note.title}" (${note.subject}), generate 5 exam-style questions as JSON.\n\nNotes:\n${note.content}\n\nReturn ONLY a JSON array like:\n[{"question":"...","marks":3,"answer":"Model answer..."},...]`;
-
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/generate-study-tools', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ id: 'gen', role: 'user', parts: [{ type: 'text', text: prompt }] }],
+          mode,
+          title: note.title,
           subject: note.subject,
-          board: note.board,
+          content: note.content,
         }),
       });
-      if (!res.ok) throw new Error('API error');
-
-      // Read the AI SDK stream
-      const text = await res.text();
-      let combined = '';
-      for (const line of text.split('\n')) {
-        if (line.startsWith('0:"')) {
-          try { combined += JSON.parse(line.slice(2)); } catch {}
-        } else if (line.startsWith('0:')) {
-          try { combined += JSON.parse(line.slice(2)); } catch {}
-        }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error ?? 'API error');
       }
+      const { items } = await res.json() as { items: unknown[] };
+      if (!Array.isArray(items) || items.length === 0) throw new Error('Empty result');
 
-      // Extract JSON array from response
-      const match = combined.match(/\[[\s\S]*\]/);
-      if (!match) throw new Error('No JSON found');
-      const parsed = JSON.parse(match[0]);
-      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Empty result');
-
-      if (mode === 'flashcards') setFlashcards(parsed as Flashcard[]);
-      else setQuestions(parsed as CustomQuestion[]);
-    } catch {
-      setError('Could not generate — make sure you are signed in.');
+      if (mode === 'flashcards') setFlashcards(items as Flashcard[]);
+      else setQuestions(items as CustomQuestion[]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg.includes('Sign in') ? msg : 'Could not generate — make sure you are signed in.');
     }
     setLoading(false);
   }
