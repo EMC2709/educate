@@ -7,6 +7,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { getLevelTitle } from '@/lib/xp-client';
 import { getRank } from '@/lib/ranks';
 import { getBanner } from '@/lib/banners';
+import { RankEmblem } from '@/components/ui/RankEmblem';
 
 interface LeaderboardEntry {
   user_id: string;
@@ -145,10 +146,10 @@ export default function LeaderboardPage() {
                     </p>
                   </div>
 
-                  {/* Rank badge */}
-                  <div className="flex flex-col items-center shrink-0 min-w-[56px]">
-                    <span className="text-lg leading-none">{rank.icon}</span>
-                    <span className="text-[9px] font-bold mt-0.5" style={{ color: rank.color }}>
+                  {/* Rank emblem */}
+                  <div className="flex flex-col items-center shrink-0 min-w-[52px] gap-0.5">
+                    <RankEmblem rank={rank} size={38} uid={i} />
+                    <span className="text-[8px] font-bold leading-none" style={{ color: rank.color }}>
                       {rank.label}
                     </span>
                   </div>

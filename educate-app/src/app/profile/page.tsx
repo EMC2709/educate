@@ -8,6 +8,7 @@ import { getLevelTitle, levelProgress } from '@/lib/xp-client';
 import { getRank } from '@/lib/ranks';
 import { getBanner, RARITY_COLORS } from '@/lib/banners';
 import { getStreakData } from '@/lib/streak';
+import { RankEmblem } from '@/components/ui/RankEmblem';
 
 interface Profile {
   userId: string;
@@ -150,37 +151,39 @@ export default function ProfilePage() {
             className="rounded-2xl p-6 border"
             style={{ backgroundColor: '#111', borderColor: `${rank.color}40`, boxShadow: rank.glowColor ? `0 4px 32px ${rank.glowColor}` : undefined }}
           >
-            <div className="flex items-start gap-4">
-              {/* Avatar */}
-              <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black text-white shrink-0 overflow-hidden"
-                style={{ background: `linear-gradient(135deg, ${rank.color}60, ${rank.color}30)`, border: `2px solid ${rank.color}80` }}
-              >
-                {profile.avatarUrl
-                  ? <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-                  : initials}
+            <div className="flex items-start gap-5">
+              {/* Large rank emblem */}
+              <div className="shrink-0 flex flex-col items-center gap-1">
+                <RankEmblem rank={rank} size={72} uid="profile" />
+                <span className="text-[10px] font-black uppercase tracking-wide" style={{ color: rank.color }}>
+                  {rank.label}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-extrabold text-white m-0 truncate">{profile.displayName}</h1>
-                <p className="text-sm m-0 mt-0.5" style={{ color: rank.color }}>{getLevelTitle(profile.level)} · Lv.{profile.level}</p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {/* Rank badge */}
-                  <span
-                    className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
-                    style={{ backgroundColor: `${rank.color}20`, color: rank.color }}
+                {/* Avatar + name row */}
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center text-base font-black text-white shrink-0 overflow-hidden"
+                    style={{ background: `linear-gradient(135deg, ${rank.color}60, ${rank.color}30)`, border: `2px solid ${rank.color}80` }}
                   >
-                    {rank.icon} {rank.label}
-                  </span>
-                  {/* Active banner */}
-                  {activeBanner && (
-                    <span
-                      className="text-xs font-bold px-2.5 py-1 rounded-full"
-                      style={{ background: activeBanner.gradient, color: activeBanner.textColor }}
-                    >
-                      {activeBanner.emoji} {activeBanner.name}
-                    </span>
-                  )}
+                    {profile.avatarUrl
+                      ? <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      : initials}
+                  </div>
+                  <div className="min-w-0">
+                    <h1 className="text-lg font-extrabold text-white m-0 truncate">{profile.displayName}</h1>
+                    <p className="text-xs m-0" style={{ color: rank.color }}>{getLevelTitle(profile.level)} · Lv.{profile.level}</p>
+                  </div>
                 </div>
+                {/* Active banner */}
+                {activeBanner && (
+                  <span
+                    className="inline-flex text-xs font-bold px-2.5 py-1 rounded-full"
+                    style={{ background: activeBanner.gradient, color: activeBanner.textColor }}
+                  >
+                    {activeBanner.emoji} {activeBanner.name}
+                  </span>
+                )}
               </div>
             </div>
 
