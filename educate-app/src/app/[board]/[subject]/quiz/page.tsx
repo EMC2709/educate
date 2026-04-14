@@ -221,17 +221,24 @@ export default function QuizPage({
         }
       }
 
-      // Show XP toast for marks earned this question
-      if (isSignedIn && parsed.marksAwarded > 0) {
-        const xpRates: Record<string, number> = { 'past-paper': 10, long: 8, mid: 6, short: 5 };
-        const xpEarned = (parsed.marksAwarded ?? 0) * (xpRates[questionType] ?? 8);
-        if (xpEarned > 0) {
-          setXpToast({ xp: xpEarned });
-          setTimeout(() => setXpToast(null), 2500);
-        }
+      // Award XP immediately after this question
+      if (isSignedIn && (parsed.marksAwarded ?? 0) > 0) {
+        fetch('/api/award-xp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ marksAwarded: parsed.marksAwarded, questionType }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            if ((data.xpGained ?? 0) > 0) {
+              setXpToast({ xp: data.xpGained, levelUp: data.xpResult?.leveledUp });
+              setTimeout(() => setXpToast(null), 2500);
+            }
+          })
+          .catch(console.error);
       }
 
-      // Save result when quiz is complete (last question answered)
+      // Log quiz result at the end (for achievement / quiz count tracking)
       if (currentQ === questions.length - 1 && isSignedIn && !resultSavedRef.current) {
         resultSavedRef.current = true;
         const isPerfect = newScore.total > 0 && newScore.correct === newScore.total;
@@ -243,27 +250,16 @@ export default function QuizPage({
             subject, board: boardName, questionType,
             scoreCorrect: newScore.correct,
             scoreTotal: newScore.total,
-            marksAwarded: totalMarksAwarded.current,
           }),
         })
-          .then(r => r.json())
-          .then(data => {
-            if (data.xpResult?.leveledUp) {
-              setXpToast({ xp: data.xpGained, levelUp: true });
-              setTimeout(() => setXpToast(null), 4000);
-            }
-            // Check achievements using fresh DB stats
-            return fetch('/api/achievements').then(r => r.json());
-          })
+          .then(() => fetch('/api/achievements').then(r => r.json()))
           .then((stats: { quizCount: number; perfectCount: number; xp: number; streak: number }) => {
-            // Also factor in time-based and local checks
             const newlyUnlocked = checkAchievements({
               quizCount: stats.quizCount,
-              perfectCount: stats.perfectCount + (isPerfect ? 0 : 0), // DB already counted this quiz
+              perfectCount: stats.perfectCount,
               xp: stats.xp,
               streak: stats.streak,
             });
-            // Show the first newly unlocked achievement as a toast
             if (newlyUnlocked.length > 0) {
               setAchievementToast(newlyUnlocked[0]);
               setTimeout(() => setAchievementToast(null), 4000);
