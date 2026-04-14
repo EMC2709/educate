@@ -144,6 +144,14 @@ export default function QuizPage({
         setLoading(false);
         return;
       }
+      // Fallback: whole-subject flashcard bank before hitting the API
+      const mainCards = (QUESTION_BANK as unknown as Record<string, Record<string, Flashcard[]>>)[subject]?.flashcard;
+      if (mainCards && mainCards.length >= 1) {
+        setLoadingSource('bank');
+        setFlashcards(shuffle(mainCards).slice(0, 12));
+        setLoading(false);
+        return;
+      }
       setLoadingSource('api');
       try {
         const res = await fetch('/api/generate', {
@@ -167,6 +175,19 @@ export default function QuizPage({
         setLoading(false);
         return;
       }
+
+      // When a specific subtopic was selected but has fewer than 3 questions of this
+      // type (common for 'long' questions — subtopic banks hold only 1 each), fall back
+      // to the whole-subject bank before ever hitting the AI API.  This guarantees that
+      // all 26 subjects always load without an auth requirement.
+      const mainBankQs = (QUESTION_BANK as unknown as Record<string, Record<string, Question[]>>)[subject]?.[questionType];
+      if (mainBankQs && mainBankQs.length >= 1) {
+        setLoadingSource('bank');
+        setQuestions(shuffle(mainBankQs).slice(0, 5));
+        setLoading(false);
+        return;
+      }
+
       setLoadingSource('api');
       try {
         const res = await fetch('/api/generate', {
