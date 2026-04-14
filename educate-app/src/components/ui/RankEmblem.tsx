@@ -4,372 +4,366 @@ import type { Rank } from '@/lib/ranks';
 
 interface Props {
   rank: Rank;
-  /** Rendered height in px (width auto-scales per shape) */
   size?: number;
-  /** Unique suffix so multiple emblems on one page don't share SVG def IDs */
   uid?: string | number;
 }
 
-// ─── Copper ──────────────────────────────────────────────────────────────────
-// Simple hexagon badge, dull & unimpressive
+// ── Shared shield paths (all in viewBox "0 0 40 50") ─────────────────────────
+// outer shield, inner shield, body fill, two-chevron strip
+const S = {
+  outer:  'M6,5 L34,5 L34,32 L20,46 L6,32 Z',
+  inner:  'M9,8 L31,8 L31,31 L20,43 L9,31 Z',
+  body:   'M10,9 L30,9 L30,30 L20,42 L10,30 Z',
+  chev1:  'M11,31 L20,25 L29,31',
+  chev2:  'M11,35 L20,29 L29,35',
+  // crown variant – V-notch top
+  outerC: 'M6,5 L13,5 L13,2 L16,2 L16,5 L20,5 L24,5 L24,2 L27,2 L27,5 L34,5 L34,32 L20,46 L6,32 Z',
+  innerC: 'M9,8 L31,8 L31,31 L20,43 L9,31 Z',
+  // large crown variant (gold+)
+  outerG: 'M6,5 L11,5 L11,1 L15,4 L20,0 L25,4 L29,1 L29,5 L34,5 L34,32 L20,46 L6,32 Z',
+};
+
+// ── Filter / gradient helpers ─────────────────────────────────────────────────
+function Glow({ id, color, dev = 3.5 }: { id: string; color: string; dev?: number }) {
+  return (
+    <filter id={id} x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation={dev} result="blur" />
+      <feFlood floodColor={color} floodOpacity="0.8" result="col" />
+      <feComposite in="col" in2="blur" operator="in" result="glow" />
+      <feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  );
+}
+function LG({ id, stops }: { id: string; stops: [string, string, string?] }) {
+  return (
+    <linearGradient id={id} x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%"   stopColor={stops[0]} />
+      <stop offset="50%"  stopColor={stops[1]} />
+      {stops[2] && <stop offset="100%" stopColor={stops[2]} />}
+    </linearGradient>
+  );
+}
+function RG({ id, cx = '40%', cy = '35%', r = '65%', stops }: { id: string; cx?: string; cy?: string; r?: string; stops: [string, string] }) {
+  return (
+    <radialGradient id={id} cx={cx} cy={cy} r={r}>
+      <stop offset="0%"   stopColor={stops[0]} />
+      <stop offset="100%" stopColor={stops[1]} />
+    </radialGradient>
+  );
+}
+
+// ── Division label ────────────────────────────────────────────────────────────
+function Div({ div, y = 13, fill = '#000', size = 10 }: { div: string; y?: number; fill?: string; size?: number }) {
+  return (
+    <text x="20" y={y} textAnchor="middle" dominantBaseline="central"
+      fill={fill} fontSize={size} fontWeight="900" fontFamily="'Segoe UI',Arial,sans-serif" letterSpacing="0.3">
+      {div}
+    </text>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COPPER — warm rust-brown, simple flat shield, single chevron
+// ═══════════════════════════════════════════════════════════════════════════════
 function CopperEmblem({ p, div, h }: { p: string; div: string; h: number }) {
-  const w = h * 0.84;
   return (
-    <svg width={w} height={h} viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg">
+    <svg width={h * 0.82} height={h} viewBox="0 0 40 50">
       <defs>
-        <radialGradient id={`${p}-bg`} cx="38%" cy="32%" r="65%">
-          <stop offset="0%" stopColor="#c08050" />
-          <stop offset="100%" stopColor="#5a2e10" />
-        </radialGradient>
+        <LG id={`${p}a`} stops={['#D4855A', '#8B4020', '#5A2010']} />
+        <LG id={`${p}b`} stops={['#C07040', '#7A3818']} />
+        <LG id={`${p}c`} stops={['#E09060', '#A05028']} />
       </defs>
-      <polygon points="20,3 36,12 36,34 20,43 4,34 4,12"
-        fill={`url(#${p}-bg)`} stroke="#3a1e08" strokeWidth="2" />
-      <polygon points="20,8 31,14 31,30 20,36 9,30 9,14"
-        fill="none" stroke="#3a1e08" strokeWidth="0.8" strokeOpacity="0.45" />
-      <text x="20" y="25" textAnchor="middle" dominantBaseline="central"
-        fill="#2a1005" fontSize="13" fontWeight="900" fontFamily="Georgia,serif">
-        {div}
-      </text>
+      {/* Outer */}
+      <path d={S.outer} fill={`url(#${p}a)`} stroke="#3A1808" strokeWidth="1.5" />
+      {/* Inner bevel */}
+      <path d={S.inner} fill={`url(#${p}b)`} stroke="#3A1808" strokeWidth="0.8" />
+      {/* Body */}
+      <path d={S.body} fill={`url(#${p}c)`} />
+      {/* Single chevron */}
+      <polyline points="11,31 20,25 29,31" fill="none" stroke="#3A1808" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {/* Div */}
+      <Div div={div} y={18} fill="#2A1005" size={10} />
     </svg>
   );
 }
 
-// ─── Bronze ──────────────────────────────────────────────────────────────────
-// Basic rounded shield, bronze gradient
+// ═══════════════════════════════════════════════════════════════════════════════
+// BRONZE — amber-orange, crown nubs, two chevrons
+// ═══════════════════════════════════════════════════════════════════════════════
 function BronzeEmblem({ p, div, h }: { p: string; div: string; h: number }) {
-  const w = h * 0.84;
   return (
-    <svg width={w} height={h} viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg">
+    <svg width={h * 0.82} height={h} viewBox="0 0 40 50">
       <defs>
-        <linearGradient id={`${p}-bg`} x1="15%" y1="0%" x2="85%" y2="100%">
-          <stop offset="0%" stopColor="#e89a4a" />
-          <stop offset="45%" stopColor="#c07830" />
-          <stop offset="100%" stopColor="#6a3e10" />
-        </linearGradient>
+        <LG id={`${p}a`} stops={['#F0A060', '#A05820', '#6A3008']} />
+        <LG id={`${p}b`} stops={['#D87838', '#8A4018']} />
+        <LG id={`${p}c`} stops={['#F8B878', '#C07030']} />
       </defs>
-      <path d="M4,5 Q4,2 8,2 L32,2 Q36,2 36,5 L36,28 L20,46 L4,28 Z"
-        fill={`url(#${p}-bg)`} stroke="#5a300a" strokeWidth="1.8" />
-      <path d="M8,7 L32,7 L32,27 L20,41 L8,27 Z"
-        fill="none" stroke="#5a300a" strokeWidth="0.8" strokeOpacity="0.5" />
-      <line x1="8" y1="20" x2="32" y2="20" stroke="#5a300a" strokeWidth="0.8" strokeOpacity="0.4" />
-      {/* Chevron */}
-      <polyline points="12,14 20,10 28,14" fill="none" stroke="#5a300a" strokeWidth="1.2" strokeOpacity="0.55" strokeLinejoin="round" />
-      <text x="20" y="31" textAnchor="middle" dominantBaseline="central"
-        fill="#3a1a05" fontSize="11" fontWeight="900" fontFamily="Georgia,serif">
-        {div}
-      </text>
+      {/* Crown-notch outer */}
+      <path d={S.outerC} fill={`url(#${p}a)`} stroke="#4A2008" strokeWidth="1.5" />
+      {/* Crown inner fill */}
+      <path d="M9,8 L31,8 L31,31 L20,43 L9,31 Z" fill={`url(#${p}b)`} stroke="#4A2008" strokeWidth="0.8" />
+      <path d={S.body} fill={`url(#${p}c)`} />
+      {/* Two chevrons */}
+      <polyline points="11,29 20,23 29,29" fill="none" stroke="#4A2008" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points="11,33 20,27 29,33" fill="none" stroke="#4A2008" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <Div div={div} y={16} fill="#3A1808" size={10} />
     </svg>
   );
 }
 
-// ─── Silver ──────────────────────────────────────────────────────────────────
-// Heater shield, metallic silver with shine stripe
+// ═══════════════════════════════════════════════════════════════════════════════
+// SILVER — cool steel blue-grey, angled top, two chevrons, bright highlight
+// ═══════════════════════════════════════════════════════════════════════════════
 function SilverEmblem({ p, div, h }: { p: string; div: string; h: number }) {
-  const w = h * 0.84;
   return (
-    <svg width={w} height={h} viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg">
+    <svg width={h * 0.82} height={h} viewBox="0 0 40 50">
       <defs>
-        <linearGradient id={`${p}-bg`} x1="10%" y1="0%" x2="90%" y2="100%">
-          <stop offset="0%" stopColor="#f5f5f5" />
-          <stop offset="40%" stopColor="#cacaca" />
-          <stop offset="100%" stopColor="#7a7a7a" />
-        </linearGradient>
-        <linearGradient id={`${p}-sh`} x1="0%" y1="0%" x2="55%" y2="80%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-        </linearGradient>
+        <LG id={`${p}a`} stops={['#D8E4F0', '#8898A8', '#404858']} />
+        <LG id={`${p}b`} stops={['#B0C0D0', '#607080']} />
+        <LG id={`${p}c`} stops={['#E8F0F8', '#9AAAB8']} />
+        <LG id={`${p}sh`} stops={['#FFFFFF', '#FFFFFF']} />
       </defs>
-      {/* Shield */}
-      <path d="M4,5 Q4,2 8,2 L32,2 Q36,2 36,5 L36,28 Q36,40 20,47 Q4,40 4,28 Z"
-        fill={`url(#${p}-bg)`} stroke="#7a7a7a" strokeWidth="1.8" />
-      {/* Shine */}
-      <path d="M4,5 Q4,2 8,2 L32,2 Q36,2 36,5 L36,28 Q36,40 20,47 Q4,40 4,28 Z"
-        fill={`url(#${p}-sh)`} />
-      {/* Inner border */}
-      <path d="M8,7 L32,7 L32,27 Q32,37 20,43 Q8,37 8,27 Z"
-        fill="none" stroke="#999" strokeWidth="0.9" />
-      {/* 5-point star */}
-      <polygon
-        points="20,13 21.9,18.8 28,18.8 23.1,22.2 25,28 20,24.6 15,28 16.9,22.2 12,18.8 18.1,18.8"
-        fill="none" stroke="#888" strokeWidth="1" />
-      <text x="20" y="36" textAnchor="middle" dominantBaseline="central"
-        fill="#666" fontSize="9" fontWeight="900" fontFamily="Georgia,serif" letterSpacing="0.5">
-        {div}
-      </text>
+      {/* Outer */}
+      <path d={S.outerC} fill={`url(#${p}a)`} stroke="#303840" strokeWidth="1.5" />
+      <path d={S.innerC} fill={`url(#${p}b)`} stroke="#303840" strokeWidth="0.8" />
+      <path d={S.body} fill={`url(#${p}c)`} />
+      {/* Shine stripe */}
+      <path d="M10,9 L20,9 L13,26 L10,26 Z" fill="white" fillOpacity="0.22" />
+      {/* Two chevrons */}
+      <polyline points="11,29 20,23 29,29" fill="none" stroke="#30404A" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points="11,33 20,27 29,33" fill="none" stroke="#30404A" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <Div div={div} y={16} fill="#283038" size={10} />
     </svg>
   );
 }
 
-// ─── Gold ────────────────────────────────────────────────────────────────────
-// Notched-top shield, gold gradient, sunburst, glow
+// ═══════════════════════════════════════════════════════════════════════════════
+// GOLD — rich golden yellow, large crown spikes, double chevron, soft glow
+// ═══════════════════════════════════════════════════════════════════════════════
 function GoldEmblem({ p, div, h }: { p: string; div: string; h: number }) {
-  const w = h * 0.84;
-  const rays = Array.from({ length: 8 }, (_, i) => {
-    const a = (i * 45 * Math.PI) / 180;
-    return { x1: 20 + 5 * Math.cos(a), y1: 22 + 5 * Math.sin(a), x2: 20 + 9.5 * Math.cos(a), y2: 22 + 9.5 * Math.sin(a) };
-  });
   return (
-    <svg width={w} height={h} viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg">
+    <svg width={h * 0.82} height={h} viewBox="0 0 40 50">
       <defs>
-        <linearGradient id={`${p}-bg`} x1="15%" y1="0%" x2="85%" y2="100%">
-          <stop offset="0%" stopColor="#fffacc" />
-          <stop offset="30%" stopColor="#ffd700" />
-          <stop offset="70%" stopColor="#c89000" />
-          <stop offset="100%" stopColor="#8a5e00" />
-        </linearGradient>
-        <radialGradient id={`${p}-gl`} cx="50%" cy="45%" r="52%">
-          <stop offset="0%" stopColor="#ffe566" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#ffd700" stopOpacity="0" />
-        </radialGradient>
-        <filter id={`${p}-gf`}>
-          <feGaussianBlur stdDeviation="2.2" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
+        <LG id={`${p}a`} stops={['#FFF0A0', '#E8B000', '#8A6000']} />
+        <LG id={`${p}b`} stops={['#D8A000', '#906000']} />
+        <LG id={`${p}c`} stops={['#FFE060', '#C89000']} />
+        <Glow id={`${p}gf`} color="#FFD700" dev={3} />
       </defs>
-      <ellipse cx="20" cy="26" rx="19" ry="20" fill={`url(#${p}-gl)`} />
-      {/* V-notch shield */}
-      <path d="M4,5 Q4,2 8,2 L14,2 Q17,2 20,7 Q23,2 26,2 L32,2 Q36,2 36,5 L36,28 Q36,40 20,47 Q4,40 4,28 Z"
-        fill={`url(#${p}-bg)`} stroke="#c89000" strokeWidth="1.8" filter={`url(#${p}-gf)`} />
-      {/* Inner V-notch border */}
-      <path d="M7,7 L13,7 Q16,7 20,11 Q24,7 27,7 L33,7 L33,27 Q33,37 20,43 Q7,37 7,27 Z"
-        fill="none" stroke="#c89000" strokeWidth="0.8" strokeOpacity="0.65" />
-      {/* Sunburst */}
-      {rays.map((r, i) => (
-        <line key={i} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2}
-          stroke="#c89000" strokeWidth="1" strokeOpacity="0.8" />
-      ))}
-      <circle cx="20" cy="22" r="4.5" fill="none" stroke="#c89000" strokeWidth="1.1" />
-      <circle cx="20" cy="22" r="2" fill="#c89000" />
-      <text x="20" y="37" textAnchor="middle" dominantBaseline="central"
-        fill="#7a5500" fontSize="9" fontWeight="900" fontFamily="Georgia,serif" letterSpacing="0.5">
-        {div}
-      </text>
+      {/* Large crown outer */}
+      <path d={S.outerG} fill={`url(#${p}a)`} stroke="#7A5000" strokeWidth="1.5" filter={`url(#${p}gf)`} />
+      <path d={S.innerC} fill={`url(#${p}b)`} stroke="#7A5000" strokeWidth="0.9" />
+      <path d={S.body} fill={`url(#${p}c)`} />
+      {/* Crown gems */}
+      <circle cx="11" cy="2.5" r="1.5" fill="#FFE090" stroke="#9A7020" strokeWidth="0.6" />
+      <circle cx="20" cy="1" r="2" fill="#FFEE90" stroke="#9A7020" strokeWidth="0.6" />
+      <circle cx="29" cy="2.5" r="1.5" fill="#FFE090" stroke="#9A7020" strokeWidth="0.6" />
+      {/* Shine */}
+      <path d="M10,9 L20,9 L14,24 L10,24 Z" fill="white" fillOpacity="0.28" />
+      {/* Two chevrons */}
+      <polyline points="11,29 20,23 29,29" fill="none" stroke="#8A6000" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points="11,33 20,27 29,33" fill="none" stroke="#8A6000" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <Div div={div} y={16} fill="#6A4800" size={10} />
     </svg>
   );
 }
 
-// ─── Platinum ────────────────────────────────────────────────────────────────
-// Kite pentagon, platinum-teal gradient, geometric inner diamond, teal glow
+// ═══════════════════════════════════════════════════════════════════════════════
+// PLATINUM — dark steel + vivid cyan/teal, faceted centre gem, teal glow
+// ═══════════════════════════════════════════════════════════════════════════════
 function PlatinumEmblem({ p, div, h }: { p: string; div: string; h: number }) {
-  const w = h * 0.84;
   return (
-    <svg width={w} height={h} viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg">
+    <svg width={h * 0.82} height={h} viewBox="0 0 40 50">
       <defs>
-        <linearGradient id={`${p}-bg`} x1="10%" y1="0%" x2="90%" y2="100%">
-          <stop offset="0%" stopColor="#e8f6f8" />
-          <stop offset="45%" stopColor="#78cce0" />
-          <stop offset="100%" stopColor="#1488a0" />
-        </linearGradient>
-        <radialGradient id={`${p}-gl`} cx="50%" cy="50%" r="55%">
-          <stop offset="0%" stopColor="#30aabc" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#30aabc" stopOpacity="0" />
-        </radialGradient>
-        <filter id={`${p}-gf`}>
-          <feGaussianBlur stdDeviation="2.5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
+        <LG id={`${p}a`} stops={['#90E8F8', '#1090B8', '#082840']} />
+        <LG id={`${p}b`} stops={['#1888C0', '#083050']} />
+        <LG id={`${p}c`} stops={['#50D0F0', '#0888B8']} />
+        <RG id={`${p}gem`} stops={['#D0FFFF', '#00B8D8']} />
+        <Glow id={`${p}gf`} color="#00D8F8" dev={3.5} />
       </defs>
-      <ellipse cx="20" cy="26" rx="20" ry="22" fill={`url(#${p}-gl)`} />
-      {/* Kite pentagon */}
-      <path d="M20,2 L36,15 L36,32 L20,46 L4,32 L4,15 Z"
-        fill={`url(#${p}-bg)`} stroke="#1488a0" strokeWidth="1.8" filter={`url(#${p}-gf)`} />
-      {/* Inner diamond */}
-      <path d="M20,9 L31,22 L20,35 L9,22 Z"
-        fill="none" stroke="#1488a0" strokeWidth="0.9" strokeOpacity="0.65" />
-      {/* Crosshairs */}
-      <line x1="20" y1="9" x2="20" y2="35" stroke="#1488a0" strokeWidth="0.5" strokeOpacity="0.4" />
-      <line x1="9" y1="22" x2="31" y2="22" stroke="#1488a0" strokeWidth="0.5" strokeOpacity="0.4" />
-      {/* Centre gem */}
-      <polygon points="20,18 24,22 20,26 16,22" fill="#1488a0" fillOpacity="0.9" />
-      <polygon points="20,18 24,22 20,26 16,22" fill="white" fillOpacity="0.35" />
-      <text x="20" y="38" textAnchor="middle" dominantBaseline="central"
-        fill="#0c6070" fontSize="8" fontWeight="900" fontFamily="'Segoe UI',sans-serif" letterSpacing="1.2">
-        {div}
-      </text>
+      <path d={S.outerG} fill={`url(#${p}a)`} stroke="#062030" strokeWidth="1.5" filter={`url(#${p}gf)`} />
+      <path d={S.innerC} fill={`url(#${p}b)`} stroke="#062030" strokeWidth="0.9" />
+      <path d={S.body} fill={`url(#${p}c)`} />
+      {/* Crown gems – teal */}
+      <circle cx="11" cy="2.5" r="1.5" fill="#80F0FF" stroke="#0888B8" strokeWidth="0.6" />
+      <circle cx="20" cy="1" r="2" fill="#A0FFFF" stroke="#0888B8" strokeWidth="0.6" />
+      <circle cx="29" cy="2.5" r="1.5" fill="#80F0FF" stroke="#0888B8" strokeWidth="0.6" />
+      {/* Shine */}
+      <path d="M10,9 L20,9 L14,24 L10,24 Z" fill="white" fillOpacity="0.32" />
+      {/* Centre diamond gem */}
+      <polygon points="20,19 25,23 20,27 15,23" fill={`url(#${p}gem)`} stroke="#00A8D0" strokeWidth="0.8" />
+      <polygon points="20,19 25,23 20,27 15,23" fill="white" fillOpacity="0.3" />
+      <line x1="20" y1="19" x2="20" y2="27" stroke="white" strokeWidth="0.5" strokeOpacity="0.5" />
+      {/* Chevrons */}
+      <polyline points="11,31 20,25 29,31" fill="none" stroke="#062030" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points="11,35 20,29 29,35" fill="none" stroke="#062030" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <Div div={div} y={13} fill="#EAFEFF" size={8} />
     </svg>
   );
 }
 
-// ─── Emerald ─────────────────────────────────────────────────────────────────
-// Hexagonal gem with cut facets, green glow
+// ═══════════════════════════════════════════════════════════════════════════════
+// EMERALD — dark forest + vivid emerald green, green gem, bright glow
+// ═══════════════════════════════════════════════════════════════════════════════
 function EmeraldEmblem({ p, div, h }: { p: string; div: string; h: number }) {
-  const w = h * 0.88;
   return (
-    <svg width={w} height={h} viewBox="0 0 40 46" xmlns="http://www.w3.org/2000/svg">
+    <svg width={h * 0.82} height={h} viewBox="0 0 40 50">
       <defs>
-        <radialGradient id={`${p}-bg`} cx="38%" cy="32%" r="62%">
-          <stop offset="0%" stopColor="#90ffcc" />
-          <stop offset="50%" stopColor="#22b060" />
-          <stop offset="100%" stopColor="#004520" />
-        </radialGradient>
-        <radialGradient id={`${p}-gl`} cx="50%" cy="50%" r="58%">
-          <stop offset="0%" stopColor="#50c878" stopOpacity="0.7" />
-          <stop offset="100%" stopColor="#50c878" stopOpacity="0" />
-        </radialGradient>
-        <filter id={`${p}-gf`}>
-          <feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
+        <LG id={`${p}a`} stops={['#90FF90', '#1AAA48', '#0A3018']} />
+        <LG id={`${p}b`} stops={['#148840', '#083820']} />
+        <LG id={`${p}c`} stops={['#50E878', '#10A840']} />
+        <RG id={`${p}gem`} stops={['#CCFFCC', '#00DD44']} />
+        <Glow id={`${p}gf`} color="#00FF80" dev={4} />
       </defs>
-      <polygon points="20,1 38,11 38,33 20,43 2,33 2,11" fill={`url(#${p}-gl)`} />
-      {/* Gem hex */}
-      <polygon points="20,3 36,12 36,32 20,41 4,32 4,12"
-        fill={`url(#${p}-bg)`} stroke="#009040" strokeWidth="1.8" filter={`url(#${p}-gf)`} />
-      {/* Top table facet */}
-      <polygon points="20,3 36,12 20,16 4,12" fill="white" fillOpacity="0.22" stroke="#009040" strokeWidth="0.7" strokeOpacity="0.55" />
-      {/* Bottom table facet */}
-      <polygon points="20,41 36,32 20,28 4,32" fill="none" stroke="#009040" strokeWidth="0.7" strokeOpacity="0.45" />
-      {/* Vertical facet lines */}
-      <line x1="4" y1="12" x2="20" y2="16" stroke="#aaffcc" strokeWidth="0.6" strokeOpacity="0.55" />
-      <line x1="36" y1="12" x2="20" y2="16" stroke="#003010" strokeWidth="0.6" strokeOpacity="0.5" />
-      <line x1="20" y1="16" x2="20" y2="28" stroke="#009040" strokeWidth="0.55" strokeOpacity="0.5" />
-      <line x1="4" y1="32" x2="20" y2="28" stroke="#aaffcc" strokeWidth="0.6" strokeOpacity="0.45" />
-      <line x1="36" y1="32" x2="20" y2="28" stroke="#003010" strokeWidth="0.6" strokeOpacity="0.45" />
-      {/* Division */}
-      <text x="20" y="22" textAnchor="middle" dominantBaseline="central"
-        fill="white" fontSize="9" fontWeight="900" fontFamily="'Segoe UI',sans-serif" letterSpacing="0.8">
-        {div}
-      </text>
+      <path d={S.outerG} fill={`url(#${p}a)`} stroke="#062010" strokeWidth="1.5" filter={`url(#${p}gf)`} />
+      <path d={S.innerC} fill={`url(#${p}b)`} stroke="#062010" strokeWidth="0.9" />
+      <path d={S.body} fill={`url(#${p}c)`} />
+      {/* Crown gems – emerald */}
+      <circle cx="11" cy="2.5" r="1.5" fill="#80FFB0" stroke="#10A840" strokeWidth="0.6" />
+      <circle cx="20" cy="1" r="2" fill="#AAFFC0" stroke="#10A840" strokeWidth="0.6" />
+      <circle cx="29" cy="2.5" r="1.5" fill="#80FFB0" stroke="#10A840" strokeWidth="0.6" />
+      <path d="M10,9 L20,9 L14,24 L10,24 Z" fill="white" fillOpacity="0.28" />
+      {/* Centre emerald gem */}
+      <polygon points="20,19 25,23 20,27 15,23" fill={`url(#${p}gem)`} stroke="#00C040" strokeWidth="0.8" />
+      <polygon points="20,19 25,23 20,27 15,23" fill="white" fillOpacity="0.25" />
+      <line x1="20" y1="19" x2="20" y2="27" stroke="white" strokeWidth="0.5" strokeOpacity="0.5" />
+      <polyline points="11,31 20,25 29,31" fill="none" stroke="#062010" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points="11,35 20,29 29,35" fill="none" stroke="#062010" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <Div div={div} y={13} fill="#EAFFEE" size={8} />
     </svg>
   );
 }
 
-// ─── Diamond ─────────────────────────────────────────────────────────────────
-// Brilliant diamond rhombus, ice-blue, facets + sparkle, strong glow
+// ═══════════════════════════════════════════════════════════════════════════════
+// DIAMOND — deep navy + brilliant ice-blue, crystalline facets, sparkle, strong glow
+// ═══════════════════════════════════════════════════════════════════════════════
 function DiamondEmblem({ p, div, h }: { p: string; div: string; h: number }) {
-  const w = h * 0.78;
   return (
-    <svg width={w} height={h} viewBox="0 0 38 48" xmlns="http://www.w3.org/2000/svg">
+    <svg width={h * 0.88} height={h} viewBox="0 0 44 50">
       <defs>
-        <radialGradient id={`${p}-bg`} cx="35%" cy="28%" r="62%">
-          <stop offset="0%" stopColor="#f0fbff" />
-          <stop offset="40%" stopColor="#72d8ff" />
-          <stop offset="100%" stopColor="#0055aa" />
-        </radialGradient>
-        <radialGradient id={`${p}-gl`} cx="50%" cy="45%" r="58%">
-          <stop offset="0%" stopColor="#72d8ff" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#0088cc" stopOpacity="0" />
-        </radialGradient>
-        <filter id={`${p}-gf`}>
-          <feGaussianBlur stdDeviation="3.5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
+        <LG id={`${p}a`} stops={['#C0E8FF', '#2860E0', '#061040']} />
+        <LG id={`${p}b`} stops={['#1848C8', '#040E30']} />
+        <LG id={`${p}c`} stops={['#80C8FF', '#1850D0']} />
+        <RG id={`${p}gem`} stops={['#FFFFFF', '#70C8FF']} />
+        <Glow id={`${p}gf`} color="#60C0FF" dev={4.5} />
       </defs>
-      <ellipse cx="19" cy="24" rx="20" ry="25" fill={`url(#${p}-gl)`} />
-      {/* Diamond shape */}
-      <path d="M19,2 L37,19 L19,46 L1,19 Z"
-        fill={`url(#${p}-bg)`} stroke="#0088cc" strokeWidth="1.6" filter={`url(#${p}-gf)`} />
-      {/* Table (top facet) */}
-      <path d="M19,2 L29,13 L19,17 L9,13 Z" fill="white" fillOpacity="0.38" />
-      {/* Girdle line */}
-      <line x1="1" y1="19" x2="37" y2="19" stroke="white" strokeWidth="0.5" strokeOpacity="0.38" />
-      {/* Crown facets */}
-      <line x1="1" y1="19" x2="19" y2="17" stroke="white" strokeWidth="0.6" strokeOpacity="0.45" />
-      <line x1="37" y1="19" x2="19" y2="17" stroke="#0055aa" strokeWidth="0.6" strokeOpacity="0.55" />
-      {/* Pavilion facets */}
-      <line x1="1" y1="19" x2="19" y2="34" stroke="#0055aa" strokeWidth="0.7" strokeOpacity="0.5" />
-      <line x1="37" y1="19" x2="19" y2="34" stroke="#0044aa" strokeWidth="0.7" strokeOpacity="0.5" />
-      <line x1="19" y1="46" x2="19" y2="34" stroke="#0066cc" strokeWidth="0.7" strokeOpacity="0.6" />
-      <line x1="9" y1="13" x2="29" y2="13" stroke="white" strokeWidth="0.4" strokeOpacity="0.3" />
-      {/* Sparkle top-right */}
-      <line x1="28" y1="6" x2="30" y2="6" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="29" y1="5" x2="29" y2="7" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-      {/* Division */}
-      <text x="19" y="24" textAnchor="middle" dominantBaseline="central"
-        fill="white" fontSize="8" fontWeight="900" fontFamily="'Segoe UI',sans-serif" letterSpacing="1.2">
-        {div}
-      </text>
+      {/* Wider viewbox — wing-like side extensions */}
+      <path d="M2,26 L8,18 L8,5 L36,5 L36,18 L42,26 L36,32 L36,32 L22,46 L8,32 Z"
+        fill={`url(#${p}a)`} stroke="#040E30" strokeWidth="1.5" filter={`url(#${p}gf)`} />
+      {/* Inner shield */}
+      <path d="M11,8 L33,8 L33,31 L22,43 L11,31 Z" fill={`url(#${p}b)`} stroke="#040E30" strokeWidth="0.8" />
+      <path d="M13,10 L31,10 L31,30 L22,41 L13,30 Z" fill={`url(#${p}c)`} />
+      {/* Crown spike */}
+      <polygon points="22,0 25,5 19,5" fill="#80D0FF" stroke="#040E30" strokeWidth="0.8" />
+      <circle cx="22" cy="0" r="1.5" fill="#E0F8FF" />
+      {/* Shine */}
+      <path d="M13,10 L22,10 L16,24 L13,24 Z" fill="white" fillOpacity="0.35" />
+      {/* Large centre diamond gem */}
+      <polygon points="22,17 28,23 22,29 16,23" fill={`url(#${p}gem)`} stroke="#2068E0" strokeWidth="1" />
+      <line x1="22" y1="17" x2="22" y2="29" stroke="white" strokeWidth="0.7" strokeOpacity="0.6" />
+      <line x1="16" y1="23" x2="28" y2="23" stroke="white" strokeWidth="0.4" strokeOpacity="0.4" />
+      <polygon points="22,17 28,23 22,29 16,23" fill="white" fillOpacity="0.25" />
+      {/* Wing facet lines */}
+      <line x1="8" y1="18" x2="11" y2="18" stroke="#A0D8FF" strokeWidth="1" strokeOpacity="0.6" />
+      <line x1="33" y1="18" x2="36" y2="18" stroke="#A0D8FF" strokeWidth="1" strokeOpacity="0.6" />
+      {/* Sparkle cross top-right */}
+      <line x1="32" y1="5" x2="35" y2="5" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="33.5" y1="3.5" x2="33.5" y2="6.5" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+      {/* Chevrons */}
+      <polyline points="14,33 22,27 30,33" fill="none" stroke="#040E30" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points="14,37 22,31 30,37" fill="none" stroke="#040E30" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+      <Div div={div} y={13} fill="#D0EEFF" size={9} />
     </svg>
   );
 }
 
-// ─── Champion ────────────────────────────────────────────────────────────────
-// Crown + ornate shield, rainbow shimmer, star, maximum impressiveness
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHAMPION — intense orange-gold, massive wings, crown, 3 gems, starburst, max glow
+// ═══════════════════════════════════════════════════════════════════════════════
 function ChampionEmblem({ p, h }: { p: string; h: number }) {
-  const w = h * 0.84;
-  // 12 starburst rays
-  const rays = Array.from({ length: 12 }, (_, i) => {
-    const a = (i * 30 * Math.PI) / 180;
-    const long = i % 3 === 0;
-    return { x1: 20 + 17 * Math.cos(a), y1: 38 + 17 * Math.sin(a), x2: 20 + (long ? 24 : 21) * Math.cos(a), y2: 38 + (long ? 24 : 21) * Math.sin(a) };
+  const rays = Array.from({ length: 16 }, (_, i) => {
+    const a = (i * 22.5 * Math.PI) / 180;
+    const long = i % 4 === 0;
+    const r1 = 22, r2 = long ? 32 : 27;
+    return { x1: 26 + r1 * Math.cos(a), y1: 38 + r1 * Math.sin(a), x2: 26 + r2 * Math.cos(a), y2: 38 + r2 * Math.sin(a) };
   });
   return (
-    <svg width={w} height={h} viewBox="0 0 40 60" xmlns="http://www.w3.org/2000/svg">
+    <svg width={h * 1.1} height={h} viewBox="0 0 52 56">
       <defs>
-        <linearGradient id={`${p}-sh`} x1="15%" y1="0%" x2="85%" y2="100%">
-          <stop offset="0%" stopColor="#fff9cc" />
-          <stop offset="28%" stopColor="#ffd700" />
-          <stop offset="55%" stopColor="#ff9900" />
-          <stop offset="100%" stopColor="#cc5500" />
-        </linearGradient>
-        <linearGradient id={`${p}-cr`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#fff6c0" />
-          <stop offset="100%" stopColor="#ffc000" />
-        </linearGradient>
-        <radialGradient id={`${p}-gl`} cx="50%" cy="58%" r="52%">
-          <stop offset="0%" stopColor="#ffd700" stopOpacity="0.75" />
-          <stop offset="65%" stopColor="#ff9000" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#ffd700" stopOpacity="0" />
-        </radialGradient>
-        <filter id={`${p}-gf`}>
-          <feGaussianBlur stdDeviation="4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <filter id={`${p}-gf2`}>
-          <feGaussianBlur stdDeviation="1.8" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
+        <LG id={`${p}a`} stops={['#FFF8C0', '#FF9000', '#8B3A00']} />
+        <LG id={`${p}b`} stops={['#E07000', '#7A2A00']} />
+        <LG id={`${p}c`} stops={['#FFD040', '#D06000']} />
+        <LG id={`${p}cr`} stops={['#FFFAD0', '#FFD000']} />
+        <RG id={`${p}gem`} cx="40%" cy="30%" r="70%" stops={['#FFFFFF', '#FF9000']} />
+        <RG id={`${p}gl`} cx="50%" cy="60%" r="55%" stops={['#FFD700', '#FF6000']} />
+        <Glow id={`${p}gf`} color="#FF9000" dev={5} />
+        <Glow id={`${p}gf2`} color="#FFD700" dev={2.5} />
       </defs>
 
-      {/* Outer glow */}
-      <ellipse cx="20" cy="38" rx="22" ry="22" fill={`url(#${p}-gl)`} filter={`url(#${p}-gf)`} />
+      {/* Outer starburst glow disc */}
+      <ellipse cx="26" cy="38" rx="26" ry="26" fill={`url(#${p}gl)`} opacity="0.45" />
       {/* Starburst rays */}
       {rays.map((r, i) => (
         <line key={i} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2}
-          stroke="#ffd700" strokeWidth={i % 3 === 0 ? '1.5' : '0.7'} strokeOpacity="0.5" />
+          stroke="#FFD700" strokeWidth={i % 4 === 0 ? '1.8' : '0.8'} strokeOpacity="0.5" strokeLinecap="round" />
       ))}
 
-      {/* Shield body */}
-      <path d="M5,26 Q5,22 9,22 L15,22 Q18,22 20,27 Q22,22 25,22 L31,22 Q35,22 35,26 L35,40 Q35,51 20,58 Q5,51 5,40 Z"
-        fill={`url(#${p}-sh)`} stroke="#c88800" strokeWidth="1.6" filter={`url(#${p}-gf2)`} />
+      {/* Wing left */}
+      <path d="M8,22 L2,14 L0,28 L6,32 Z" fill={`url(#${p}a)`} stroke="#8B3A00" strokeWidth="1" filter={`url(#${p}gf)`} />
+      {/* Wing right */}
+      <path d="M44,22 L50,14 L52,28 L46,32 Z" fill={`url(#${p}a)`} stroke="#8B3A00" strokeWidth="1" filter={`url(#${p}gf)`} />
+
+      {/* Shield outer */}
+      <path d="M8,12 L16,12 L16,8 L20,11 L26,6 L32,11 L36,8 L36,12 L44,12 L44,36 L26,52 L8,36 Z"
+        fill={`url(#${p}a)`} stroke="#7A2A00" strokeWidth="1.8" filter={`url(#${p}gf2)`} />
       {/* Shield inner */}
-      <path d="M8,27 L15,27 Q18,27 20,31 Q22,27 25,27 L32,27 L32,39 Q32,47 20,54 Q8,47 8,39 Z"
-        fill="none" stroke="#c88800" strokeWidth="0.75" strokeOpacity="0.6" />
+      <path d="M11,15 L41,15 L41,35 L26,49 L11,35 Z" fill={`url(#${p}b)`} stroke="#7A2A00" strokeWidth="0.9" />
+      <path d="M13,17 L39,17 L39,34 L26,47 L13,34 Z" fill={`url(#${p}c)`} />
 
-      {/* Crown base bar */}
-      <rect x="10" y="17" width="20" height="7" rx="1.5"
-        fill={`url(#${p}-cr)`} stroke="#c88800" strokeWidth="1.2" />
+      {/* Shine */}
+      <path d="M13,17 L26,17 L19,32 L13,32 Z" fill="white" fillOpacity="0.3" />
+
       {/* Crown spikes */}
-      <polygon points="10,17 13,9 16,17" fill={`url(#${p}-cr)`} stroke="#c88800" strokeWidth="1.1" />
-      <polygon points="17,17 20,5 23,17" fill={`url(#${p}-cr)`} stroke="#c88800" strokeWidth="1.1" />
-      <polygon points="24,17 27,9 30,17" fill={`url(#${p}-cr)`} stroke="#c88800" strokeWidth="1.1" />
+      <polygon points="16,12 20,5 24,12" fill={`url(#${p}cr)`} stroke="#8B5000" strokeWidth="1" />
+      <polygon points="22,12 26,3 30,12" fill={`url(#${p}cr)`} stroke="#8B5000" strokeWidth="1" />
+      <polygon points="28,12 32,5 36,12" fill={`url(#${p}cr)`} stroke="#8B5000" strokeWidth="1" />
 
-      {/* Crown gem highlights */}
-      <circle cx="14.5" cy="13" r="2" fill="#ff3333" />
-      <circle cx="20" cy="9" r="2.5" fill="#ff9900" />
-      <circle cx="25.5" cy="13" r="2" fill="#ff3333" />
-      {/* Gem shine */}
-      <circle cx="13.8" cy="12.3" r="0.7" fill="white" fillOpacity="0.8" />
-      <circle cx="19.3" cy="8.2" r="0.9" fill="white" fillOpacity="0.8" />
-      <circle cx="24.8" cy="12.3" r="0.7" fill="white" fillOpacity="0.8" />
+      {/* Crown gems */}
+      <circle cx="20" cy="6" r="2" fill="#FF4040" stroke="#8B2000" strokeWidth="0.6" />
+      <circle cx="26" cy="3.5" r="2.5" fill="#FFD000" stroke="#8B5000" strokeWidth="0.7" />
+      <circle cx="32" cy="6" r="2" fill="#FF4040" stroke="#8B2000" strokeWidth="0.6" />
+      {/* Gem shines */}
+      <circle cx="19.2" cy="5.2" r="0.8" fill="white" fillOpacity="0.85" />
+      <circle cx="25.2" cy="2.8" r="1" fill="white" fillOpacity="0.85" />
+      <circle cx="31.2" cy="5.2" r="0.8" fill="white" fillOpacity="0.85" />
 
-      {/* 5-point star in shield */}
-      <polygon
-        points="20,32 21.8,37.5 27.6,37.5 22.9,40.9 24.7,46.4 20,43 15.3,46.4 17.1,40.9 12.4,37.5 18.2,37.5"
-        fill="white" fillOpacity="0.92" stroke="#c88800" strokeWidth="0.6" />
+      {/* 5-point star + large centre gem */}
+      <polygon points="26,25 28.2,31.8 35.4,31.8 29.6,35.8 31.8,42.6 26,38.6 20.2,42.6 22.4,35.8 16.6,31.8 23.8,31.8"
+        fill="white" fillOpacity="0.9" stroke="#C07000" strokeWidth="0.5" />
+      {/* Centre amber gem over star */}
+      <polygon points="26,27 30,31 26,35 22,31" fill={`url(#${p}gem)`} stroke="#E07000" strokeWidth="0.8" />
+      <polygon points="26,27 30,31 26,35 22,31" fill="white" fillOpacity="0.35" />
 
-      {/* Corner sparkles */}
-      <line x1="7" y1="24" x2="9" y2="24" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeOpacity="0.85" />
-      <line x1="8" y1="23" x2="8" y2="25" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeOpacity="0.85" />
-      <line x1="31" y1="24" x2="33" y2="24" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeOpacity="0.85" />
-      <line x1="32" y1="23" x2="32" y2="25" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeOpacity="0.85" />
-      <line x1="13" y1="4" x2="14.4" y2="4" stroke="white" strokeWidth="1" strokeLinecap="round" strokeOpacity="0.7" />
-      <line x1="13.7" y1="3.3" x2="13.7" y2="4.7" stroke="white" strokeWidth="1" strokeLinecap="round" strokeOpacity="0.7" />
-      <line x1="25.6" y1="4" x2="27" y2="4" stroke="white" strokeWidth="1" strokeLinecap="round" strokeOpacity="0.7" />
-      <line x1="26.3" y1="3.3" x2="26.3" y2="4.7" stroke="white" strokeWidth="1" strokeLinecap="round" strokeOpacity="0.7" />
+      {/* Wing sparkles */}
+      <line x1="3" y1="18" x2="5.5" y2="18" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="4.3" y1="16.8" x2="4.3" y2="19.2" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="47" y1="18" x2="49.5" y2="18" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="48.3" y1="16.8" x2="48.3" y2="19.2" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+
+      {/* Corner sparkle */}
+      <line x1="10" y1="10" x2="12" y2="10" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeOpacity="0.8" />
+      <line x1="11" y1="9" x2="11" y2="11" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeOpacity="0.8" />
+      <line x1="40" y1="10" x2="42" y2="10" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeOpacity="0.8" />
+      <line x1="41" y1="9" x2="41" y2="11" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeOpacity="0.8" />
     </svg>
   );
 }
 
-// ─── Public export ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Public export
+// ═══════════════════════════════════════════════════════════════════════════════
 export function RankEmblem({ rank, size = 48, uid = 0 }: Props) {
   const p = `re-${rank.tier.toLowerCase().replace(/\s/g, '')}-${uid}`;
   const div = rank.division;
-
   switch (rank.tier) {
     case 'Copper':   return <CopperEmblem   p={p} div={div} h={size} />;
     case 'Bronze':   return <BronzeEmblem   p={p} div={div} h={size} />;
