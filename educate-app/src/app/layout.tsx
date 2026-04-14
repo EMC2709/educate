@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ChatProvider } from '@/context/ChatContext';
+import { FloatingChat } from '@/components/layout/FloatingChat';
 import { CommandPalette } from '@/components/layout/CommandPalette';
 import { ToastProvider } from '@/components/ui/Toast';
 import { FocusModeProvider } from '@/components/layout/FocusMode';
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <FocusModeProvider>
               <ChatProvider>
                 {children}
+                <FloatingChat />
                 <CommandPalette />
                 <CookieBanner />
               </ChatProvider>

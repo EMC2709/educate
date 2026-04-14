@@ -9,7 +9,6 @@ import { QUESTION_BANK } from '@/data/question-bank';
 import { PAST_PAPER_BANK } from '@/data/past-paper-bank';
 import { Q_TYPES } from '@/data/question-types';
 import { Navbar } from '@/components/layout/Navbar';
-import { ChatPanel } from '@/components/layout/ChatPanel';
 import { QuestionCard } from '@/components/quiz/QuestionCard';
 import { AnswerInput } from '@/components/quiz/AnswerInput';
 import { FeedbackPanel } from '@/components/quiz/FeedbackPanel';
@@ -366,7 +365,6 @@ export default function QuizPage({
             )}
           </div>
         </div>
-        <ChatPanel subject={subject} board={boardName} />
       </div>
 
       {/* XP Toast */}
