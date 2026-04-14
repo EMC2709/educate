@@ -18,7 +18,7 @@ const SUBJECT_COLORS: Record<string, string> = {
   'Food Preparation & Nutrition': '#fb923c', 'Physical Education': '#38bdf8',
 };
 
-// Subject-specific scene cards shown at each U-turn of the snake
+// Subject-specific scene cards — 4 scenes per subject
 const SUBJECT_SCENES: Record<string, { emojis: string[]; label: string }[]> = {
   'Geography':                    [{ emojis:['🏔️','🌋','🏕️'], label:'Landscapes'    }, { emojis:['🌊','🏞️','⛵'], label:'Rivers & Coasts'}, { emojis:['🌦️','🌡️','🌪️'], label:'Climate'       }, { emojis:['🏙️','🌐','🗺️'], label:'Urban Worlds'  }],
   'Physics':                      [{ emojis:['⚡','🔋','💡'],  label:'Electricity'    }, { emojis:['🌊','📡','🎵'],  label:'Waves'         }, { emojis:['🚀','🌍','🪐'],  label:'Forces & Space'}, { emojis:['☢️','💥','⚛️'],  label:'Nuclear'       }],
@@ -85,12 +85,16 @@ interface FlatTopic extends TopicNode {
 // ── Snake layout constants ────────────────────────────────────────────────────
 const ROW_H = 220;
 const Y_START = 100;
-// How far the U-turn control points extend beyond the edge nodes
-const TURN_BULGE = 90;
+const TURN_BULGE = 70;
+// Width of each side-panel column (desktop only)
+const SIDE_COL_W = 172;
+// Large side panel card dimensions
+const PANEL_W = 160;
+const PANEL_H = 150;
 
 function getNodePositions(perRow: number, canvasW: number) {
-  const leftPad = 72;
-  const rightPad = 72;
+  const leftPad = 64;
+  const rightPad = 64;
   const span = canvasW - leftPad - rightPad;
   return Array.from({ length: perRow }, (_, i) =>
     leftPad + (perRow === 1 ? span / 2 : (i / (perRow - 1)) * span)
@@ -116,12 +120,10 @@ function buildSnakePath(
     const currRow = Math.floor(i / perRow);
 
     if (prevRow === currRow) {
-      // Within same row: smooth horizontal bezier
       const mx = (prev.x + curr.x) / 2;
       d += ` C ${mx} ${prev.y - 15}, ${mx} ${curr.y - 15}, ${curr.x} ${curr.y}`;
     } else {
-      // U-turn between rows
-      const isRightTurn = prevRow % 2 === 0; // LTR row → right turn
+      const isRightTurn = prevRow % 2 === 0;
       const cx = isRightTurn ? rightX + TURN_BULGE : leftX - TURN_BULGE;
       d += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
     }
@@ -140,10 +142,10 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
   const [selected, setSelected] = useState<FlatTopic | null>(null);
   const [tick, setTick] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [canvasW, setCanvasW] = useState(560);
+  const [canvasW, setCanvasW] = useState(480);
 
-  const perRow = canvasW < 380 ? 2 : canvasW < 560 ? 3 : 4;
-  const nodeR = canvasW < 380 ? 28 : 34;
+  const perRow = canvasW < 360 ? 2 : canvasW < 520 ? 3 : 4;
+  const nodeR = canvasW < 360 ? 28 : 34;
 
   useEffect(() => {
     const obs = new ResizeObserver(([e]) => setCanvasW(e.contentRect.width));
@@ -210,7 +212,7 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
     return { total, mastered, pct: total ? Math.round((mastered / total) * 100) : 0 };
   }, [flatTopics]);
 
-  // Build positioned nodes
+  // Build positioned nodes — first topic always unlocked
   const nodeXs = getNodePositions(perRow, canvasW);
   const positioned = flatTopics.map((topic, idx) => {
     const rowIdx = Math.floor(idx / perRow);
@@ -219,7 +221,10 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
     const xArr = isRTL ? [...nodeXs].reverse() : nodeXs;
     const x = xArr[colIdx] ?? xArr[xArr.length - 1];
     const y = Y_START + rowIdx * ROW_H;
-    return { topic, x, y, seq: idx + 1, rowIdx, colIdx };
+    // Unlock the first topic so users can jump straight in
+    const mastery: MasteryLevel =
+      idx === 0 && topic.mastery === 'not-started' ? 'learning' : topic.mastery;
+    return { topic: { ...topic, mastery }, x, y, seq: idx + 1, rowIdx, colIdx };
   });
 
   const numRows = positioned.length > 0 ? Math.floor((flatTopics.length - 1) / perRow) + 1 : 0;
@@ -227,16 +232,19 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
 
   const pathD = buildSnakePath(positioned.map(p => ({ x: p.x, y: p.y })), perRow, canvasW);
 
-  // Scene cards: one per U-turn (between consecutive rows)
+  // Small U-turn cards (stay inside canvas)
   const sceneCards = Array.from({ length: Math.max(0, numRows - 1) }, (_, i) => {
-    const rowIdx = i; // U-turn after row i
-    const isLTR = rowIdx % 2 === 0; // current row direction
-    const y1 = Y_START + rowIdx * ROW_H;
-    const y2 = Y_START + (rowIdx + 1) * ROW_H;
+    const y1 = Y_START + i * ROW_H;
+    const y2 = Y_START + (i + 1) * ROW_H;
     const midY = (y1 + y2) / 2;
+    const isRight = i % 2 === 0;
     const scene = scenes[i % scenes.length];
-    return { midY, isRight: isLTR, scene };
+    return { midY, isRight, scene };
   });
+
+  // Large side panels (shown in the flanking columns on desktop)
+  const leftPanels  = sceneCards.filter(c => !c.isRight);
+  const rightPanels = sceneCards.filter(c =>  c.isRight);
 
   return (
     <div className="flex min-h-screen" style={{ background: '#0a0a0a' }}>
@@ -248,7 +256,7 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
           className="sticky top-0 z-20 border-b border-neutral-800 px-4 sm:px-6 py-3"
           style={{ backgroundColor: '#0a0a0aee', backdropFilter: 'blur(12px)' }}
         >
-          <div className="max-w-3xl mx-auto flex items-center gap-4">
+          <div className="max-w-6xl mx-auto flex items-center gap-4">
             <Link href="/mastery" className="text-neutral-400 hover:text-white text-sm no-underline flex items-center gap-1.5 shrink-0">
               ← Back
             </Link>
@@ -270,7 +278,7 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
             </div>
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4">
+          <div className="max-w-6xl mx-auto px-2 sm:px-4 py-4">
 
             {/* ── Legend ── */}
             <div className="flex gap-3 justify-center flex-wrap mb-6">
@@ -282,125 +290,218 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
               ))}
             </div>
 
-            {/* ── Snake canvas ── */}
-            <div ref={containerRef} className="relative mx-auto" style={{ height: totalHeight }}>
+            {/* ── Three-column layout: left panels | snake | right panels ── */}
+            <div className="flex items-start gap-3">
 
-              {/* Background glow */}
+              {/* LEFT side panels (desktop only) */}
               <div
-                className="absolute inset-0 pointer-events-none rounded-3xl opacity-5"
-                style={{ background: `radial-gradient(ellipse at 50% 0%, ${color}, transparent 70%)` }}
-              />
-
-              {/* SVG path */}
-              <svg
-                className="absolute inset-0 w-full overflow-visible pointer-events-none"
-                style={{ height: totalHeight }}
-                viewBox={`0 0 ${canvasW} ${totalHeight}`}
-                preserveAspectRatio="none"
+                className="hidden lg:block relative shrink-0"
+                style={{ width: SIDE_COL_W, height: totalHeight }}
               >
-                <defs>
-                  <linearGradient id={`pg-${subject}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={color} stopOpacity="0.9" />
-                    <stop offset="100%" stopColor={color} stopOpacity="0.3" />
-                  </linearGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                  </filter>
-                </defs>
-                {/* Track shadow */}
-                <path d={pathD} fill="none" stroke="#1a1a1a" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
-                {/* Dashed guide */}
-                <path d={pathD} fill="none" stroke="#2a2a2a" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="6 8" />
-                {/* Glowing coloured path */}
-                <path d={pathD} fill="none" stroke={`url(#pg-${subject})`} strokeWidth="5"
-                  strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
-              </svg>
-
-              {/* ── Scene cards at U-turns ── */}
-              {sceneCards.map(({ midY, isRight, scene }, i) => {
-                const cardW = 110;
-                const cardH = 90;
-                const turnX = isRight ? nodeXs[nodeXs.length - 1] + TURN_BULGE : nodeXs[0] - TURN_BULGE;
-                // Keep within canvas bounds
-                const left = Math.max(4, Math.min(canvasW - cardW - 4, turnX - cardW / 2));
-                return (
+                {leftPanels.map((card, i) => (
                   <div
                     key={i}
-                    className="absolute rounded-2xl flex flex-col items-center justify-center gap-1 pointer-events-none select-none"
+                    className="absolute rounded-2xl flex flex-col items-center justify-center gap-2 select-none"
                     style={{
-                      left,
-                      top: midY - cardH / 2,
-                      width: cardW,
-                      height: cardH,
-                      background: `linear-gradient(135deg, ${color}18, ${color}08)`,
-                      border: `1px solid ${color}30`,
-                      boxShadow: `0 4px 24px ${color}20`,
+                      top: card.midY - PANEL_H / 2,
+                      right: 8,
+                      width: PANEL_W,
+                      height: PANEL_H,
+                      background: `linear-gradient(145deg, ${color}22, ${color}0a)`,
+                      border: `1.5px solid ${color}40`,
+                      boxShadow: `0 8px 32px ${color}18, inset 0 1px 0 ${color}20`,
                     }}
                   >
-                    <div className="flex gap-0.5 text-xl leading-none">
-                      {scene.emojis.map((e, j) => <span key={j}>{e}</span>)}
+                    {/* Arrow pointing right toward path */}
+                    <div
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rotate-45 border-r-2 border-t-2 rounded-sm"
+                      style={{ backgroundColor: '#0a0a0a', borderColor: `${color}40` }}
+                    />
+                    <div className="flex gap-1 text-4xl leading-none">
+                      {card.scene.emojis.map((e, j) => (
+                        <span key={j} className="drop-shadow-lg">{e}</span>
+                      ))}
                     </div>
-                    <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: `${color}99` }}>
-                      {scene.label}
+                    <span
+                      className="text-[11px] font-bold uppercase tracking-widest text-center px-2"
+                      style={{ color: `${color}bb` }}
+                    >
+                      {card.scene.label}
                     </span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
 
-              {/* ── Topic nodes ── */}
-              {positioned.map(({ topic, x, y, seq }) => {
-                const meta = MASTERY_META[topic.mastery];
-                const isSelected = selected?.id === topic.id;
-                return (
-                  <button
-                    key={topic.id}
-                    onClick={() => setSelected(isSelected ? null : topic)}
-                    className="absolute flex flex-col items-center cursor-pointer group border-none bg-transparent p-0"
-                    style={{ left: x, top: y, transform: 'translate(-50%, -50%)', zIndex: 10 }}
+              {/* ── Snake canvas ── */}
+              <div
+                ref={containerRef}
+                className="flex-1 relative min-w-0"
+                style={{ height: totalHeight }}
+              >
+                {/* Background glow */}
+                <div
+                  className="absolute inset-0 pointer-events-none rounded-3xl opacity-5"
+                  style={{ background: `radial-gradient(ellipse at 50% 0%, ${color}, transparent 70%)` }}
+                />
+
+                {/* SVG path */}
+                <svg
+                  className="absolute inset-0 w-full overflow-visible pointer-events-none"
+                  style={{ height: totalHeight }}
+                  viewBox={`0 0 ${canvasW} ${totalHeight}`}
+                  preserveAspectRatio="none"
+                >
+                  <defs>
+                    <linearGradient id={`pg-${subject}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={color} stopOpacity="0.9" />
+                      <stop offset="100%" stopColor={color} stopOpacity="0.3" />
+                    </linearGradient>
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                  </defs>
+                  <path d={pathD} fill="none" stroke="#1a1a1a" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={pathD} fill="none" stroke="#2a2a2a" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="6 8" />
+                  <path d={pathD} fill="none" stroke={`url(#pg-${subject})`} strokeWidth="5"
+                    strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
+                </svg>
+
+                {/* ── Small U-turn scene chips (inside canvas at bends) ── */}
+                {sceneCards.map(({ midY, isRight, scene }, i) => {
+                  const chipW = 90;
+                  const chipH = 70;
+                  const turnX = isRight ? nodeXs[nodeXs.length - 1] + TURN_BULGE : nodeXs[0] - TURN_BULGE;
+                  const left = Math.max(2, Math.min(canvasW - chipW - 2, turnX - chipW / 2));
+                  return (
+                    <div
+                      key={i}
+                      className="absolute rounded-xl flex flex-col items-center justify-center gap-0.5 pointer-events-none select-none"
+                      style={{
+                        left,
+                        top: midY - chipH / 2,
+                        width: chipW,
+                        height: chipH,
+                        background: `linear-gradient(135deg, ${color}14, ${color}06)`,
+                        border: `1px solid ${color}25`,
+                      }}
+                    >
+                      <div className="flex gap-0.5 text-lg leading-none">
+                        {scene.emojis.map((e, j) => <span key={j}>{e}</span>)}
+                      </div>
+                      <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: `${color}80` }}>
+                        {scene.label}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {/* ── Topic nodes ── */}
+                {positioned.map(({ topic, x, y, seq }) => {
+                  const meta = MASTERY_META[topic.mastery];
+                  const isSelected = selected?.id === topic.id;
+                  const isFirst = seq === 1;
+                  return (
+                    <button
+                      key={topic.id}
+                      onClick={() => setSelected(isSelected ? null : topic)}
+                      className="absolute flex flex-col items-center cursor-pointer group border-none bg-transparent p-0"
+                      style={{ left: x, top: y, transform: 'translate(-50%, -50%)', zIndex: 10 }}
+                    >
+                      {/* "Start here" label for first unlocked node */}
+                      {isFirst && (
+                        <div
+                          className="absolute -top-8 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-widest whitespace-nowrap px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}50` }}
+                        >
+                          ▶ Start Here
+                        </div>
+                      )}
+                      {/* Circle */}
+                      <div
+                        className="rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110"
+                        style={{
+                          width: nodeR * 2,
+                          height: nodeR * 2,
+                          background: topic.mastery === 'not-started'
+                            ? 'radial-gradient(circle, #1c1c1c, #111)'
+                            : `radial-gradient(circle, ${meta.color}30, ${meta.color}10)`,
+                          border: `3px solid ${meta.color}`,
+                          boxShadow: isSelected
+                            ? `0 0 0 4px ${meta.color}50, 0 0 20px ${meta.color}60`
+                            : isFirst
+                              ? `0 0 18px ${meta.color}60, 0 0 36px ${meta.color}30`
+                              : `0 0 12px ${meta.color}30`,
+                        }}
+                      >
+                        <span className="text-lg leading-none select-none">{meta.emoji}</span>
+                      </div>
+                      {/* Sequence badge */}
+                      <div
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black"
+                        style={{ backgroundColor: meta.color, color: '#000' }}
+                      >
+                        {seq}
+                      </div>
+                      {/* Label */}
+                      <span
+                        className="mt-2 text-[10px] font-semibold text-center leading-tight select-none"
+                        style={{
+                          maxWidth: nodeR * 2 + 20,
+                          color: isSelected ? '#fff' : '#a3a3a3',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical' as const,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {topic.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* RIGHT side panels (desktop only) */}
+              <div
+                className="hidden lg:block relative shrink-0"
+                style={{ width: SIDE_COL_W, height: totalHeight }}
+              >
+                {rightPanels.map((card, i) => (
+                  <div
+                    key={i}
+                    className="absolute rounded-2xl flex flex-col items-center justify-center gap-2 select-none"
+                    style={{
+                      top: card.midY - PANEL_H / 2,
+                      left: 8,
+                      width: PANEL_W,
+                      height: PANEL_H,
+                      background: `linear-gradient(145deg, ${color}22, ${color}0a)`,
+                      border: `1.5px solid ${color}40`,
+                      boxShadow: `0 8px 32px ${color}18, inset 0 1px 0 ${color}20`,
+                    }}
                   >
-                    {/* Circle */}
+                    {/* Arrow pointing left toward path */}
                     <div
-                      className="rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110"
-                      style={{
-                        width: nodeR * 2,
-                        height: nodeR * 2,
-                        background: topic.mastery === 'not-started'
-                          ? 'radial-gradient(circle, #1c1c1c, #111)'
-                          : `radial-gradient(circle, ${meta.color}30, ${meta.color}10)`,
-                        border: `3px solid ${meta.color}`,
-                        boxShadow: isSelected
-                          ? `0 0 0 4px ${meta.color}50, 0 0 20px ${meta.color}60`
-                          : `0 0 12px ${meta.color}30`,
-                      }}
-                    >
-                      <span className="text-lg leading-none select-none">{meta.emoji}</span>
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rotate-45 border-l-2 border-b-2 rounded-sm"
+                      style={{ backgroundColor: '#0a0a0a', borderColor: `${color}40` }}
+                    />
+                    <div className="flex gap-1 text-4xl leading-none">
+                      {card.scene.emojis.map((e, j) => (
+                        <span key={j} className="drop-shadow-lg">{e}</span>
+                      ))}
                     </div>
-                    {/* Sequence badge */}
-                    <div
-                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black"
-                      style={{ backgroundColor: meta.color, color: '#000' }}
-                    >
-                      {seq}
-                    </div>
-                    {/* Label */}
                     <span
-                      className="mt-2 text-[10px] font-semibold text-center leading-tight select-none"
-                      style={{
-                        maxWidth: nodeR * 2 + 20,
-                        color: isSelected ? '#fff' : '#a3a3a3',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical' as const,
-                        overflow: 'hidden',
-                      }}
+                      className="text-[11px] font-bold uppercase tracking-widest text-center px-2"
+                      style={{ color: `${color}bb` }}
                     >
-                      {topic.name}
+                      {card.scene.label}
                     </span>
-                  </button>
-                );
-              })}
-            </div>
+                  </div>
+                ))}
+              </div>
+
+            </div>{/* end three-column flex */}
 
             {/* ── Detail drawer ── */}
             {selected && (
