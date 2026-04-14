@@ -16,6 +16,19 @@ export async function GET() {
     const progress = levelProgress(profile.xp);
     const title = getLevelTitle(progress.level);
 
+    // Fetch coins + active banner (may not exist if columns not yet added)
+    let coins = 200;
+    let activeBannerId: string | null = null;
+    try {
+      await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS coins integer NOT NULL DEFAULT 200`;
+      await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS active_banner_id text`;
+      const extra = await sql`SELECT coins, active_banner_id FROM profiles WHERE user_id = ${userId}`;
+      if (extra[0]) {
+        coins = (extra[0] as { coins: number }).coins ?? 200;
+        activeBannerId = (extra[0] as { active_banner_id: string | null }).active_banner_id ?? null;
+      }
+    } catch { /* columns not ready yet */ }
+
     return NextResponse.json({
       userId,
       displayName: profile.display_name,
@@ -26,6 +39,8 @@ export async function GET() {
       progress: progress.progress,
       currentLevelXP: progress.currentLevelXP,
       nextLevelXP: progress.nextLevelXP,
+      coins,
+      activeBannerId,
       role: (profile as Record<string, unknown>).role ?? 'student',
       org_id: (profile as Record<string, unknown>).org_id ?? null,
       year_group: (profile as Record<string, unknown>).year_group ?? null,
@@ -40,6 +55,8 @@ export async function GET() {
       progress: 0,
       currentLevelXP: 0,
       nextLevelXP: 100,
+      coins: 0,
+      activeBannerId: null,
     });
   }
 }

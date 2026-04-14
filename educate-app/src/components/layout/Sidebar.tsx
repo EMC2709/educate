@@ -19,6 +19,8 @@ const NAV_ITEMS = [
   { href: '/progress', label: 'Progress', icon: '\u{1F4CA}' },
   { href: '/achievements', label: 'Achievements', icon: '\u{1F3C6}' },
   { href: '/games', label: 'Games', icon: '\u{1F3AE}' },
+  { href: '/profile', label: 'My Profile', icon: '\u{1F464}' },
+  { href: '/marketplace', label: 'Marketplace', icon: '\u{1F6D2}' },
   { href: '/boards', label: 'Exam Boards', icon: '\u{1F4CB}' },
   { href: '/export', label: 'Share & Export', icon: '\u{1F4E4}' },
 ];
