@@ -41,6 +41,15 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'night-owl', title: 'Night Owl', description: 'Study after 10pm', icon: '\u{1F989}', category: 'special' },
   { id: 'early-bird', title: 'Early Bird', description: 'Study before 7am', icon: '\u{1F426}', category: 'special' },
   { id: 'weekend-warrior', title: 'Weekend Warrior', description: 'Study on a Saturday and Sunday', icon: '\u{1F6E1}\uFE0F', category: 'special' },
+
+  // Rank achievements
+  { id: 'rank-bronze', title: 'Bronze Ranked', description: 'Reach Bronze rank', icon: '\u{1F7E0}', category: 'xp' },
+  { id: 'rank-silver', title: 'Silver Ranked', description: 'Reach Silver rank', icon: '\u26AA', category: 'xp' },
+  { id: 'rank-gold', title: 'Gold Ranked', description: 'Reach Gold rank', icon: '\u{1F7E1}', category: 'xp' },
+  { id: 'rank-platinum', title: 'Platinum Ranked', description: 'Reach Platinum rank', icon: '\u{1F537}', category: 'xp' },
+  { id: 'rank-emerald', title: 'Emerald Ranked', description: 'Reach Emerald rank', icon: '\u{1F49A}', category: 'xp' },
+  { id: 'rank-diamond', title: 'Diamond Ranked', description: 'Reach Diamond rank', icon: '\u{1F48E}', category: 'xp' },
+  { id: 'rank-champion', title: 'Champion', description: 'Reach the highest rank', icon: '\u{1F451}', category: 'special' },
 ];
 
 export function getUnlockedAchievements(): Achievement[] {
@@ -108,6 +117,15 @@ export function checkAchievements(context: {
   tryUnlock('xp-500', (context.xp ?? 0) >= 500);
   tryUnlock('xp-1000', (context.xp ?? 0) >= 1000);
   tryUnlock('daily-goal', !!context.dailyGoalMet);
+
+  // Rank milestones (Bronze V = 500 XP, Silver V = 2300, Gold V = 6500, etc.)
+  tryUnlock('rank-bronze',   (context.xp ?? 0) >= 500);
+  tryUnlock('rank-silver',   (context.xp ?? 0) >= 2_300);
+  tryUnlock('rank-gold',     (context.xp ?? 0) >= 6_500);
+  tryUnlock('rank-platinum', (context.xp ?? 0) >= 18_500);
+  tryUnlock('rank-emerald',  (context.xp ?? 0) >= 45_000);
+  tryUnlock('rank-diamond',  (context.xp ?? 0) >= 108_000);
+  tryUnlock('rank-champion', (context.xp ?? 0) >= 270_000);
 
   // Exploration
   tryUnlock('all-subjects', (context.subjectsStudiedToday ?? 0) >= (context.totalSubjects ?? 999));

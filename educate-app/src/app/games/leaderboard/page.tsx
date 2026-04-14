@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { Navbar } from '@/components/layout/Navbar';
 import { getLevelTitle } from '@/lib/xp-client';
+import { getRank } from '@/lib/ranks';
 
 interface LeaderboardEntry {
   user_id: string;
@@ -111,9 +112,22 @@ export default function LeaderboardPage() {
                       {isMe && <span className="text-amber-400 text-xs ml-1.5">(you)</span>}
                     </p>
                     <p className="text-xs text-neutral-500 m-0">
-                      Lv.{entry.level} {getLevelTitle(entry.level)}
+                      Lv.{entry.level} · {getLevelTitle(entry.level)}
                     </p>
                   </div>
+
+                  {/* Rank badge */}
+                  {(() => {
+                    const rank = getRank(entry.xp);
+                    return (
+                      <div className="flex flex-col items-center shrink-0 min-w-[64px]">
+                        <span className="text-xl leading-none">{rank.icon}</span>
+                        <span className="text-[10px] font-bold mt-0.5" style={{ color: rank.color }}>
+                          {rank.label}
+                        </span>
+                      </div>
+                    );
+                  })()}
 
                   {/* XP */}
                   <div className="text-right shrink-0">

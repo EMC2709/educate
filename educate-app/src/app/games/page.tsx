@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { levelProgress, getLevelTitle } from '@/lib/xp-client';
+import { getRank, getNextRank, rankProgress } from '@/lib/ranks';
 
 interface Profile {
   displayName: string;
@@ -61,25 +62,79 @@ export default function GamesHubPage() {
           <p className="text-neutral-500 text-sm">Earn XP, level up, and compete with friends</p>
         </div>
 
-        {/* XP/Level Card */}
-        {profile && (
-          <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-2xl p-5 sm:p-6 mb-8">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <span className="text-amber-400 text-sm font-bold">Level {profile.level}</span>
-                <span className="text-neutral-400 text-sm ml-2">{profile.title}</span>
+        {/* Rank Card */}
+        {profile && (() => {
+          const rp = rankProgress(profile.xp);
+          return (
+            <div
+              className="rounded-2xl p-5 sm:p-6 mb-6 border"
+              style={{
+                background: `linear-gradient(135deg, ${rp.rank.glowColor}, rgba(0,0,0,0.6))`,
+                borderColor: rp.rank.color + '55',
+                boxShadow: `0 0 32px ${rp.rank.glowColor}`,
+              }}
+            >
+              <div className="flex items-center gap-4 mb-4">
+                {/* Big rank icon */}
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shrink-0"
+                  style={{ background: rp.rank.glowColor, border: `2px solid ${rp.rank.color}55` }}
+                >
+                  {rp.rank.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: rp.rank.color }}>
+                    Current Rank
+                  </p>
+                  <p className="text-2xl font-black text-white m-0">{rp.rank.label}</p>
+                  <p className="text-xs text-neutral-400 m-0">Level {profile.level} · {profile.xp.toLocaleString()} XP</p>
+                </div>
+                {rp.nextRank && (
+                  <div className="text-right shrink-0">
+                    <p className="text-[10px] text-neutral-500 m-0">Next rank</p>
+                    <p className="text-sm font-bold m-0" style={{ color: rp.nextRank.color }}>
+                      {rp.nextRank.icon} {rp.nextRank.label}
+                    </p>
+                  </div>
+                )}
               </div>
-              <span className="text-amber-400 font-bold text-lg">{profile.xp.toLocaleString()} XP</span>
+
+              {/* Rank progress bar */}
+              {rp.nextRank ? (
+                <>
+                  <div className="w-full bg-neutral-900/70 rounded-full h-2.5 overflow-hidden mb-1.5">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${rp.progressPct}%`,
+                        background: `linear-gradient(90deg, ${rp.rank.color}, ${rp.nextRank.color})`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-neutral-500 text-right m-0">
+                    {rp.xpIntoRank.toLocaleString()} / {rp.xpNeeded.toLocaleString()} XP to {rp.nextRank.label}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm font-bold text-center m-0" style={{ color: rp.rank.color }}>
+                  👑 Maximum rank achieved
+                </p>
+              )}
             </div>
-            <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
+          );
+        })()}
+
+        {/* Level progress bar (compact) */}
+        {profile && (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 mb-8 flex items-center gap-3">
+            <span className="text-amber-400 text-xs font-bold whitespace-nowrap">Lv.{profile.level} {profile.title}</span>
+            <div className="flex-1 bg-neutral-800 rounded-full h-2 overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
                 style={{ width: `${Math.round(profile.progress * 100)}%` }}
               />
             </div>
-            <p className="text-neutral-500 text-xs mt-2 text-right">
-              {profile.xp - profile.currentLevelXP} / {profile.nextLevelXP - profile.currentLevelXP} XP to Level {profile.level + 1}
-            </p>
+            <span className="text-neutral-500 text-xs whitespace-nowrap">{profile.xp.toLocaleString()} XP</span>
           </div>
         )}
 
