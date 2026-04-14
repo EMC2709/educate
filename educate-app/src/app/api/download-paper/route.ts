@@ -45,9 +45,9 @@ export async function GET(req: NextRequest) {
     const responseHeaders: Record<string, string> = { 'Content-Type': contentType };
 
     if (contentType.includes('pdf')) {
-      // Force download with a sensible filename
+      // Open inline in the browser PDF viewer
       const filename = parsed.pathname.split('/').filter(Boolean).pop() ?? 'past-paper.pdf';
-      responseHeaders['Content-Disposition'] = `attachment; filename="${filename}"`;
+      responseHeaders['Content-Disposition'] = `inline; filename="${filename}"`;
     }
 
     return new NextResponse(upstream.body, {

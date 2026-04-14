@@ -29,8 +29,8 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
 
   const yearPapers = useMemo(() => {
     if (!activePaper) return [];
-    return getYearPapers(activePaper, activePaper.tiered ? tier : undefined);
-  }, [activePaper, tier]);
+    return getYearPapers(activePaper, activePaper.tiered ? tier : undefined, officialUrl);
+  }, [activePaper, tier, officialUrl]);
 
   const [selectedYear, setSelectedYear] = useState<string>('');
 
@@ -69,18 +69,31 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
             </div>
 
             {papers.length === 0 ? (
-              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center">
-                <p className="text-neutral-400 mb-4">No past papers found for {subject} ({boardName}).</p>
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center space-y-4">
+                <p className="text-neutral-400">No downloadable papers found for {subject} ({boardName}).</p>
                 {officialUrl && (
                   <a
                     href={officialUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 text-sm underline"
+                    className="text-indigo-400 hover:text-indigo-300 text-sm underline block"
                   >
                     Visit {boardName} official resources &#8599;
                   </a>
                 )}
+                {/* Still allow practice mode even without downloadable papers */}
+                <button
+                  onClick={() => {
+                    try { sessionStorage.setItem('educate-paper-info', JSON.stringify({ paperTitle: 'Past Paper Practice', year: '', tier: '', duration: '1 hour 45 minutes', totalMarks: 0 })); } catch {}
+                    window.location.href = `/${boardName}/${encodeURIComponent(subject)}/paper`;
+                  }}
+                  className="w-full py-3 rounded-xl text-center font-semibold text-sm text-white border-none cursor-pointer transition-opacity"
+                  style={{ backgroundColor: '#6366f1' }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                >
+                  &#9997; Practice Past Paper Questions on Educate
+                </button>
               </div>
             ) : (
               <>
@@ -188,36 +201,50 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                     {selectedYearPaper && (
                       <div className="flex flex-col gap-3">
                         <div className="flex flex-col sm:flex-row gap-3">
-                          {/* Download Question Paper */}
+                          {/* Question Paper — proxied through app for PDF, direct link for board pages */}
                           <a
-                            href={`/api/download-paper?url=${encodeURIComponent(selectedYearPaper.qpUrl)}`}
+                            href={selectedYearPaper.qpUrl.endsWith('.PDF')
+                              ? `/api/download-paper?url=${encodeURIComponent(selectedYearPaper.qpUrl)}`
+                              : selectedYearPaper.qpUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex-1 py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 no-underline flex items-center justify-center gap-2 border-2"
                             style={{ borderColor: color, color, backgroundColor: `${color}18` }}
                             onMouseEnter={e => (e.currentTarget.style.backgroundColor = `${color}30`)}
                             onMouseLeave={e => (e.currentTarget.style.backgroundColor = `${color}18`)}
                           >
-                            &#11123; Download Paper
+                            {selectedYearPaper.qpUrl.endsWith('.PDF') ? '⬋ Download Paper' : `⬋ Find Paper on ${boardName}`}
                           </a>
 
-                          {/* Download Mark Scheme */}
+                          {/* Mark Scheme — proxied through app for PDF, direct link for board pages */}
                           <a
-                            href={`/api/download-paper?url=${encodeURIComponent(selectedYearPaper.msUrl)}`}
+                            href={selectedYearPaper.msUrl.endsWith('.PDF')
+                              ? `/api/download-paper?url=${encodeURIComponent(selectedYearPaper.msUrl)}`
+                              : selectedYearPaper.msUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex-1 py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 no-underline flex items-center justify-center gap-2 border-2"
                             style={{ borderColor: '#a855f7', color: '#a855f7', backgroundColor: '#a855f718' }}
                             onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#a855f730')}
                             onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#a855f718')}
                           >
-                            &#11123; Download Mark Scheme
+                            {selectedYearPaper.msUrl.endsWith('.PDF') ? '⬋ Download Mark Scheme' : `⬋ Find Mark Scheme on ${boardName}`}
                           </a>
                         </div>
 
-                        {/* Practice on Educate */}
+                        {/* Practice on Educate — full exam paper mode */}
                         <button
                           onClick={() => {
-                            sessionStorage.setItem('educate-bank-only', 'true');
-                            sessionStorage.removeItem('educate-selected-topics');
-                            sessionStorage.removeItem('educate-selected-subtopics');
-                            window.location.href = `/${boardName}/${encodeURIComponent(subject)}/quiz?type=past-paper`;
+                            try {
+                              sessionStorage.setItem('educate-paper-info', JSON.stringify({
+                                paperTitle: activePaper?.title ?? `Paper ${activeTab}`,
+                                year: currentYear,
+                                tier: activePaper?.tiered ? (tier === 'H' ? 'Higher' : 'Foundation') : '',
+                                duration: activePaper?.duration ?? '1 hour 45 minutes',
+                                totalMarks: activePaper?.marks ?? 0,
+                              }));
+                            } catch {}
+                            window.location.href = `/${boardName}/${encodeURIComponent(subject)}/paper`;
                           }}
                           className="w-full py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 border-none cursor-pointer"
                           style={{ backgroundColor: color, color: '#fff' }}
