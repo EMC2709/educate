@@ -8,7 +8,6 @@ import { SUBJECT_ICONS } from '@/data/subject-icons';
 import { Q_TYPES } from '@/data/question-types';
 import { PAST_PAPERS_INDEX } from '@/data/past-papers-index';
 import { Navbar } from '@/components/layout/Navbar';
-import { ChatPanel } from '@/components/layout/ChatPanel';
 import { Button } from '@/components/ui/Button';
 
 export default function QuestionTypePage({ params }: { params: Promise<{ board: string; subject: string }> }) {
@@ -98,7 +97,6 @@ export default function QuestionTypePage({ params }: { params: Promise<{ board: 
             </div>
           </div>
         </div>
-        <ChatPanel subject={subject} board={boardName} />
       </div>
     </div>
   );

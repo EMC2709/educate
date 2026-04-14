@@ -7,7 +7,6 @@ import { EXAM_BOARDS } from '@/data/exam-boards';
 import { PAST_PAPERS_INDEX, getYearPapers } from '@/data/past-papers-index';
 import type { PaperEntry, YearPaper } from '@/data/past-papers-index';
 import { Navbar } from '@/components/layout/Navbar';
-import { ChatPanel } from '@/components/layout/ChatPanel';
 import { Button } from '@/components/ui/Button';
 
 export default function PastPapersPage({ params }: { params: Promise<{ board: string; subject: string }> }) {
@@ -276,7 +275,6 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
             )}
           </div>
         </div>
-        <ChatPanel subject={subject} board={boardName} />
       </div>
     </div>
   );
