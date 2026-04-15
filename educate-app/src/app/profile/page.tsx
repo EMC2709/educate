@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { getLevelTitle, levelProgress } from '@/lib/xp-client';
 import { getRank } from '@/lib/ranks';
-import { getBanner, RARITY_COLORS } from '@/lib/banners';
+import { getBanner, RARITY_COLORS, getBannerBackground, getBannerBackgroundSize } from '@/lib/banners';
 import { getStreakData } from '@/lib/streak';
 import { RankEmblem } from '@/components/ui/RankEmblem';
 
@@ -150,9 +150,8 @@ export default function ProfilePage() {
           <div
             className="rounded-2xl p-6 border"
             style={{
-              background: activeBanner
-                ? `linear-gradient(rgba(8,8,12,0.72), rgba(8,8,12,0.72)), ${activeBanner.gradient}`
-                : '#111',
+              background: activeBanner ? getBannerBackground(activeBanner, 0.68) : '#111',
+              backgroundSize: activeBanner ? getBannerBackgroundSize(activeBanner) : undefined,
               borderColor: activeBanner ? `${rank.color}60` : `${rank.color}40`,
               boxShadow: rank.glowColor ? `0 4px 32px ${rank.glowColor}` : undefined,
             }}

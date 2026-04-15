@@ -6,7 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import { Navbar } from '@/components/layout/Navbar';
 import { getLevelTitle } from '@/lib/xp-client';
 import { getRank } from '@/lib/ranks';
-import { getBanner } from '@/lib/banners';
+import { getBanner, getBannerBackground, getBannerBackgroundSize } from '@/lib/banners';
 import { RankEmblem } from '@/components/ui/RankEmblem';
 
 interface LeaderboardEntry {
@@ -95,9 +95,9 @@ export default function LeaderboardPage() {
                   className="flex items-center gap-3 p-3 sm:p-4 rounded-xl transition-all border"
                   style={
                     isMe
-                      ? { background: `linear-gradient(rgba(10,5,0,0.82), rgba(10,5,0,0.82)), linear-gradient(90deg, #b4530020, #f59e0b10)`, borderColor: '#f59e0b50' }
+                      ? { background: `linear-gradient(rgba(10,5,0,0.82),rgba(10,5,0,0.82)),linear-gradient(90deg,#b4530020,#f59e0b10)`, borderColor: '#f59e0b50' }
                       : banner
-                        ? { background: `linear-gradient(rgba(8,8,12,0.76), rgba(8,8,12,0.76)), ${banner.gradient}`, borderColor: `${rank.color}55` }
+                        ? { background: getBannerBackground(banner), backgroundSize: getBannerBackgroundSize(banner), borderColor: `${rank.color}55` }
                         : { backgroundColor: '#111', borderColor: '#1f1f1f' }
                   }
                 >
