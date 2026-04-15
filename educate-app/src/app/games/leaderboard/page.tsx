@@ -95,9 +95,9 @@ export default function LeaderboardPage() {
                   className="flex items-center gap-3 p-3 sm:p-4 rounded-xl transition-all border"
                   style={
                     isMe
-                      ? { backgroundColor: '#451a0322', borderColor: '#f59e0b50' }
+                      ? { background: `linear-gradient(rgba(10,5,0,0.82), rgba(10,5,0,0.82)), linear-gradient(90deg, #b4530020, #f59e0b10)`, borderColor: '#f59e0b50' }
                       : banner
-                        ? { backgroundColor: '#111', borderColor: '#2a2a2a', boxShadow: `0 0 12px ${banner.gradient.includes('#ef4444') ? '#ef444420' : '#6366f120'}` }
+                        ? { background: `linear-gradient(rgba(8,8,12,0.76), rgba(8,8,12,0.76)), ${banner.gradient}`, borderColor: `${rank.color}55` }
                         : { backgroundColor: '#111', borderColor: '#1f1f1f' }
                   }
                 >

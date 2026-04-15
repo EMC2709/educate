@@ -149,7 +149,13 @@ export default function ProfilePage() {
           {/* Hero card */}
           <div
             className="rounded-2xl p-6 border"
-            style={{ backgroundColor: '#111', borderColor: `${rank.color}40`, boxShadow: rank.glowColor ? `0 4px 32px ${rank.glowColor}` : undefined }}
+            style={{
+              background: activeBanner
+                ? `linear-gradient(rgba(8,8,12,0.72), rgba(8,8,12,0.72)), ${activeBanner.gradient}`
+                : '#111',
+              borderColor: activeBanner ? `${rank.color}60` : `${rank.color}40`,
+              boxShadow: rank.glowColor ? `0 4px 32px ${rank.glowColor}` : undefined,
+            }}
           >
             <div className="flex items-start gap-5">
               {/* Large rank emblem */}
