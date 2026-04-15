@@ -15,6 +15,9 @@ interface PaperInfo {
   tier: string;
   duration: string;
   totalMarks: number;
+  component?: string | null;
+  paperNumber?: string | null;
+  board?: string | null;
 }
 
 type Mode = 'intro' | 'exam' | 'results';
@@ -30,8 +33,10 @@ export default function ExamPaperPage({
 
   if (!board || !board.subjects.includes(subject)) notFound();
 
-  const questions: Question[] = PAST_PAPER_BANK[subject] ?? [];
+  const staticQuestions: Question[] = PAST_PAPER_BANK[subject] ?? [];
 
+  const [questions, setQuestions] = useState<Question[]>(staticQuestions);
+  const [loadingDb, setLoadingDb] = useState(false);
   const [mode, setMode] = useState<Mode>('intro');
   const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ''));
   const [paperInfo, setPaperInfo] = useState<PaperInfo>({
@@ -58,10 +63,42 @@ export default function ExamPaperPage({
           tier: info.tier ?? prev.tier,
           duration: info.duration ?? prev.duration,
           totalMarks: info.totalMarks ?? prev.totalMarks,
+          component: info.component ?? null,
+          paperNumber: info.paperNumber ?? null,
+          board: info.board ?? boardName,
         }));
+
+        // Load questions from DB with component/paper filters
+        const gcseType = `GCSE_${info.board ?? boardName}`;
+        const dbParams = new URLSearchParams({
+          subject,
+          examType: gcseType,
+          random: 'true',
+          limit: '20',
+        });
+        if (info.component) dbParams.set('topic', info.component);
+
+        setLoadingDb(true);
+        fetch(`/api/questions?${dbParams}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (data?.questions?.length >= 1) {
+              const dbQs: Question[] = data.questions.map((q: { question_text: string; marks: number; topic: string; mark_scheme?: string }) => ({
+                question: q.question_text,
+                answer: q.mark_scheme || '',
+                marks: q.marks || 1,
+                hint: q.topic || '',
+              }));
+              setQuestions(dbQs);
+              setAnswers(dbQs.map(() => ''));
+              setRevealed(dbQs.map(() => false));
+            }
+          })
+          .catch(() => {})
+          .finally(() => setLoadingDb(false));
       }
     } catch {}
-  }, []);
+  }, [subject, boardName]);
 
   useEffect(() => {
     if (mode === 'exam') {
@@ -94,17 +131,32 @@ export default function ExamPaperPage({
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
+  if (loadingDb) {
+    return (
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center p-8 pb-20 md:pb-8">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-neutral-400 text-sm">Loading {paperInfo.component ? `${paperInfo.component} ` : ''}questions...</p>
+          </div>
+        </div>
+        <MobileNav />
+      </div>
+    );
+  }
+
   if (questions.length === 0) {
     return (
       <div className="flex min-h-screen">
         <Sidebar />
         <div className="flex-1 flex items-center justify-center p-8 pb-20 md:pb-8">
           <div className="text-center">
-            <p className="text-4xl mb-4">📄</p>
+            <p className="text-4xl mb-4">{'\u{1F4C4}'}</p>
             <p className="text-neutral-300 font-semibold mb-2">No past paper questions available yet</p>
-            <p className="text-neutral-500 text-sm mb-6">Questions for {subject} are being added soon.</p>
+            <p className="text-neutral-500 text-sm mb-6">Questions for {subject}{paperInfo.component ? ` (${paperInfo.component})` : ''} are being added soon.</p>
             <Link href={`/${boardName}/${encodeURIComponent(subject)}/papers`} className="text-indigo-400 hover:text-indigo-300 text-sm underline">
-              ← Back to papers
+              {'\u2190'} Back to papers
             </Link>
           </div>
         </div>

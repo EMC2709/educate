@@ -280,6 +280,9 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                                 tier: activePaper?.tiered ? (tier === 'H' ? 'Higher' : 'Foundation') : '',
                                 duration: activePaper?.duration ?? '1 hour 45 minutes',
                                 totalMarks: activePaper?.marks ?? 0,
+                                component: activePaper?.component ?? null,
+                                paperNumber: `Paper ${activeTab}`,
+                                board: boardName,
                               }));
                             } catch {}
                             window.location.href = `/${boardName}/${encodeURIComponent(subject)}/paper`;
