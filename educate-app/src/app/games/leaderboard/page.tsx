@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { Navbar } from '@/components/layout/Navbar';
 import { getLevelTitle } from '@/lib/xp-client';
+import { getRank } from '@/lib/ranks';
+import { getBanner, getBannerBackground, getBannerBackgroundSize } from '@/lib/banners';
+import { RankEmblem } from '@/components/ui/RankEmblem';
 
 interface LeaderboardEntry {
   user_id: string;
@@ -12,6 +15,7 @@ interface LeaderboardEntry {
   avatar_url: string | null;
   xp: number;
   level: number;
+  active_banner_id?: string | null;
 }
 
 export default function LeaderboardPage() {
@@ -43,6 +47,12 @@ export default function LeaderboardPage() {
 
         <div className="text-center mt-6 mb-6">
           <h1 className="text-3xl font-bold mb-2">{'\u{1F3C6}'} Leaderboard</h1>
+          <p className="text-neutral-500 text-sm m-0">
+            Banners from the{' '}
+            <Link href="/marketplace" className="text-amber-400 hover:text-amber-300 no-underline font-semibold">
+              🛒 Marketplace
+            </Link>
+          </p>
         </div>
 
         {/* Tabs */}
@@ -77,18 +87,25 @@ export default function LeaderboardPage() {
           <div className="flex flex-col gap-2">
             {entries.map((entry, i) => {
               const isMe = entry.user_id === currentUserId;
+              const rank = getRank(entry.xp);
+              const banner = getBanner(entry.active_banner_id);
               return (
                 <div
                   key={entry.user_id}
-                  className={`flex items-center gap-3 p-3 sm:p-4 rounded-xl transition-all ${
-                    isMe ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-neutral-900 border border-neutral-800'
-                  }`}
+                  className="flex items-center gap-3 p-3 sm:p-4 rounded-xl transition-all border"
+                  style={
+                    isMe
+                      ? { background: `linear-gradient(rgba(10,5,0,0.82),rgba(10,5,0,0.82)),linear-gradient(90deg,#b4530020,#f59e0b10)`, borderColor: '#f59e0b50' }
+                      : banner
+                        ? { background: getBannerBackground(banner), backgroundSize: getBannerBackgroundSize(banner), borderColor: `${rank.color}55` }
+                        : { backgroundColor: '#111', borderColor: '#1f1f1f' }
+                  }
                 >
-                  {/* Rank */}
+                  {/* Position */}
                   <div className="w-8 text-center shrink-0">
                     {i < 3 ? (
                       <span className="text-xl" style={{ color: medalColors[i] }}>
-                        {i === 0 ? '\u{1F947}' : i === 1 ? '\u{1F948}' : '\u{1F949}'}
+                        {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
                       </span>
                     ) : (
                       <span className="text-neutral-500 text-sm font-bold">#{i + 1}</span>
@@ -96,7 +113,10 @@ export default function LeaderboardPage() {
                   </div>
 
                   {/* Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-neutral-700 flex items-center justify-center text-white text-xs font-bold overflow-hidden shrink-0">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold overflow-hidden shrink-0"
+                    style={{ background: banner ? banner.gradient : '#404040' }}
+                  >
                     {entry.avatar_url ? (
                       <img src={entry.avatar_url} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -104,15 +124,34 @@ export default function LeaderboardPage() {
                     )}
                   </div>
 
-                  {/* Name and title */}
+                  {/* Name, banner, title */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white m-0 truncate">
-                      {entry.display_name}
-                      {isMe && <span className="text-amber-400 text-xs ml-1.5">(you)</span>}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-white truncate">
+                        {entry.display_name}
+                        {isMe && <span className="text-amber-400 text-xs ml-1.5">(you)</span>}
+                      </span>
+                      {/* Banner pill */}
+                      {banner && (
+                        <span
+                          className="inline-flex items-center gap-0.5 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0"
+                          style={{ background: banner.gradient, color: banner.textColor }}
+                        >
+                          {banner.emoji} {banner.name}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-neutral-500 m-0">
-                      Lv.{entry.level} {getLevelTitle(entry.level)}
+                      Lv.{entry.level} · {getLevelTitle(entry.level)}
                     </p>
+                  </div>
+
+                  {/* Rank emblem */}
+                  <div className="flex flex-col items-center shrink-0 min-w-[52px] gap-0.5">
+                    <RankEmblem rank={rank} size={38} uid={i} />
+                    <span className="text-[8px] font-bold leading-none" style={{ color: rank.color }}>
+                      {rank.label}
+                    </span>
                   </div>
 
                   {/* XP */}

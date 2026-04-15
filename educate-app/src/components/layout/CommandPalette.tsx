@@ -23,7 +23,7 @@ const PAGE_ITEMS: CommandItem[] = [
   { id: 'games', label: 'Game Zone', icon: '\u{1F3AE}', href: '/games', category: 'Pages' },
   { id: 'boards', label: 'Exam Boards', icon: '\u{1F4CB}', href: '/boards', category: 'Pages' },
   { id: 'export', label: 'Share & Export', icon: '\u{1F4E4}', href: '/export', category: 'Pages' },
-  { id: 'onboarding', label: 'Edit My Subjects', icon: '\u{270F}\uFE0F', href: '/onboarding', category: 'Actions' },
+  { id: 'onboarding', label: 'Edit My Subjects', icon: '\u{270F}\uFE0F', href: '/onboarding?edit=true', category: 'Actions' },
 ];
 
 const SUBJECT_ICONS: Record<string, string> = {

@@ -27,7 +27,7 @@ export default function BoardsPage() {
             </div>
           </div>
         </div>
-        <ChatPanel />
+        
       </div>
       <MobileNav />
     </div>

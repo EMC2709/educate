@@ -4,7 +4,6 @@ import { use, useState } from 'react';
 import { notFound } from 'next/navigation';
 import { EXAM_BOARDS } from '@/data/exam-boards';
 import { Navbar } from '@/components/layout/Navbar';
-import { ChatPanel } from '@/components/layout/ChatPanel';
 import { SubjectCard } from '@/components/subjects/SubjectCard';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
@@ -57,7 +56,6 @@ export default function SubjectsPage({ params }: { params: Promise<{ board: stri
             ))}
           </div>
         </div>
-        <ChatPanel />
       </div>
     </div>
   );

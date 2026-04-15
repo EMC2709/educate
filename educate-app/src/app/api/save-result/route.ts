@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sql } from '@/lib/db';
 import { saveQuizResult } from '@/lib/progress';
-import { calculateXP, awardXP } from '@/lib/xp';
+// XP is now awarded per-question via /api/award-xp — save-result only logs the quiz result
 
 async function ensureTables() {
   await sql`
@@ -85,18 +85,16 @@ export async function POST(request: Request) {
     topic,
   });
 
-  // Award XP
-  const marks = body.marksAwarded ?? scoreCorrect;
-  const xpGained = calculateXP(questionType, marks);
+  // Award coins: 15 base + 10 bonus for ≥80% accuracy
+  try {
+    const accuracy = scoreTotal > 0 ? scoreCorrect / scoreTotal : 0;
+    const coinsEarned = 15 + (accuracy >= 0.8 ? 10 : 0);
+    await sql`
+      UPDATE profiles
+      SET coins = COALESCE(coins, 200) + ${coinsEarned}, updated_at = now()
+      WHERE user_id = ${userId}
+    `;
+  } catch { /* coins column may not exist yet — marketplace will add it */ }
 
-  let xpResult = null;
-  if (xpGained > 0) {
-    try {
-      xpResult = await awardXP(userId, xpGained);
-    } catch (xpErr) {
-      console.error('[save-result] awardXP failed:', xpErr);
-    }
-  }
-
-  return NextResponse.json({ ok: true, xpGained, xpResult });
+  return NextResponse.json({ ok: true });
 }

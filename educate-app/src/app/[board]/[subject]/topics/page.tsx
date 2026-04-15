@@ -7,7 +7,6 @@ import { EXAM_BOARDS } from '@/data/exam-boards';
 import { SUBJECT_TOPICS_MAP } from '@/data/subject-topics';
 import { Q_TYPES } from '@/data/question-types';
 import { Navbar } from '@/components/layout/Navbar';
-import { ChatPanel } from '@/components/layout/ChatPanel';
 import { TopicRow } from '@/components/topics/TopicRow';
 import { Button } from '@/components/ui/Button';
 import { useTopicSelection } from '@/hooks/useTopicSelection';
@@ -117,7 +116,6 @@ export default function TopicsPage({
             </div>
           </div>
         </div>
-        <ChatPanel subject={subject} board={boardName} />
       </div>
     </div>
   );

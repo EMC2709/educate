@@ -238,7 +238,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <ChatPanel />
+        
       </div>
       <MobileNav />
     </div>
@@ -503,7 +503,7 @@ function GuestHome() {
             </Link>
           </div>
         </div>
-        <ChatPanel />
+        
       </div>
       <MobileNav />
     </div>

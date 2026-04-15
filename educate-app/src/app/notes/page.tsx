@@ -18,6 +18,9 @@ interface Note {
   updatedAt: string;
 }
 
+interface Flashcard { front: string; back: string; }
+interface CustomQuestion { question: string; marks: number; answer: string; }
+
 function getNotes(): Note[] {
   try {
     const raw = localStorage.getItem(NOTES_KEY);
@@ -25,11 +28,242 @@ function getNotes(): Note[] {
   } catch {}
   return [];
 }
-
 function saveNotes(notes: Note[]): void {
   localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
 }
 
+// ── Convert Modal ──────────────────────────────────────────────────────────────
+function ConvertModal({
+  note,
+  mode,
+  onClose,
+}: {
+  note: Note;
+  mode: 'flashcards' | 'questions';
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [questions, setQuestions] = useState<CustomQuestion[]>([]);
+  const [flipped, setFlipped] = useState<Record<number, boolean>>({});
+  const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [cardIdx, setCardIdx] = useState(0);
+
+  useEffect(() => {
+    generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function generate() {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/generate-study-tools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode,
+          title: note.title,
+          subject: note.subject,
+          content: note.content,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error ?? 'API error');
+      }
+      const { items } = await res.json() as { items: unknown[] };
+      if (!Array.isArray(items) || items.length === 0) throw new Error('Empty result');
+
+      if (mode === 'flashcards') setFlashcards(items as Flashcard[]);
+      else setQuestions(items as CustomQuestion[]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg.includes('Sign in') ? msg : 'Could not generate — make sure you are signed in.');
+    }
+    setLoading(false);
+  }
+
+  const isFlashcards = mode === 'flashcards';
+  const card = flashcards[cardIdx];
+
+  return (
+    <div
+      className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full sm:max-w-xl bg-neutral-950 border border-neutral-800 rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-800 shrink-0">
+          <span className="text-xl">{isFlashcards ? '📇' : '❓'}</span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-white m-0">
+              {isFlashcards ? 'Flashcards' : 'Practice Questions'} from Notes
+            </p>
+            <p className="text-[11px] text-neutral-500 m-0 truncate">{note.title}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full bg-neutral-800 border-none text-neutral-400 cursor-pointer hover:bg-neutral-700 transition-colors text-sm flex items-center justify-center"
+          >✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+              <p className="text-neutral-500 text-sm">
+                {isFlashcards ? 'Creating flashcards…' : 'Generating questions…'}
+              </p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-400 text-sm mb-4">{error}</p>
+              <button
+                onClick={generate}
+                className="bg-indigo-500 text-white text-sm font-semibold px-5 py-2 rounded-xl border-none cursor-pointer hover:bg-indigo-400"
+              >Retry</button>
+            </div>
+          ) : isFlashcards ? (
+            /* ── Flashcard view ── */
+            <div>
+              {/* Progress */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs text-neutral-500">{cardIdx + 1} / {flashcards.length}</span>
+                <div className="flex gap-1">
+                  {flashcards.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setCardIdx(i); setFlipped({}); }}
+                      className="w-2 h-2 rounded-full border-none cursor-pointer transition-colors"
+                      style={{ backgroundColor: i === cardIdx ? '#6366f1' : '#2a2a2a' }}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-neutral-500">{flipped[cardIdx] ? 'Answer' : 'Question'}</span>
+              </div>
+
+              {/* Card */}
+              <div
+                className="relative cursor-pointer select-none"
+                style={{ perspective: '1000px', height: '220px' }}
+                onClick={() => setFlipped(f => ({ ...f, [cardIdx]: !f[cardIdx] }))}
+              >
+                <div
+                  className="w-full h-full transition-transform duration-500 relative"
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    transform: flipped[cardIdx] ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                  }}
+                >
+                  {/* Front */}
+                  <div
+                    className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-6 text-center"
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      background: 'linear-gradient(135deg, #1e1b4b, #1e1e2e)',
+                      border: '1px solid #6366f133',
+                    }}
+                  >
+                    <p className="text-[10px] text-indigo-400 uppercase tracking-widest mb-3 m-0">Tap to reveal</p>
+                    <p className="text-white text-base font-semibold leading-relaxed m-0">{card?.front}</p>
+                  </div>
+                  {/* Back */}
+                  <div
+                    className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-6 text-center"
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)',
+                      background: 'linear-gradient(135deg, #064e3b, #0f2318)',
+                      border: '1px solid #10b98133',
+                    }}
+                  >
+                    <p className="text-[10px] text-emerald-400 uppercase tracking-widest mb-3 m-0">Answer</p>
+                    <p className="text-white text-sm leading-relaxed m-0">{card?.back}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nav */}
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => { setCardIdx(i => Math.max(0, i - 1)); setFlipped({}); }}
+                  disabled={cardIdx === 0}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-neutral-700 bg-transparent text-neutral-400 cursor-pointer hover:border-neutral-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >← Prev</button>
+                <button
+                  onClick={() => { setCardIdx(i => Math.min(flashcards.length - 1, i + 1)); setFlipped({}); }}
+                  disabled={cardIdx === flashcards.length - 1}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-indigo-500 text-white border-none cursor-pointer hover:bg-indigo-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >Next →</button>
+              </div>
+
+              <p className="text-center text-neutral-600 text-xs mt-3">Tap a card to flip it</p>
+            </div>
+          ) : (
+            /* ── Questions view ── */
+            <div className="flex flex-col gap-4">
+              {questions.map((q, i) => (
+                <div key={i} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <p className="text-sm font-semibold text-white m-0 flex-1 leading-relaxed">{q.question}</p>
+                    <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-lg shrink-0 whitespace-nowrap">
+                      {q.marks} mark{q.marks !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {!revealed[i] ? (
+                    <>
+                      <textarea
+                        value={userAnswers[i] ?? ''}
+                        onChange={e => setUserAnswers(a => ({ ...a, [i]: e.target.value }))}
+                        placeholder="Write your answer here…"
+                        rows={3}
+                        className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2.5 text-white text-sm outline-none resize-none placeholder:text-neutral-600 mb-2"
+                        onFocus={e => (e.target.style.borderColor = '#6366f1')}
+                        onBlur={e => (e.target.style.borderColor = '#404040')}
+                      />
+                      <button
+                        onClick={() => setRevealed(r => ({ ...r, [i]: true }))}
+                        className="text-xs font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-amber-500/20 transition-colors border-none"
+                      >
+                        👁 Reveal Model Answer
+                      </button>
+                    </>
+                  ) : (
+                    <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl p-3 mt-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400 m-0 mb-1">Model Answer</p>
+                      <p className="text-sm text-neutral-200 m-0 leading-relaxed">{q.answer}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer — regenerate */}
+        {!loading && !error && (
+          <div className="px-5 py-3 border-t border-neutral-800 shrink-0">
+            <button
+              onClick={generate}
+              className="w-full py-2 rounded-xl text-xs font-semibold text-neutral-500 bg-neutral-900 border border-neutral-800 cursor-pointer hover:text-neutral-300 hover:border-neutral-700 transition-colors"
+            >
+              ↻ Regenerate
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
 export default function NotesPage() {
   const { isSignedIn } = useUser();
   const { showToast } = useToast();
@@ -38,6 +272,7 @@ export default function NotesPage() {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [convertMode, setConvertMode] = useState<'flashcards' | 'questions' | null>(null);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -70,7 +305,6 @@ export default function NotesPage() {
       )
     : notes;
 
-  // Group by subject
   const grouped: Record<string, Note[]> = {};
   filteredNotes.forEach(n => {
     if (!grouped[n.subject]) grouped[n.subject] = [];
@@ -91,22 +325,17 @@ export default function NotesPage() {
 
   function handleSave() {
     if (!title.trim()) return;
-
     const now = new Date().toISOString();
     if (selectedNote && editing) {
-      // Update existing
       const updated = notes.map(n =>
-        n.id === selectedNote.id
-          ? { ...n, title, content, updatedAt: now }
-          : n
+        n.id === selectedNote.id ? { ...n, title, content, updatedAt: now } : n
       );
       saveNotes(updated);
       setNotes(updated);
       setSelectedNote({ ...selectedNote, title, content, updatedAt: now });
       setEditing(false);
-      showToast({ icon: '\u{2705}', title: 'Note saved!', type: 'success' });
+      showToast({ icon: '✅', title: 'Note saved!', type: 'success' });
     } else {
-      // Create new
       const note: Note = {
         id: Math.random().toString(36).slice(2),
         subject: selectedSubject,
@@ -121,13 +350,9 @@ export default function NotesPage() {
       setNotes(updated);
       setSelectedNote(note);
       setCreating(false);
-
-      // Achievement
       const a = unlockAchievement('notes-created');
-      if (a) {
-        showToast({ icon: a.icon, title: 'Achievement Unlocked!', description: a.title, type: 'achievement', duration: 5000 });
-      }
-      showToast({ icon: '\u{1F4DD}', title: 'Note created!', type: 'success' });
+      if (a) showToast({ icon: a.icon, title: 'Achievement Unlocked!', description: a.title, type: 'achievement', duration: 5000 });
+      showToast({ icon: '📝', title: 'Note created!', type: 'success' });
     }
   }
 
@@ -143,7 +368,7 @@ export default function NotesPage() {
 
   async function handleGenerate() {
     if (!selectedSubject || !title.trim()) {
-      showToast({ icon: '\u{26A0}\uFE0F', title: 'Enter a topic title first', type: 'info' });
+      showToast({ icon: '⚠️', title: 'Enter a topic title first', type: 'info' });
       return;
     }
     setGenerating(true);
@@ -152,30 +377,27 @@ export default function NotesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: `Create concise GCSE revision notes for "${title}" in ${selectedSubject}. Use bullet points, key terms in bold, and include exam tips. Keep it under 500 words.` }],
+          messages: [{ id: 'gen', role: 'user', parts: [{ type: 'text', text: `Create concise GCSE revision notes for "${title}" in ${selectedSubject}. Use bullet points, key terms in bold, and include exam tips. Keep it under 500 words.` }] }],
           subject: selectedSubject,
           board: selectedBoard,
         }),
       });
       if (!res.ok) throw new Error('Failed');
       const text = await res.text();
-      // Parse the SSE/text stream
-      const lines = text.split('\n').filter(l => l.trim());
       let generated = '';
-      for (const line of lines) {
-        // Try to extract text from various stream formats
-        if (line.startsWith('0:')) {
+      for (const line of text.split('\n')) {
+        if (line.startsWith('0:"')) {
           try { generated += JSON.parse(line.slice(2)); } catch {}
-        } else if (!line.startsWith('e:') && !line.startsWith('d:')) {
-          generated += line;
+        } else if (line.startsWith('0:')) {
+          try { generated += JSON.parse(line.slice(2)); } catch {}
         }
       }
       if (generated) {
         setContent(prev => prev ? prev + '\n\n---\n\n' + generated : generated);
-        showToast({ icon: '\u{2728}', title: 'Notes generated!', type: 'success' });
+        showToast({ icon: '✨', title: 'Notes generated!', type: 'success' });
       }
     } catch {
-      showToast({ icon: '\u{274C}', title: 'Could not generate notes. Are you signed in?', type: 'info' });
+      showToast({ icon: '❌', title: 'Could not generate notes. Are you signed in?', type: 'info' });
     }
     setGenerating(false);
   }
@@ -243,7 +465,7 @@ export default function NotesPage() {
                     onClick={() => { setCreating(false); setEditing(false); }}
                     className="text-neutral-500 bg-transparent border-none cursor-pointer text-sm hover:text-white"
                   >
-                    {'\u2190'} Back
+                    ← Back
                   </button>
                   <h2 className="text-lg font-bold text-white m-0 flex-1">
                     {editing ? 'Edit Note' : 'New Note'}
@@ -289,7 +511,7 @@ export default function NotesPage() {
                         disabled={generating}
                         className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-3 py-1 cursor-pointer hover:bg-indigo-500/20 transition-colors disabled:opacity-50"
                       >
-                        {generating ? 'Generating...' : '\u{2728} Generate with AI'}
+                        {generating ? 'Generating...' : '✨ Generate with AI'}
                       </button>
                     )}
                   </div>
@@ -320,32 +542,55 @@ export default function NotesPage() {
               </div>
             ) : selectedNote ? (
               <div className="max-w-2xl mx-auto">
-                <div className="flex items-center gap-3 mb-6">
+                {/* Note header */}
+                <div className="flex items-center gap-3 mb-4">
                   <button
                     onClick={() => setSelectedNote(null)}
                     className="text-neutral-500 bg-transparent border-none cursor-pointer text-sm hover:text-white sm:hidden"
-                  >
-                    {'\u2190'}
-                  </button>
+                  >←</button>
                   <div className="flex-1">
                     <h1 className="text-xl font-bold text-white m-0">{selectedNote.title}</h1>
                     <p className="text-xs text-neutral-500 m-0 mt-1">
-                      {selectedNote.subject} {'\u00B7'} {new Date(selectedNote.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {selectedNote.subject} · {new Date(selectedNote.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
                   <button
                     onClick={() => { setEditing(true); setTitle(selectedNote.title); setContent(selectedNote.content); }}
                     className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-neutral-300 cursor-pointer hover:bg-neutral-700 transition-colors"
-                  >
-                    Edit
-                  </button>
+                  >Edit</button>
                   <button
                     onClick={() => handleDelete(selectedNote.id)}
                     className="bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-1.5 text-xs font-semibold text-rose-400 cursor-pointer hover:bg-rose-500/20 transition-colors"
-                  >
-                    Delete
-                  </button>
+                  >Delete</button>
                 </div>
+
+                {/* ── Convert to Study Tools ── */}
+                {selectedNote.content.trim() && isSignedIn && (
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-white m-0">Turn into Study Tools</p>
+                      <p className="text-[11px] text-neutral-500 m-0 mt-0.5">Generate flashcards or practice questions from this note</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => setConvertMode('flashcards')}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white border-none cursor-pointer transition-all hover:scale-105"
+                        style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+                      >
+                        📇 Flashcards
+                      </button>
+                      <button
+                        onClick={() => setConvertMode('questions')}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white border-none cursor-pointer transition-all hover:scale-105"
+                        style={{ background: 'linear-gradient(135deg,#f59e0b,#ef4444)' }}
+                      >
+                        ❓ Questions
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Note content */}
                 <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 sm:p-6">
                   <div className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
                     {selectedNote.content || <span className="text-neutral-600 italic">No content yet. Click Edit to add notes.</span>}
@@ -354,7 +599,7 @@ export default function NotesPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <span className="text-5xl mb-4">{'\u{1F4DD}'}</span>
+                <span className="text-5xl mb-4">📝</span>
                 <h2 className="text-lg font-bold text-white mb-2">Revision Notes</h2>
                 <p className="text-neutral-500 text-sm mb-6 max-w-sm">
                   Create and organise your revision notes by subject. Use AI to generate summaries for any topic.
@@ -365,8 +610,6 @@ export default function NotesPage() {
                 >
                   Create First Note
                 </button>
-
-                {/* Mobile: show notes list */}
                 <div className="sm:hidden w-full mt-8">
                   {notes.length > 0 && (
                     <div className="flex flex-col gap-2">
@@ -389,6 +632,15 @@ export default function NotesPage() {
         </div>
       </div>
       <MobileNav />
+
+      {/* Convert modal */}
+      {convertMode && selectedNote && (
+        <ConvertModal
+          note={selectedNote}
+          mode={convertMode}
+          onClose={() => setConvertMode(null)}
+        />
+      )}
     </div>
   );
 }

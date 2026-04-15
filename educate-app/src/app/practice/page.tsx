@@ -335,7 +335,7 @@ export default function PracticePage() {
 
           </div>
         </div>
-        <ChatPanel />
+        
       </div>
       <MobileNav />
     </div>
