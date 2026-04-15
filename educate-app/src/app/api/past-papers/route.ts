@@ -18,26 +18,30 @@ export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
-  const p        = req.nextUrl.searchParams;
-  const id       = p.get('id');
-  const country  = p.get('country')  || null;
-  const examType = p.get('examType') || null;
-  const subject  = p.get('subject')  || null;
-  const limit    = Math.min(parseInt(p.get('limit')  ?? '20'), 100);
-  const offset   = parseInt(p.get('offset') ?? '0');
+  const p         = req.nextUrl.searchParams;
+  const id        = p.get('id');
+  const country   = p.get('country')   || null;
+  const examType  = p.get('examType')  || null;
+  const subject   = p.get('subject')   || null;
+  const component = p.get('component') || null;  // Biology, Chemistry, Physics (for Combined Science)
+  const year      = p.get('year')      ? parseInt(p.get('year')!) : null;
+  const paperNum  = p.get('paperNumber') || null;
+  const limit     = Math.min(parseInt(p.get('limit')  ?? '20'), 100);
+  const offset    = parseInt(p.get('offset') ?? '0');
 
   try {
     if (id) {
       // Single paper with questions — used when student opens a paper
       const papers = await sql`
         SELECT id, drive_file_id, country, exam_type, subject, title, year, paper_number,
-               total_questions, has_images, processed_at
+               component, total_questions, has_images, processed_at
         FROM past_papers WHERE id = ${id} LIMIT 1
       `;
       if (papers.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
       const questions = await sql`
-        SELECT id, question_number, question_text, marks, topic, has_image, image_desc, difficulty
+        SELECT id, question_number, question_text, marks, topic, has_image, image_desc,
+               difficulty, mark_scheme
         FROM questions WHERE paper_id = ${id}
         ORDER BY question_number NULLS LAST
       `;
@@ -50,23 +54,30 @@ export async function GET(req: NextRequest) {
 
     // List view — filters applied, metadata only
     const papers = await sql`
-      SELECT id, country, exam_type, subject, title, year, paper_number, total_questions, has_images
+      SELECT id, country, exam_type, subject, title, year, paper_number, component,
+             total_questions, has_images
       FROM past_papers
-      WHERE processed = true
-        ${country  ? sql`AND country   = ${country}`  : sql``}
-        ${examType ? sql`AND exam_type = ${examType}` : sql``}
-        ${subject  ? sql`AND subject   = ${subject}`  : sql``}
-      ORDER BY subject, year DESC NULLS LAST, title
+      WHERE processed = true AND total_questions > 0
+        ${country   ? sql`AND country      = ${country}`   : sql``}
+        ${examType  ? sql`AND exam_type    = ${examType}`  : sql``}
+        ${subject   ? sql`AND subject      = ${subject}`   : sql``}
+        ${component ? sql`AND component    = ${component}` : sql``}
+        ${year      ? sql`AND year         = ${year}`      : sql``}
+        ${paperNum  ? sql`AND paper_number = ${paperNum}`  : sql``}
+      ORDER BY year DESC NULLS LAST, subject, paper_number NULLS LAST, title
       LIMIT ${limit} OFFSET ${offset}
     `;
 
     // Distinct filter values for the UI dropdowns
     const meta = await sql`
       SELECT
-        array_agg(DISTINCT country   ORDER BY country)   AS countries,
-        array_agg(DISTINCT exam_type ORDER BY exam_type) AS exam_types,
-        array_agg(DISTINCT subject   ORDER BY subject)   AS subjects
-      FROM past_papers WHERE processed = true
+        array_agg(DISTINCT country      ORDER BY country)      AS countries,
+        array_agg(DISTINCT exam_type    ORDER BY exam_type)    AS exam_types,
+        array_agg(DISTINCT subject      ORDER BY subject)      AS subjects,
+        array_agg(DISTINCT year         ORDER BY year DESC)    AS years,
+        array_agg(DISTINCT component    ORDER BY component)    AS components,
+        array_agg(DISTINCT paper_number ORDER BY paper_number) AS paper_numbers
+      FROM past_papers WHERE processed = true AND total_questions > 0
     `;
 
     return NextResponse.json(
