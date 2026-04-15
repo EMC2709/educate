@@ -88,13 +88,20 @@ function getAuth() {
 }
 
 // ── Retry wrapper ─────────────────────────────────────────────────────────────
-async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 2000): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, attempts = 4, delayMs = 2000): Promise<T> {
   let lastErr: Error = new Error('unknown');
   for (let i = 0; i < attempts; i++) {
     try { return await fn(); }
     catch (e) {
       lastErr = e as Error;
-      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)));
+      const msg = lastErr.message ?? '';
+      // Rate limit: wait longer (60s base, exponential)
+      const isRateLimit = msg.includes('429') || msg.includes('rate_limit');
+      const wait = isRateLimit ? 60000 * (i + 1) : delayMs * (i + 1);
+      if (i < attempts - 1) {
+        if (isRateLimit) process.stderr.write(`  [rate limit] waiting ${wait / 1000}s before retry ${i + 2}/${attempts}...\n`);
+        await new Promise(r => setTimeout(r, wait));
+      }
     }
   }
   throw lastErr;
@@ -161,7 +168,8 @@ async function downloadPDF(drive: drive_v3.Drive, fileId: string, dest: string):
 async function extractTextLocal(filePath: string): Promise<string> {
   try {
     const buffer = fs.readFileSync(filePath);
-    const data = await pdfParse(buffer, {
+    // Some PDFs have corrupt charCodes that cause unhandled rejections in pdf-parse
+    const data = await Promise.resolve(pdfParse(buffer, {
       pagerender: (pageData: { getTextContent: () => Promise<{ items: { str: string; transform: number[] }[] }> }) =>
         pageData.getTextContent().then(tc => {
           let text = '';
@@ -173,7 +181,7 @@ async function extractTextLocal(filePath: string): Promise<string> {
           }
           return text;
         }),
-    });
+    })).catch(() => ({ text: '' }));
     return data.text;
   } catch { return ''; }
 }
@@ -250,21 +258,32 @@ async function extractQuestions(
 ): Promise<ExtractedQuestion[]> {
   if (!fullText || fullText.trim().length < TEXT_THRESHOLD) return [];
   try {
-    const res = await anthropic.messages.create({
+    const res = await withRetry(() => anthropic.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 4096,
+      max_tokens: 1024,
       messages: [{
         role: 'user',
-        content: `Extract all questions from this ${examType} ${subject} past paper. Return ONLY a JSON array, no other text.
-Each object: { "question_number": "1a", "question_text": "full question text", "marks": 3, "topic": "algebra", "mark_scheme": "answer if this is a mark scheme" }
+        content: `Extract questions from this ${examType} ${subject} paper. JSON array only, no prose:
+[{"q":"1a","t":"question text","m":3,"topic":"algebra"}]
+Use "q" for number, "t" for text, "m" for marks, "topic" for topic.
 
-PAPER TEXT:
-${fullText.slice(0, 12000)}`,
+TEXT:
+${fullText.slice(0, 5000)}`,
       }],
-    });
+    }));
     const text = (res.content[0] as { text: string }).text.trim();
     const match = text.match(/\[[\s\S]*\]/);
-    if (match) return JSON.parse(match[0]) as ExtractedQuestion[];
+    if (match) {
+      // Support both short {q,t,m,topic} and long {question_number,question_text,marks,topic} keys
+      const raw = JSON.parse(match[0]) as Array<Record<string, unknown>>;
+      return raw.map(r => ({
+        question_number: (r.question_number ?? r.q ?? '') as string,
+        question_text:   (r.question_text   ?? r.t ?? '') as string,
+        marks:           (r.marks           ?? r.m ?? 0)  as number,
+        topic:           (r.topic           ?? '')        as string,
+        mark_scheme:     (r.mark_scheme     ?? r.ms ?? undefined) as string | undefined,
+      })) as ExtractedQuestion[];
+    }
   } catch (e) {
     process.stderr.write(`  [extractQuestions warn] ${(e as Error).message}\n`);
   }
@@ -443,5 +462,10 @@ async function main() {
   console.log(`⏱   ${secs}s elapsed | ${perFile.toFixed(1)}s per file`);
   if (etaMins > 0) console.log(`📊  Remaining ETA at ${CONCURRENCY}x: ~${etaMins}min (~${(etaMins / 60).toFixed(1)}h)`);
 }
+
+// Prevent corrupt PDFs from crashing the whole process
+process.on('unhandledRejection', (reason) => {
+  process.stderr.write(`  [unhandled rejection ignored] ${String(reason)}\n`);
+});
 
 main().catch(err => { console.error('\n💥', err.message); process.exit(1); });
