@@ -16,18 +16,16 @@ export async function GET() {
     const progress = levelProgress(profile.xp);
     const title = getLevelTitle(progress.level);
 
-    // Fetch coins + active banner (may not exist if columns not yet added)
+    // Fetch coins + active banner — columns should already exist after migration
     let coins = 200;
     let activeBannerId: string | null = null;
     try {
-      await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS coins integer NOT NULL DEFAULT 200`;
-      await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS active_banner_id text`;
       const extra = await sql`SELECT coins, active_banner_id FROM profiles WHERE user_id = ${userId}`;
       if (extra[0]) {
         coins = (extra[0] as { coins: number }).coins ?? 200;
         activeBannerId = (extra[0] as { active_banner_id: string | null }).active_banner_id ?? null;
       }
-    } catch { /* columns not ready yet */ }
+    } catch { /* columns may not exist yet — return defaults */ }
 
     return NextResponse.json({
       userId,

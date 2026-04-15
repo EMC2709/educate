@@ -61,34 +61,34 @@ export default function HomePage() {
       return;
     }
 
-    // Fetch role first — teachers and school students have dedicated hubs
-    fetch('/api/profile')
-      .then(r => r.json())
-      .then((profileData: { role?: string; org_id?: string | null }) => {
-        const role = profileData.role ?? 'student';
-        console.log('[Educate] profile response:', JSON.stringify(profileData));
+    // ── Fast path: returning user with cached subjects ─────────────────────
+    // Show the dashboard immediately from cache, then verify role + refresh
+    // subjects in the background. Avoids waiting for Clerk API + DB cold start.
+    const cached = localStorage.getItem('educate-user-subjects');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSubjects(parsed);
+          setLoading(false);
 
-        if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
-          setRedirecting(true);
-          router.replace('/teacher');
-          return;
-        }
-
-        if (role === 'student' && profileData.org_id) {
-          setRedirecting(true);
-          router.replace('/student');
-          return;
-        }
-
-        // Independent student — load subjects
-        const cached = localStorage.getItem('educate-user-subjects');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setSubjects(parsed);
-              setLoading(false);
-              // Refresh in background — don't block on it
+          // Background refresh: check role in case it changed, update subjects
+          fetch('/api/profile')
+            .then(r => r.ok ? r.json() : null)
+            .then((profileData: { role?: string; org_id?: string | null } | null) => {
+              if (!profileData) return;
+              const role = profileData.role ?? 'student';
+              if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
+                setRedirecting(true);
+                router.replace('/teacher');
+                return;
+              }
+              if (role === 'student' && profileData.org_id) {
+                setRedirecting(true);
+                router.replace('/student');
+                return;
+              }
+              // Silently refresh subjects list
               fetch('/api/user-subjects')
                 .then(r2 => r2.ok ? r2.json() : null)
                 .then(data => {
@@ -98,19 +98,40 @@ export default function HomePage() {
                   }
                 })
                 .catch(() => {});
-              return;
-            }
-          } catch {}
+            })
+            .catch(() => {});
+          return;
+        }
+      } catch {}
+    }
+
+    // ── Slow path: first-time or no cache ────────────────────────────────
+    // Must determine role before showing anything (teacher redirect etc.)
+    function fetchWithTimeout(url: string, ms: number) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(t));
+    }
+
+    fetchWithTimeout('/api/profile', 10000)
+      .then(r => r.ok ? r.json() : {})
+      .then((profileData: { role?: string; org_id?: string | null }) => {
+        const role = profileData.role ?? 'student';
+
+        if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
+          setRedirecting(true);
+          router.replace('/teacher');
+          return;
+        }
+        if (role === 'student' && profileData.org_id) {
+          setRedirecting(true);
+          router.replace('/student');
+          return;
         }
 
-        // No cache — fetch with 8-second timeout so we never hang forever
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-
-        fetch('/api/user-subjects', { signal: controller.signal })
+        fetchWithTimeout('/api/user-subjects', 8000)
           .then(r2 => r2.ok ? r2.json() : { subjects: [] })
           .then(data => {
-            clearTimeout(timeout);
             if (!data.subjects || data.subjects.length === 0) {
               setRedirecting(true);
               router.push('/onboarding');
@@ -120,17 +141,9 @@ export default function HomePage() {
               setLoading(false);
             }
           })
-          .catch(() => {
-            clearTimeout(timeout);
-            // Timed out or errored — send to onboarding so user isn't stuck
-            setRedirecting(true);
-            router.push('/onboarding');
-          });
+          .catch(() => { setRedirecting(true); router.push('/onboarding'); });
       })
-      .catch(() => {
-        setRedirecting(true);
-        router.push('/onboarding');
-      });
+      .catch(() => { setRedirecting(true); router.push('/onboarding'); });
   }, [isSignedIn, isLoaded, router]);
 
   // Not signed in — show exam boards (original flow)
