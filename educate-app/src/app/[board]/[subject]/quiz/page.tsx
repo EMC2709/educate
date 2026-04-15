@@ -105,10 +105,10 @@ export default function QuizPage({
         return;
       }
 
-      // 2nd priority: try scraped past papers from the database
+      // 2nd priority: try scraped past papers from the database (GCSE only)
       try {
-        const dbParams = new URLSearchParams({ subject, random: 'true', limit: '10' });
-        if (board.examType) dbParams.set('examType', board.examType);
+        const gcseExamType = `GCSE_${boardName}`;
+        const dbParams = new URLSearchParams({ subject, random: 'true', limit: '10', examType: gcseExamType });
         const dbRes = await fetch(`/api/questions?${dbParams}`);
         if (dbRes.ok) {
           const dbData = await dbRes.json();
@@ -227,9 +227,10 @@ export default function QuizPage({
         return;
       }
 
-      // 2nd fallback: try scraped questions from the database
+      // 2nd fallback: try scraped questions from the database (GCSE only)
       try {
-        const dbParams = new URLSearchParams({ subject, random: 'true', limit: '5' });
+        const gcseExamType2 = `GCSE_${boardName}`;
+        const dbParams = new URLSearchParams({ subject, random: 'true', limit: '5', examType: gcseExamType2 });
         if (focusStr) dbParams.set('topic', focusStr.split(';')[0].trim());
         const dbRes = await fetch(`/api/questions?${dbParams}`);
         if (dbRes.ok) {
