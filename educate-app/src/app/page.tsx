@@ -88,10 +88,11 @@ export default function HomePage() {
             if (Array.isArray(parsed) && parsed.length > 0) {
               setSubjects(parsed);
               setLoading(false);
+              // Refresh in background — don't block on it
               fetch('/api/user-subjects')
-                .then(r2 => r2.json())
+                .then(r2 => r2.ok ? r2.json() : null)
                 .then(data => {
-                  if (data.subjects?.length > 0) {
+                  if (data?.subjects?.length > 0) {
                     setSubjects(data.subjects);
                     localStorage.setItem('educate-user-subjects', JSON.stringify(data.subjects));
                   }
@@ -102,9 +103,14 @@ export default function HomePage() {
           } catch {}
         }
 
-        fetch('/api/user-subjects')
-          .then(r2 => r2.json())
+        // No cache — fetch with 8-second timeout so we never hang forever
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
+        fetch('/api/user-subjects', { signal: controller.signal })
+          .then(r2 => r2.ok ? r2.json() : { subjects: [] })
           .then(data => {
+            clearTimeout(timeout);
             if (!data.subjects || data.subjects.length === 0) {
               setRedirecting(true);
               router.push('/onboarding');
@@ -115,6 +121,8 @@ export default function HomePage() {
             }
           })
           .catch(() => {
+            clearTimeout(timeout);
+            // Timed out or errored — send to onboarding so user isn't stuck
             setRedirecting(true);
             router.push('/onboarding');
           });

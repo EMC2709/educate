@@ -1,59 +1,52 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-// Public routes — everything else requires a signed-in user
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/login(.*)',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/privacy',
-  '/terms',
-  '/api/webhook(.*)',
+/**
+ * Routes where the middleware enforces extra role checks.
+ * Every other route is let through — individual API routes carry their own
+ * auth() guard so there is no need to duplicate the check here.
+ */
+const isAdminRoute   = createRouteMatcher(['/admin(.*)', '/api/admin(.*)']);
+const isTeacherRoute = createRouteMatcher([
+  '/teacher(.*)',
+  '/api/classes(.*)',
+  '/api/assignments(.*)',
 ]);
 
-// Admin-only routes (super_admin via Clerk public metadata)
-const isAdminRoute = createRouteMatcher(['/admin(.*)', '/api/admin(.*)']);
-
-// Teacher+ routes (teacher | school_admin | super_admin)
-const isTeacherRoute = createRouteMatcher(['/teacher(.*)', '/api/classes(.*)', '/api/assignments(.*)']);
-
 export default clerkMiddleware(async (auth, req) => {
-  // Allow public routes without authentication
-  if (isPublicRoute(req)) return NextResponse.next();
+  // Only enforce role-based checks on the sensitive paths.
+  // All other routes are left untouched — they handle auth internally.
+  if (!isAdminRoute(req) && !isTeacherRoute(req)) {
+    return NextResponse.next();
+  }
 
-  // Require authentication for everything else
   const { userId, sessionClaims } = await auth();
+
+  // Not signed in — redirect to login for pages, 401 for API calls
   if (!userId) {
-    // API routes get 401 JSON; pages get redirected to sign-in
     if (req.nextUrl.pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 401 });
     }
     const signIn = new URL('/login', req.url);
     signIn.searchParams.set('redirect_url', req.nextUrl.pathname);
     return NextResponse.redirect(signIn);
   }
 
-  // Role-based guards via Clerk public metadata (set by /api/admin/roles)
+  // Signed in — check role from Clerk public metadata
   const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? '';
 
-  if (isAdminRoute(req)) {
-    if (role !== 'super_admin') {
-      if (req.nextUrl.pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
-      }
-      return NextResponse.redirect(new URL('/', req.url));
+  if (isAdminRoute(req) && role !== 'super_admin') {
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
+    return NextResponse.redirect(new URL('/', req.url));
   }
 
-  if (isTeacherRoute(req)) {
-    const allowed = ['teacher', 'school_admin', 'super_admin'];
-    if (!allowed.includes(role)) {
-      if (req.nextUrl.pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
-      }
-      return NextResponse.redirect(new URL('/', req.url));
+  if (isTeacherRoute(req) && !['teacher', 'school_admin', 'super_admin'].includes(role)) {
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
+    return NextResponse.redirect(new URL('/', req.url));
   }
 
   return NextResponse.next();
