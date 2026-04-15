@@ -43,6 +43,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const sendChat = (subject?: string | null, board?: string | null) => {
     if (!chatInput.trim() || isLoading) return;
+    // Check if AI is disabled (school cost control)
+    if (typeof window !== 'undefined' && localStorage.getItem('educate-ai-disabled') === 'true') {
+      // Don't call the API — show a local message instead
+      const text = chatInput;
+      setChatInput('');
+      sendMessage({ text }, { body: { subject: subject ?? null, board: board ?? null, aiDisabled: true } });
+      return;
+    }
     const text = chatInput;
     setChatInput('');
     sendMessage({ text }, { body: { subject: subject ?? null, board: board ?? null } });

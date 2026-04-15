@@ -105,6 +105,27 @@ export default function QuizPage({
         return;
       }
 
+      // 2nd priority: try scraped past papers from the database
+      try {
+        const dbParams = new URLSearchParams({ subject, random: 'true', limit: '10' });
+        if (board.examType) dbParams.set('examType', board.examType);
+        const dbRes = await fetch(`/api/questions?${dbParams}`);
+        if (dbRes.ok) {
+          const dbData = await dbRes.json();
+          if (dbData.questions?.length >= 1) {
+            setLoadingSource('bank');
+            setQuestions(dbData.questions.map((q: { question_text: string; marks: number; topic: string; mark_scheme?: string }) => ({
+              question: q.question_text,
+              answer: q.mark_scheme || '',
+              marks: q.marks || 1,
+              hint: q.topic || '',
+            })));
+            setLoading(false);
+            return;
+          }
+        }
+      } catch { /* DB unavailable — fall through */ }
+
       // If bank-only flag is set, never fall through to AI generation
       if (bankOnly) {
         setQuestions([{
@@ -112,6 +133,17 @@ export default function QuizPage({
           answer: '',
           marks: 0,
           hint: '',
+        }]);
+        setLoading(false);
+        return;
+      }
+
+      // 3rd priority: AI generation (only if AI is enabled for this org)
+      const aiEnabled = localStorage.getItem('educate-ai-disabled') !== 'true';
+      if (!aiEnabled) {
+        setQuestions([{
+          question: 'AI question generation is disabled for your school. Questions are served from the exam paper bank only.',
+          answer: '', marks: 0, hint: '',
         }]);
         setLoading(false);
         return;
@@ -152,6 +184,13 @@ export default function QuizPage({
         setLoading(false);
         return;
       }
+      // AI flashcard generation (only if AI is enabled)
+      const aiEnabledFlash = localStorage.getItem('educate-ai-disabled') !== 'true';
+      if (!aiEnabledFlash) {
+        setFlashcards([{ term: 'AI Disabled', definition: 'AI flashcard generation is disabled for your school. Flashcards are served from the question bank only.', example: null }]);
+        setLoading(false);
+        return;
+      }
       setLoadingSource('api');
       try {
         const res = await fetch('/api/generate', {
@@ -184,6 +223,38 @@ export default function QuizPage({
       if (mainBankQs && mainBankQs.length >= 1) {
         setLoadingSource('bank');
         setQuestions(shuffle(mainBankQs).slice(0, 5));
+        setLoading(false);
+        return;
+      }
+
+      // 2nd fallback: try scraped questions from the database
+      try {
+        const dbParams = new URLSearchParams({ subject, random: 'true', limit: '5' });
+        if (focusStr) dbParams.set('topic', focusStr.split(';')[0].trim());
+        const dbRes = await fetch(`/api/questions?${dbParams}`);
+        if (dbRes.ok) {
+          const dbData = await dbRes.json();
+          if (dbData.questions?.length >= 1) {
+            setLoadingSource('bank');
+            setQuestions(dbData.questions.map((q: { question_text: string; marks: number; topic: string; mark_scheme?: string }) => ({
+              question: q.question_text,
+              answer: q.mark_scheme || '',
+              marks: q.marks || 1,
+              hint: q.topic || '',
+            })));
+            setLoading(false);
+            return;
+          }
+        }
+      } catch { /* DB unavailable — fall through */ }
+
+      // 3rd fallback: AI generation (only if AI is enabled)
+      const aiEnabled = localStorage.getItem('educate-ai-disabled') !== 'true';
+      if (!aiEnabled) {
+        setQuestions([{
+          question: 'AI question generation is disabled for your school. Questions are served from the exam paper bank only.',
+          answer: '', marks: 0, hint: '',
+        }]);
         setLoading(false);
         return;
       }

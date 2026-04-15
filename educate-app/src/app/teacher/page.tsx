@@ -138,6 +138,18 @@ export default function TeacherDashboard() {
   const [classStats, setClassStats] = useState<Record<string, ClassStats>>({});
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [aiDisabled, setAiDisabled] = useState(false);
+
+  // Load AI toggle state from localStorage
+  useEffect(() => {
+    setAiDisabled(localStorage.getItem('educate-ai-disabled') === 'true');
+  }, []);
+
+  const toggleAi = () => {
+    const next = !aiDisabled;
+    setAiDisabled(next);
+    localStorage.setItem('educate-ai-disabled', next ? 'true' : 'false');
+  };
 
   const fetchData = () => {
     setLoading(true);
@@ -224,6 +236,29 @@ export default function TeacherDashboard() {
           <StatCard label="Total Students" value={totalStudents} color="violet" />
           <StatCard label="Active Assignments" value={activeAssignments} color="sky" />
           <StatCard label="Total Assignments" value={assignments.length} color="emerald" />
+        </div>
+
+        {/* AI Cost Control */}
+        <div className={`border rounded-2xl p-4 flex items-center justify-between ${aiDisabled ? 'bg-amber-500/5 border-amber-500/20' : 'bg-emerald-500/5 border-emerald-500/20'}`}>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{aiDisabled ? '\u26A0\uFE0F' : '\u2728'}</span>
+            <div>
+              <p className="text-sm font-semibold text-white m-0">
+                AI Features {aiDisabled ? 'Disabled' : 'Enabled'}
+              </p>
+              <p className="text-xs text-neutral-400 m-0">
+                {aiDisabled
+                  ? 'Students use the scraped exam question bank only (no API cost)'
+                  : 'Students can use AI-generated questions and the AI tutor (uses API credits)'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={toggleAi}
+            className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer border-0 ${aiDisabled ? 'bg-neutral-700' : 'bg-indigo-500'}`}
+          >
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow ${aiDisabled ? 'left-0.5' : 'left-[1.625rem]'}`} />
+          </button>
         </div>
 
         {/* My Classes */}
