@@ -350,51 +350,51 @@ function ChampionEmblem({ p, h }: { p: string; h: number }) {
   return (
     <svg width={h * 1.1} height={h} viewBox="0 0 52 56">
       <defs>
-        <LG id={`${p}a`} stops={['#FFF8C0', '#FF9000', '#8B3A00']} />
-        <LG id={`${p}b`} stops={['#E07000', '#7A2A00']} />
-        <LG id={`${p}c`} stops={['#FFD040', '#D06000']} />
-        <LG id={`${p}cr`} stops={['#FFFAD0', '#FFD000']} />
-        <RG id={`${p}gem`}  cx="40%" cy="30%" r="70%" stops={['#FFFFFF', '#FF9000']} />
-        <RG id={`${p}gl`}   cx="50%" cy="60%" r="55%" stops={['#FFD700', '#FF6000']} />
-        <Glow id={`${p}gf`}  color="#FF9000" dev={5} />
-        <Glow id={`${p}gf2`} color="#FFD700" dev={2.5} />
+        <LG id={`${p}a`} stops={['#FFD0FF', '#CC44AA', '#5A0A6A']} />
+        <LG id={`${p}b`} stops={['#9A20B0', '#4A0858']} />
+        <LG id={`${p}c`} stops={['#DD66CC', '#8818A8']} />
+        <LG id={`${p}cr`} stops={['#FFF0FF', '#EE88FF']} />
+        <RG id={`${p}gem`}  cx="40%" cy="30%" r="70%" stops={['#FFFFFF', '#DD44CC']} />
+        <RG id={`${p}gl`}   cx="50%" cy="60%" r="55%" stops={['#EE88FF', '#8800CC']} />
+        <Glow id={`${p}gf`}  color="#EE44CC" dev={5} />
+        <Glow id={`${p}gf2`} color="#CC66FF" dev={2.5} />
       </defs>
       {/* Starburst glow disc */}
       <ellipse cx="26" cy="38" rx="25" ry="25" fill={`url(#${p}gl)`} opacity="0.4" />
       {rays.map((r, i) => (
         <line key={i} x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2}
-          stroke="#FFD700" strokeWidth={i % 4 === 0 ? '1.8' : '0.8'} strokeOpacity="0.5" strokeLinecap="round" />
+          stroke="#EE88FF" strokeWidth={i % 4 === 0 ? '1.8' : '0.8'} strokeOpacity="0.5" strokeLinecap="round" />
       ))}
       {/* Wings */}
-      <path d="M8,22 L2,14 L0,28 L6,32 Z"  fill={`url(#${p}a)`} stroke="#8B3A00" strokeWidth="1" filter={`url(#${p}gf)`} />
-      <path d="M44,22 L50,14 L52,28 L46,32 Z" fill={`url(#${p}a)`} stroke="#8B3A00" strokeWidth="1" filter={`url(#${p}gf)`} />
+      <path d="M8,22 L2,14 L0,28 L6,32 Z"  fill={`url(#${p}a)`} stroke="#5A0A6A" strokeWidth="1" filter={`url(#${p}gf)`} />
+      <path d="M44,22 L50,14 L52,28 L46,32 Z" fill={`url(#${p}a)`} stroke="#5A0A6A" strokeWidth="1" filter={`url(#${p}gf)`} />
       {/* Shield outer */}
       <path d="M8,12 L16,12 L16,8 L20,11 L26,6 L32,11 L36,8 L36,12 L44,12 L44,36 L26,52 L8,36 Z"
-        fill={`url(#${p}a)`} stroke="#7A2A00" strokeWidth="1.8" filter={`url(#${p}gf2)`} />
+        fill={`url(#${p}a)`} stroke="#4A0858" strokeWidth="1.8" filter={`url(#${p}gf2)`} />
       {/* Shield inner bevel */}
-      <path d="M11,15 L41,15 L41,35 L26,49 L11,35 Z" fill={`url(#${p}b)`} stroke="#7A2A00" strokeWidth="0.9" />
+      <path d="M11,15 L41,15 L41,35 L26,49 L11,35 Z" fill={`url(#${p}b)`} stroke="#4A0858" strokeWidth="0.9" />
       {/* Shield body */}
       <path d="M13,17 L39,17 L39,34 L26,47 L13,34 Z" fill={`url(#${p}c)`} />
       {/* Shine */}
       <path d="M13,17 L26,17 L19,32 L13,32 Z" fill="white" fillOpacity="0.28" />
       {/* Crown spikes */}
-      <polygon points="16,12 20,5 24,12" fill={`url(#${p}cr)`} stroke="#8B5000" strokeWidth="1" />
-      <polygon points="22,12 26,3 30,12" fill={`url(#${p}cr)`} stroke="#8B5000" strokeWidth="1" />
-      <polygon points="28,12 32,5 36,12" fill={`url(#${p}cr)`} stroke="#8B5000" strokeWidth="1" />
+      <polygon points="16,12 20,5 24,12" fill={`url(#${p}cr)`} stroke="#7A00AA" strokeWidth="1" />
+      <polygon points="22,12 26,3 30,12" fill={`url(#${p}cr)`} stroke="#7A00AA" strokeWidth="1" />
+      <polygon points="28,12 32,5 36,12" fill={`url(#${p}cr)`} stroke="#7A00AA" strokeWidth="1" />
       {/* Crown gems */}
-      <circle cx="20" cy="6" r="2"   fill="#FF4040" stroke="#8B2000" strokeWidth="0.6" />
-      <circle cx="26" cy="3.5" r="2.5" fill="#FFD000" stroke="#8B5000" strokeWidth="0.7" />
-      <circle cx="32" cy="6" r="2"   fill="#FF4040" stroke="#8B2000" strokeWidth="0.6" />
+      <circle cx="20" cy="6" r="2"   fill="#FF88FF" stroke="#8800AA" strokeWidth="0.6" />
+      <circle cx="26" cy="3.5" r="2.5" fill="#CC66FF" stroke="#6600AA" strokeWidth="0.7" />
+      <circle cx="32" cy="6" r="2"   fill="#FF88FF" stroke="#8800AA" strokeWidth="0.6" />
       <circle cx="19.2" cy="5.2" r="0.8" fill="white" fillOpacity="0.85" />
       <circle cx="25.2" cy="2.8" r="1"   fill="white" fillOpacity="0.85" />
       <circle cx="31.2" cy="5.2" r="0.8" fill="white" fillOpacity="0.85" />
       {/* 5-point star */}
       <polygon
         points="26,25 28.2,31.8 35.4,31.8 29.6,35.8 31.8,42.6 26,38.6 20.2,42.6 22.4,35.8 16.6,31.8 23.8,31.8"
-        fill="white" fillOpacity="0.88" stroke="#C07000" strokeWidth="0.5" />
-      {/* Centre amber gem over star */}
+        fill="white" fillOpacity="0.88" stroke="#9900CC" strokeWidth="0.5" />
+      {/* Centre gem over star */}
       <polygon points="26,27 30,31 26,35 22,31"
-        fill={`url(#${p}gem)`} stroke="#E07000" strokeWidth="0.8" />
+        fill={`url(#${p}gem)`} stroke="#CC00AA" strokeWidth="0.8" />
       <polygon points="26,27 30,31 26,35 22,31" fill="white" fillOpacity="0.32" />
       {/* Wing sparkles */}
       <line x1="3"  y1="18" x2="5.5" y2="18" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
