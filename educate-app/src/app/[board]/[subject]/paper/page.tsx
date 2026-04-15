@@ -104,31 +104,64 @@ export default function ExamPaperPage({
         }));
 
         const gcseType = `GCSE_${info.board ?? boardName}`;
-        const dbParams = new URLSearchParams({
-          subject,
-          examType: gcseType,
-          random: 'true',
-          limit: '30',
-        });
-        if (info.component) dbParams.set('component', info.component);
+        const year      = info.year ?? '';
+        const component = info.component ?? null;
+        const paperNum  = info.paperNumber ?? null;  // e.g. "Paper 1"
 
         setLoadingDb(true);
-        fetch(`/api/questions?${dbParams}`)
+
+        // Step 1 — find all papers for this exam_type + component (up to 100)
+        // We deliberately skip the subject filter because DB subject names differ
+        // (e.g. "Combined Science Trilogy" vs app's "Combined Science")
+        const listParams = new URLSearchParams({ limit: '100' });
+        listParams.set('examType', gcseType);
+        if (component) listParams.set('component', component);
+        // If paper_number metadata exists, prefer it
+        if (paperNum) listParams.set('paperNumber', paperNum);
+
+        fetch(`/api/past-papers?${listParams}`)
           .then(r => r.ok ? r.json() : null)
-          .then(data => {
-            if (data?.questions?.length >= 1) {
-              const dbQs: Question[] = data.questions.map((q: {
-                question_text: string; marks: number; topic: string; mark_scheme?: string;
-              }) => ({
-                question: q.question_text,
-                answer: q.mark_scheme || '',
-                marks: q.marks || 1,
-                hint: q.topic || '',
-              }));
-              setQuestions(dbQs);
-              setAnswers(dbQs.map(() => ''));
-              setRevealed(dbQs.map(() => false));
+          .then(async listData => {
+            const papers: { id: string; year: number | null; paper_number: string | null; total_questions: number }[] =
+              listData?.papers ?? [];
+            if (papers.length === 0) return null;
+
+            // Step 2 — pick a specific paper deterministically based on year
+            // so different year selections always yield different papers.
+            // Prefer an exact year match when the DB has year metadata.
+            const yearInt = parseInt(year) || 0;
+            let picked = papers.find(p => p.year === yearInt && p.total_questions > 0);
+            if (!picked) {
+              // No exact year match — use year as a consistent index offset
+              const withQs = papers.filter(p => p.total_questions > 0);
+              if (withQs.length === 0) return null;
+              // Map year → stable index: 2024→0, 2023→1, 2022→2 …
+              const offset = yearInt > 2000 ? (2025 - yearInt) : 0;
+              picked = withQs[offset % withQs.length];
             }
+
+            // Step 3 — fetch the full paper (all questions in order)
+            const paperRes = await fetch(`/api/past-papers?id=${picked.id}`);
+            if (!paperRes.ok) return null;
+            return paperRes.json();
+          })
+          .then(paperData => {
+            const qs: { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: number }[] =
+              paperData?.questions ?? [];
+            if (qs.length === 0) return;
+
+            // Sort by question_number so they appear in exam order
+            qs.sort((a, b) => (a.question_number ?? 999) - (b.question_number ?? 999));
+
+            const dbQs: Question[] = qs.map(q => ({
+              question: q.question_text,
+              answer:   q.mark_scheme || '',
+              marks:    q.marks || 1,
+              hint:     q.topic || '',
+            }));
+            setQuestions(dbQs);
+            setAnswers(dbQs.map(() => ''));
+            setRevealed(dbQs.map(() => false));
           })
           .catch(() => {})
           .finally(() => setLoadingDb(false));
