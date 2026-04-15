@@ -22,6 +22,42 @@ interface PaperInfo {
 
 type Mode = 'intro' | 'exam' | 'results';
 
+/* Lined answer box — draws CSS horizontal lines like real exam paper */
+function LinedBox({
+  value,
+  onChange,
+  lines,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  lines: number;
+  placeholder?: string;
+}) {
+  const LINE_H = 32; // px per line
+  const height = Math.max(lines, 2) * LINE_H;
+
+  return (
+    <div className="relative w-full" style={{ height }}>
+      {/* Lined background */}
+      <div
+        className="absolute inset-0 pointer-events-none rounded-sm"
+        style={{
+          backgroundImage: `repeating-linear-gradient(transparent, transparent ${LINE_H - 1}px, #d1d5db ${LINE_H - 1}px, #d1d5db ${LINE_H}px)`,
+          backgroundPositionY: `${LINE_H - 1}px`,
+        }}
+      />
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder ?? ''}
+        className="absolute inset-0 w-full h-full bg-transparent border-none outline-none resize-none text-sm text-gray-900 px-1 py-0 font-[inherit] leading-8 placeholder-gray-300"
+        style={{ lineHeight: `${LINE_H}px` }}
+      />
+    </div>
+  );
+}
+
 export default function ExamPaperPage({
   params,
 }: {
@@ -67,13 +103,12 @@ export default function ExamPaperPage({
           board: info.board ?? boardName,
         }));
 
-        // Load questions from DB with component/paper filters
         const gcseType = `GCSE_${info.board ?? boardName}`;
         const dbParams = new URLSearchParams({
           subject,
           examType: gcseType,
           random: 'true',
-          limit: '20',
+          limit: '30',
         });
         if (info.component) dbParams.set('component', info.component);
 
@@ -82,7 +117,9 @@ export default function ExamPaperPage({
           .then(r => r.ok ? r.json() : null)
           .then(data => {
             if (data?.questions?.length >= 1) {
-              const dbQs: Question[] = data.questions.map((q: { question_text: string; marks: number; topic: string; mark_scheme?: string }) => ({
+              const dbQs: Question[] = data.questions.map((q: {
+                question_text: string; marks: number; topic: string; mark_scheme?: string;
+              }) => ({
                 question: q.question_text,
                 answer: q.mark_scheme || '',
                 marks: q.marks || 1,
@@ -102,9 +139,7 @@ export default function ExamPaperPage({
   useEffect(() => {
     if (mode === 'exam') {
       setElapsed(0);
-      timerRef.current = setInterval(() => {
-        setElapsed(prev => prev + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -113,15 +148,6 @@ export default function ExamPaperPage({
 
   const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
   const attemptedCount = answers.filter(a => a.trim().length > 0).length;
-  const revealedCount = revealed.filter(Boolean).length;
-
-  function handleRevealAll() {
-    setRevealed(questions.map(() => true));
-  }
-
-  function handleToggleReveal(i: number) {
-    setRevealed(prev => prev.map((v, idx) => idx === i ? !v : v));
-  }
 
   function getTimeSince() {
     const m = Math.floor(elapsed / 60);
@@ -129,6 +155,7 @@ export default function ExamPaperPage({
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
+  // ── LOADING ────────────────────────────────────────────────────────────────
   if (loadingDb) {
     return (
       <div className="flex min-h-screen">
@@ -136,7 +163,7 @@ export default function ExamPaperPage({
         <div className="flex-1 flex items-center justify-center p-8 pb-20 md:pb-8">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-neutral-400 text-sm">Loading {paperInfo.component ? `${paperInfo.component} ` : ''}questions...</p>
+            <p className="text-neutral-400 text-sm">Loading {paperInfo.component ? `${paperInfo.component} ` : ''}questions…</p>
           </div>
         </div>
         <MobileNav />
@@ -144,17 +171,20 @@ export default function ExamPaperPage({
     );
   }
 
+  // ── NO QUESTIONS ───────────────────────────────────────────────────────────
   if (questions.length === 0) {
     return (
       <div className="flex min-h-screen">
         <Sidebar />
         <div className="flex-1 flex items-center justify-center p-8 pb-20 md:pb-8">
           <div className="text-center">
-            <p className="text-4xl mb-4">{'\u{1F4C4}'}</p>
+            <p className="text-4xl mb-4">📄</p>
             <p className="text-neutral-300 font-semibold mb-2">No past paper questions available yet</p>
-            <p className="text-neutral-500 text-sm mb-6">Questions for {subject}{paperInfo.component ? ` (${paperInfo.component})` : ''} are being added soon.</p>
+            <p className="text-neutral-500 text-sm mb-6">
+              Questions for {subject}{paperInfo.component ? ` (${paperInfo.component})` : ''} are being added soon.
+            </p>
             <Link href={`/${boardName}/${encodeURIComponent(subject)}/papers`} className="text-indigo-400 hover:text-indigo-300 text-sm underline">
-              {'\u2190'} Back to papers
+              ← Back to papers
             </Link>
           </div>
         </div>
@@ -163,7 +193,7 @@ export default function ExamPaperPage({
     );
   }
 
-  // ── INTRO ───────────────────────────────────────────────────────────────────
+  // ── INTRO ──────────────────────────────────────────────────────────────────
   if (mode === 'intro') {
     return (
       <div className="flex min-h-screen">
@@ -174,7 +204,6 @@ export default function ExamPaperPage({
               ← Back to papers
             </Link>
 
-            {/* Paper header card */}
             <div className="bg-neutral-900 border-2 border-indigo-500/30 rounded-2xl p-6 sm:p-8 mb-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
@@ -184,12 +213,13 @@ export default function ExamPaperPage({
                     {paperInfo.paperTitle}
                     {paperInfo.year ? ` · ${paperInfo.year}` : ''}
                     {paperInfo.tier ? ` · ${paperInfo.tier} Tier` : ''}
+                    {paperInfo.component ? ` · ${paperInfo.component}` : ''}
                   </p>
                 </div>
                 <span className="text-4xl shrink-0">📄</span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
+              <div className="grid grid-cols-3 gap-3 mt-5">
                 <div className="bg-neutral-800 rounded-xl p-3 text-center">
                   <p className="text-xs text-neutral-500 mb-1">Questions</p>
                   <p className="text-xl font-bold text-white">{questions.length}</p>
@@ -198,26 +228,25 @@ export default function ExamPaperPage({
                   <p className="text-xs text-neutral-500 mb-1">Total marks</p>
                   <p className="text-xl font-bold text-white">{totalMarks}</p>
                 </div>
-                <div className="bg-neutral-800 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
-                  <p className="text-xs text-neutral-500 mb-1">Suggested time</p>
+                <div className="bg-neutral-800 rounded-xl p-3 text-center">
+                  <p className="text-xs text-neutral-500 mb-1">Time</p>
                   <p className="text-sm font-bold text-white">{paperInfo.duration}</p>
                 </div>
               </div>
             </div>
 
-            {/* Instructions */}
             <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 mb-6">
               <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-3">Instructions</h2>
               <ul className="space-y-2 text-sm text-neutral-300">
-                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0 mt-0.5">•</span>Answer all questions in the spaces provided</li>
-                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0 mt-0.5">•</span>The marks for each question are shown in brackets</li>
-                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0 mt-0.5">•</span>Use the hints if you get stuck — but try without first</li>
-                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0 mt-0.5">•</span>After finishing, reveal model answers to mark your work</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Answer all questions in the lined spaces provided</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Marks for each question are shown in the right margin</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Use the hint button if stuck — but try without first</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>After finishing, model answers appear for self-marking</li>
               </ul>
             </div>
 
             <button
-              onClick={() => { setMode('exam'); }}
+              onClick={() => setMode('exam')}
               className="w-full py-4 rounded-2xl font-bold text-base text-white border-none cursor-pointer transition-opacity"
               style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
@@ -232,98 +261,148 @@ export default function ExamPaperPage({
     );
   }
 
-  // ── EXAM ────────────────────────────────────────────────────────────────────
+  // ── EXAM (paper sheet mode) ────────────────────────────────────────────────
   if (mode === 'exam') {
     return (
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-neutral-950">
         <Sidebar />
-        <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-          {/* Sticky exam header */}
-          <div className="sticky top-0 z-10 bg-neutral-950/95 backdrop-blur border-b border-neutral-800 px-4 sm:px-6 py-3">
-            <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs text-neutral-500 truncate">{boardName} · {subject}</p>
-                <p className="text-sm font-bold text-white truncate">{paperInfo.paperTitle}{paperInfo.year ? ` · ${paperInfo.year}` : ''}</p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-xs text-neutral-400 bg-neutral-800 px-2 py-1 rounded-lg">
+        <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
+
+          {/* Sticky bar */}
+          <div className="sticky top-0 z-20 bg-neutral-950/95 backdrop-blur border-b border-neutral-800 px-4 sm:px-6 py-2.5">
+            <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-xs text-neutral-500 hidden sm:block">{boardName} · {subject}</span>
+                <span className="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-md font-mono">
+                  ⏱ {getTimeSince()}
+                </span>
+                <span className="text-xs text-neutral-500">
                   {attemptedCount}/{questions.length} answered
                 </span>
-                <button
-                  onClick={() => setMode('results')}
-                  className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold px-4 py-2 rounded-lg border-none cursor-pointer transition-colors"
-                >
-                  Finish →
-                </button>
               </div>
+              <button
+                onClick={() => setMode('results')}
+                className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold px-4 py-2 rounded-lg border-none cursor-pointer transition-colors shrink-0"
+              >
+                Finish &amp; Mark →
+              </button>
             </div>
           </div>
 
-          {/* Paper content */}
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-            {/* Official paper header */}
-            <div className="border-2 border-neutral-700 rounded-2xl p-5 sm:p-6 mb-8 text-center bg-neutral-900">
-              <p className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-1">GCSE</p>
-              <h1 className="text-lg sm:text-xl font-extrabold text-white uppercase tracking-wide mb-1">{subject}</h1>
-              <p className="text-sm text-neutral-400 mb-3">
-                {paperInfo.paperTitle}
-                {paperInfo.year ? ` · ${paperInfo.year}` : ''}
-                {paperInfo.tier ? ` · ${paperInfo.tier} Tier` : ''}
-              </p>
-              <div className="flex items-center justify-center gap-4 text-xs text-neutral-500">
-                <span>⏱ {paperInfo.duration}</span>
-                <span>·</span>
-                <span>📊 {totalMarks} marks</span>
-              </div>
-            </div>
+          {/* Paper sheet */}
+          <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6">
+            <div className="bg-white shadow-2xl shadow-black/40 rounded-sm" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
 
-            {/* Questions */}
-            <div className="space-y-8">
-              {questions.map((q, i) => (
-                <div key={i} className="border border-neutral-800 rounded-2xl overflow-hidden bg-neutral-900">
-                  {/* Question header */}
-                  <div className="flex items-start justify-between gap-4 p-4 sm:p-5 border-b border-neutral-800">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <span className="shrink-0 w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-400 text-sm font-extrabold flex items-center justify-center">
-                        {i + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">{q.topic}</p>
-                        <div className="text-sm text-neutral-200 leading-relaxed">
-                          <MessageContent content={q.question} />
+              {/* Paper header — mimics real exam paper */}
+              <div className="border-b-4 border-black px-8 pt-8 pb-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+                      {boardName} · GCSE
+                    </p>
+                    <h1 className="text-2xl sm:text-3xl font-black text-black uppercase tracking-wide leading-tight">
+                      {subject}
+                      {paperInfo.component ? <span className="block text-lg">{paperInfo.component}</span> : null}
+                    </h1>
+                    <p className="text-sm text-gray-600 mt-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+                      {paperInfo.paperTitle}
+                      {paperInfo.year ? ` · ${paperInfo.year}` : ''}
+                      {paperInfo.tier ? ` · ${paperInfo.tier} Tier` : ''}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                    <div className="text-xs text-gray-500 mb-2 space-y-0.5">
+                      <div>Time allowed: <strong className="text-gray-800">{paperInfo.duration}</strong></div>
+                      <div>Total marks: <strong className="text-gray-800">{totalMarks}</strong></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instructions box */}
+                <div className="mt-4 border border-black p-3" style={{ fontFamily: 'Arial, sans-serif' }}>
+                  <p className="text-xs font-black uppercase tracking-wider text-black mb-1.5">Instructions</p>
+                  <ul className="text-xs text-gray-700 space-y-0.5 list-none">
+                    <li>• Use black ink or ball-point pen</li>
+                    <li>• Answer <strong>all</strong> questions</li>
+                    <li>• The marks for each question are shown in brackets <strong>[like this]</strong></li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Questions */}
+              <div className="px-8 py-6 space-y-0">
+                {questions.map((q, i) => {
+                  const linesForAnswer = Math.max(4, q.marks * 4);
+                  return (
+                    <div key={i} className="py-5 border-b border-gray-200 last:border-b-0">
+                      {/* Question row: number | text | marks */}
+                      <div className="flex gap-4">
+                        {/* Q number */}
+                        <div className="shrink-0 w-8 text-right">
+                          <span className="text-sm font-black text-black">{i + 1}</span>
+                        </div>
+
+                        {/* Question body */}
+                        <div className="flex-1 min-w-0">
+                          {/* Topic label */}
+                          {q.hint && (
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              {q.hint}
+                            </p>
+                          )}
+
+                          {/* Question text */}
+                          <div className="text-sm text-black leading-relaxed mb-4 prose prose-sm max-w-none prose-p:my-0">
+                            <MessageContent content={q.question} />
+                          </div>
+
+                          {/* Lined answer area */}
+                          <div className="border border-gray-400 bg-white" style={{ borderRadius: 0 }}>
+                            <LinedBox
+                              value={answers[i]}
+                              onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
+                              lines={linesForAnswer}
+                              placeholder="Write your answer here…"
+                            />
+                          </div>
+
+                          {/* Hint */}
+                          <details className="mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
+                            <summary className="text-[11px] text-gray-400 hover:text-gray-600 cursor-pointer list-none transition-colors">
+                              💡 Show hint
+                            </summary>
+                            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 mt-1 leading-relaxed">
+                              {q.hint}
+                            </p>
+                          </details>
+                        </div>
+
+                        {/* Marks in right margin */}
+                        <div className="shrink-0 w-14 text-right pt-0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
+                          <span className="text-xs text-gray-600 font-semibold whitespace-nowrap">
+                            [{q.marks}]
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs font-bold text-neutral-400 bg-neutral-800 px-2 py-1 rounded-lg whitespace-nowrap">
-                      [{q.marks} mark{q.marks !== 1 ? 's' : ''}]
-                    </span>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  {/* Answer area */}
-                  <div className="p-4 sm:p-5">
-                    <textarea
-                      value={answers[i]}
-                      onChange={e => setAnswers(prev => prev.map((a, idx) => idx === i ? e.target.value : a))}
-                      placeholder="Write your answer here…"
-                      rows={Math.max(3, Math.ceil(q.marks * 1.5))}
-                      className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-neutral-200 placeholder-neutral-600 outline-none resize-y focus:border-indigo-500/60 transition-colors"
-                      style={{ minHeight: `${Math.max(80, q.marks * 28)}px` }}
-                    />
-                    {/* Hint toggle */}
-                    <details className="mt-2">
-                      <summary className="text-[11px] text-neutral-600 hover:text-neutral-400 cursor-pointer transition-colors list-none flex items-center gap-1">
-                        <span>💡</span> Show hint
-                      </summary>
-                      <p className="text-[11px] text-amber-400/80 bg-amber-500/5 border border-amber-500/15 rounded-lg px-3 py-2 mt-2 leading-relaxed">{q.hint}</p>
-                    </details>
-                  </div>
-                </div>
-              ))}
+              {/* Paper footer */}
+              <div className="border-t-2 border-black px-8 py-4 flex items-center justify-between" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <p className="text-xs text-gray-500">
+                  {boardName} · {subject} · {paperInfo.paperTitle}{paperInfo.year ? ` · ${paperInfo.year}` : ''}
+                </p>
+                <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">End of questions</p>
+              </div>
             </div>
 
-            {/* Submit */}
-            <div className="mt-10 text-center">
-              <p className="text-sm text-neutral-500 mb-4">{attemptedCount} of {questions.length} questions answered</p>
+            {/* Finish button below paper */}
+            <div className="mt-8 text-center">
+              <p className="text-sm text-neutral-500 mb-4">
+                {attemptedCount} of {questions.length} questions answered
+              </p>
               <button
                 onClick={() => setMode('results')}
                 className="px-8 py-4 rounded-2xl font-bold text-base text-white border-none cursor-pointer transition-opacity"
@@ -341,118 +420,145 @@ export default function ExamPaperPage({
     );
   }
 
-  // ── RESULTS ─────────────────────────────────────────────────────────────────
+  // ── RESULTS ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-neutral-950">
       <Sidebar />
       <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
-        {/* Results header */}
+
+        {/* Results banner */}
         <div className="bg-neutral-950 border-b border-neutral-800 px-4 sm:px-6 py-6">
-          <div className="max-w-3xl mx-auto text-center">
+          <div className="max-w-4xl mx-auto text-center">
             <p className="text-3xl mb-2">📋</p>
             <h1 className="text-xl sm:text-2xl font-extrabold text-white mb-1">Paper Complete</h1>
-            <p className="text-neutral-400 text-sm">{subject} · {boardName} · {paperInfo.paperTitle}</p>
-            <div className="flex items-center justify-center gap-4 mt-4">
+            <p className="text-neutral-400 text-sm">
+              {subject} · {boardName} · {paperInfo.paperTitle}
+              {paperInfo.component ? ` · ${paperInfo.component}` : ''}
+            </p>
+            <div className="flex items-center justify-center gap-4 mt-4 flex-wrap">
               <div className="bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2 text-center">
                 <p className="text-xs text-neutral-500">Answered</p>
                 <p className="text-lg font-bold text-white">{attemptedCount}/{questions.length}</p>
               </div>
               <div className="bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2 text-center">
-                <p className="text-xs text-neutral-500">Total marks</p>
+                <p className="text-xs text-neutral-500">Total marks available</p>
                 <p className="text-lg font-bold text-indigo-400">{totalMarks}</p>
               </div>
               <div className="bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2 text-center">
-                <p className="text-xs text-neutral-500">Time</p>
+                <p className="text-xs text-neutral-500">Time taken</p>
                 <p className="text-lg font-bold text-white">{getTimeSince()}</p>
               </div>
             </div>
-            <button
-              onClick={handleRevealAll}
-              className="mt-4 px-5 py-2.5 rounded-xl text-sm font-semibold bg-indigo-500 hover:bg-indigo-400 text-white border-none cursor-pointer transition-colors"
-            >
-              Reveal all model answers
-            </button>
           </div>
         </div>
 
-        {/* Questions + answers */}
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-          {questions.map((q, i) => {
-            const userAnswer = answers[i].trim();
-            const isAttempted = userAnswer.length > 0;
-            const isRevealed = revealed[i];
+        {/* Marked paper sheet */}
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6">
+          <div className="bg-white shadow-2xl shadow-black/40 rounded-sm" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
 
-            return (
-              <div key={i} className="border border-neutral-800 rounded-2xl overflow-hidden bg-neutral-900">
-                {/* Question */}
-                <div className="flex items-start justify-between gap-4 p-4 sm:p-5 border-b border-neutral-800">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <span className={`shrink-0 w-8 h-8 rounded-lg text-sm font-extrabold flex items-center justify-center ${isAttempted ? 'bg-emerald-500/15 text-emerald-400' : 'bg-neutral-800 text-neutral-500'}`}>
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">{q.topic}</p>
-                      <div className="text-sm text-neutral-200 leading-relaxed">
-                        <MessageContent content={q.question} />
-                      </div>
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-xs font-bold text-neutral-400 bg-neutral-800 px-2 py-1 rounded-lg whitespace-nowrap">
-                    [{q.marks} mark{q.marks !== 1 ? 's' : ''}]
-                  </span>
-                </div>
-
-                <div className="p-4 sm:p-5 space-y-3">
-                  {/* User answer */}
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1.5">Your answer</p>
-                    {isAttempted ? (
-                      <div className="bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-neutral-200 whitespace-pre-wrap leading-relaxed">
-                        {userAnswer}
-                      </div>
-                    ) : (
-                      <div className="bg-neutral-800/50 border border-dashed border-neutral-700 rounded-xl px-4 py-3 text-sm text-neutral-600 italic">
-                        Not attempted
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Model answer */}
-                  {isRevealed ? (
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mb-1.5">Model answer</p>
-                      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm text-neutral-200 leading-relaxed">
-                        <MessageContent content={q.answer} />
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleToggleReveal(i)}
-                      className="w-full py-2.5 rounded-xl text-xs font-semibold text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/40 cursor-pointer transition-colors"
-                    >
-                      ✓ Reveal model answer
-                    </button>
-                  )}
-                </div>
+            <div className="border-b-4 border-black px-8 pt-6 pb-4 flex items-center justify-between" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-black">
+                  {subject}{paperInfo.component ? ` — ${paperInfo.component}` : ''} · {paperInfo.paperTitle}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">Model answers — for self-marking only</p>
               </div>
-            );
-          })}
-        </div>
+              <p className="text-xs font-bold uppercase text-gray-500">Marked copy</p>
+            </div>
 
-        {/* Bottom nav */}
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-8 flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => { setAnswers(questions.map(() => '')); setRevealed(questions.map(() => false)); setMode('intro'); }}
-            className="flex-1 py-3 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 cursor-pointer transition-colors"
-          >
-            ↺ Redo paper
-          </button>
-          <Link
-            href={`/${boardName}/${encodeURIComponent(subject)}/papers`}
-            className="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-400 text-center no-underline transition-colors flex items-center justify-center"
-          >
-            ← Back to papers
-          </Link>
+            <div className="px-8 py-6 space-y-0">
+              {questions.map((q, i) => {
+                const userAnswer = answers[i].trim();
+                const isAttempted = userAnswer.length > 0;
+                const isRevealed = revealed[i];
+
+                return (
+                  <div key={i} className="py-5 border-b border-gray-200 last:border-b-0">
+                    <div className="flex gap-4">
+                      {/* Q number */}
+                      <div className="shrink-0 w-8 text-right pt-0.5">
+                        <span className={`text-sm font-black ${isAttempted ? 'text-emerald-600' : 'text-gray-400'}`}>{i + 1}</span>
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-3">
+                        {/* Question */}
+                        <div className="text-sm text-black leading-relaxed prose prose-sm max-w-none prose-p:my-0">
+                          <MessageContent content={q.question} />
+                        </div>
+
+                        {/* Student answer */}
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ fontFamily: 'Arial, sans-serif', color: isAttempted ? '#059669' : '#9ca3af' }}>
+                            Your answer
+                          </p>
+                          {isAttempted ? (
+                            <div className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                              {userAnswer}
+                            </div>
+                          ) : (
+                            <div className="border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-400 italic" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              Not attempted
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Model answer */}
+                        {isRevealed ? (
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1.5" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              Model answer
+                            </p>
+                            <div className="border-l-4 border-indigo-400 bg-indigo-50 px-4 py-3 text-sm text-gray-800 leading-relaxed">
+                              <MessageContent content={q.answer} />
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setRevealed(prev => prev.map((v, idx) => idx === i ? true : v))}
+                            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 underline underline-offset-2 bg-transparent border-none cursor-pointer transition-colors"
+                            style={{ fontFamily: 'Arial, sans-serif' }}
+                          >
+                            ✓ Reveal model answer
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Marks */}
+                      <div className="shrink-0 w-14 text-right pt-0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
+                        <span className="text-xs text-gray-600 font-semibold">[{q.marks}]</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="border-t-2 border-black px-8 py-4" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <p className="text-xs text-gray-500 text-center">
+                Total marks available: <strong>{totalMarks}</strong> · Practised on Educate
+              </p>
+            </div>
+          </div>
+
+          {/* Nav buttons */}
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+            <button
+              onClick={() => {
+                setAnswers(questions.map(() => ''));
+                setRevealed(questions.map(() => false));
+                setMode('intro');
+              }}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 cursor-pointer transition-colors"
+            >
+              ↺ Redo paper
+            </button>
+            <Link
+              href={`/${boardName}/${encodeURIComponent(subject)}/papers`}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-400 text-center no-underline transition-colors flex items-center justify-center"
+            >
+              ← Back to papers
+            </Link>
+          </div>
         </div>
       </div>
       <MobileNav />
