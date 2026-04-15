@@ -47,7 +47,6 @@ export default function ExamPaperPage({
     totalMarks: questions.reduce((sum, q) => sum + q.marks, 0),
   });
   const [revealed, setRevealed] = useState<boolean[]>(() => questions.map(() => false));
-  const [startTime, setStartTime] = useState<number>(0);
   const [elapsed, setElapsed] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -76,7 +75,7 @@ export default function ExamPaperPage({
           random: 'true',
           limit: '20',
         });
-        if (info.component) dbParams.set('topic', info.component);
+        if (info.component) dbParams.set('component', info.component);
 
         setLoadingDb(true);
         fetch(`/api/questions?${dbParams}`)
@@ -102,15 +101,15 @@ export default function ExamPaperPage({
 
   useEffect(() => {
     if (mode === 'exam') {
-      setStartTime(Date.now());
+      setElapsed(0);
       timerRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - Date.now()) / 1000));
+        setElapsed(prev => prev + 1);
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [mode, startTime]);
+  }, [mode]);
 
   const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
   const attemptedCount = answers.filter(a => a.trim().length > 0).length;
@@ -125,9 +124,8 @@ export default function ExamPaperPage({
   }
 
   function getTimeSince() {
-    const secs = Math.floor((Date.now() - startTime) / 1000);
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
@@ -219,7 +217,7 @@ export default function ExamPaperPage({
             </div>
 
             <button
-              onClick={() => { setMode('exam'); setStartTime(Date.now()); }}
+              onClick={() => { setMode('exam'); }}
               className="w-full py-4 rounded-2xl font-bold text-base text-white border-none cursor-pointer transition-opacity"
               style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}

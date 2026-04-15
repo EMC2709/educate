@@ -1,33 +1,14 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { getUserRole } from '@/lib/roles';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const [checking, setChecking] = useState(true);
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { userId } = await auth();
+  if (!userId) redirect('/login');
 
-  useEffect(() => {
-    fetch('/api/profile')
-      .then(r => r.json())
-      .then((d: { role?: string }) => {
-        if (d.role !== 'super_admin') {
-          router.replace('/');
-        } else {
-          setChecking(false);
-        }
-      })
-      .catch(() => router.replace('/'));
-  }, [router]);
-
-  if (checking) {
-    return (
-      <div className="flex min-h-screen bg-[#0f0f0f] items-center justify-center">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const role = await getUserRole(userId);
+  if (role !== 'super_admin') redirect('/');
 
   return (
     <div className="flex min-h-screen bg-[#0f0f0f]">

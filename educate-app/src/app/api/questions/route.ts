@@ -9,6 +9,7 @@ import { sql } from '@/lib/db';
  *   subject    required  e.g. Maths
  *   examType   optional  e.g. GCSE
  *   country    optional  e.g. Scotland
+ *   component  optional  e.g. Biology (for Combined Science)
  *   topic      optional  e.g. trigonometry
  *   marks      optional  exact mark value
  *   hasImage   optional  true/false
@@ -23,12 +24,13 @@ export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
-  const p        = req.nextUrl.searchParams;
-  const subject  = p.get('subject');
-  const examType = p.get('examType') || null;
-  const country  = p.get('country')  || null;
-  const topic    = p.get('topic')    || null;
-  const marksRaw = p.get('marks');
+  const p         = req.nextUrl.searchParams;
+  const subject   = p.get('subject');
+  const examType  = p.get('examType')  || null;
+  const country   = p.get('country')   || null;
+  const component = p.get('component') || null;
+  const topic     = p.get('topic')     || null;
+  const marksRaw  = p.get('marks');
   const marks    = marksRaw ? parseInt(marksRaw) : null;
   const hasImage = p.get('hasImage') === 'true' ? true : p.get('hasImage') === 'false' ? false : null;
   const q        = p.get('q')        || null;
@@ -53,11 +55,12 @@ export async function GET(req: NextRequest) {
         WHERE pp.subject = ${subject}
           AND to_tsvector('english', coalesce(qs.question_text,'') || ' ' || coalesce(qs.topic,''))
               @@ plainto_tsquery('english', ${q})
-          ${examType ? sql`AND pp.exam_type = ${examType}` : sql``}
-          ${country  ? sql`AND pp.country   = ${country}`  : sql``}
-          ${topic    ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}` : sql``}
-          ${marks    ? sql`AND qs.marks = ${marks}` : sql``}
-          ${hasImage !== null ? sql`AND qs.has_image = ${hasImage}` : sql``}
+          ${examType  ? sql`AND pp.exam_type  = ${examType}`            : sql``}
+          ${country   ? sql`AND pp.country    = ${country}`             : sql``}
+          ${component ? sql`AND pp.component  = ${component}`           : sql``}
+          ${topic     ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}`    : sql``}
+          ${marks     ? sql`AND qs.marks      = ${marks}`               : sql``}
+          ${hasImage !== null ? sql`AND qs.has_image = ${hasImage}`      : sql``}
         ORDER BY rank DESC
         LIMIT ${limit}
       `;
@@ -70,11 +73,12 @@ export async function GET(req: NextRequest) {
         FROM questions qs
         JOIN past_papers pp ON pp.id = qs.paper_id
         WHERE pp.subject = ${subject}
-          ${examType ? sql`AND pp.exam_type = ${examType}` : sql``}
-          ${country  ? sql`AND pp.country   = ${country}`  : sql``}
-          ${topic    ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}` : sql``}
-          ${marks    ? sql`AND qs.marks = ${marks}` : sql``}
-          ${hasImage !== null ? sql`AND qs.has_image = ${hasImage}` : sql``}
+          ${examType  ? sql`AND pp.exam_type  = ${examType}`            : sql``}
+          ${country   ? sql`AND pp.country    = ${country}`             : sql``}
+          ${component ? sql`AND pp.component  = ${component}`           : sql``}
+          ${topic     ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}`    : sql``}
+          ${marks     ? sql`AND qs.marks      = ${marks}`               : sql``}
+          ${hasImage !== null ? sql`AND qs.has_image = ${hasImage}`      : sql``}
         ORDER BY random()
         LIMIT ${limit}
       `;
@@ -87,11 +91,12 @@ export async function GET(req: NextRequest) {
         FROM questions qs
         JOIN past_papers pp ON pp.id = qs.paper_id
         WHERE pp.subject = ${subject}
-          ${examType ? sql`AND pp.exam_type = ${examType}` : sql``}
-          ${country  ? sql`AND pp.country   = ${country}`  : sql``}
-          ${topic    ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}` : sql``}
-          ${marks    ? sql`AND qs.marks = ${marks}` : sql``}
-          ${hasImage !== null ? sql`AND qs.has_image = ${hasImage}` : sql``}
+          ${examType  ? sql`AND pp.exam_type  = ${examType}`            : sql``}
+          ${country   ? sql`AND pp.country    = ${country}`             : sql``}
+          ${component ? sql`AND pp.component  = ${component}`           : sql``}
+          ${topic     ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}`    : sql``}
+          ${marks     ? sql`AND qs.marks      = ${marks}`               : sql``}
+          ${hasImage !== null ? sql`AND qs.has_image = ${hasImage}`      : sql``}
         ORDER BY pp.year DESC NULLS LAST, qs.question_number
         LIMIT ${limit}
       `;
@@ -104,7 +109,7 @@ export async function GET(req: NextRequest) {
       : 'no-store';
 
     return NextResponse.json(
-      { questions: rows, count: rows.length },
+      { questions: rows, count: (rows as unknown[]).length },
       { headers: { 'Cache-Control': cacheHeader } }
     );
   } catch (err) {
