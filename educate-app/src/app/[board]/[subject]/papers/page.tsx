@@ -20,11 +20,23 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
   const papers = boardData?.papers ?? [];
   const officialUrl = boardData?.officialUrl;
 
-  const paperNumbers = Array.from(new Set(papers.map(p => p.number))).sort() as (1 | 2 | 3)[];
+  // Combined Science: group by component (Biology, Chemistry, Physics)
+  const isCombinedScience = subject === 'Combined Science';
+  const components = isCombinedScience
+    ? Array.from(new Set(papers.filter(p => p.component).map(p => p.component!)))
+    : [];
+  const [activeComponent, setActiveComponent] = useState<string>(components[0] ?? '');
+
+  // Filter papers by component for Combined Science, show all otherwise
+  const filteredPapers = isCombinedScience
+    ? papers.filter(p => p.component === activeComponent)
+    : papers;
+
+  const paperNumbers = Array.from(new Set(filteredPapers.map(p => p.number))).sort() as (1 | 2 | 3)[];
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(paperNumbers[0] ?? 1);
   const [tier, setTier] = useState<'H' | 'F'>('H');
 
-  const activePaper = papers.find(p => p.number === activeTab);
+  const activePaper = filteredPapers.find(p => p.number === activeTab);
 
   const yearPapers = useMemo(() => {
     if (!activePaper) return [];
@@ -33,12 +45,11 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
 
   const [selectedYear, setSelectedYear] = useState<string>('');
 
-  // Reset selected year when paper/tier changes
+  // Reset selected year when paper/tier/component changes
   const selectedYearPaper = useMemo(() => {
     if (yearPapers.length === 0) return null;
     const match = yearPapers.find(yp => yp.year === selectedYear);
     if (match) return match;
-    // Default to most recent
     return yearPapers[0];
   }, [yearPapers, selectedYear]);
 
@@ -50,7 +61,15 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
     3: '#f59e0b',
   };
 
-  const color = tabColors[activeTab];
+  const componentColors: Record<string, string> = {
+    'Biology': '#22c55e',
+    'Chemistry': '#f59e0b',
+    'Physics': '#6366f1',
+  };
+
+  const color = isCombinedScience
+    ? (componentColors[activeComponent] ?? '#6366f1')
+    : tabColors[activeTab];
 
   return (
     <div className="min-h-screen">
@@ -96,6 +115,26 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
               </div>
             ) : (
               <>
+                {/* Component tabs (Combined Science only) */}
+                {isCombinedScience && components.length > 0 && (
+                  <div className="flex gap-2 mb-4">
+                    {components.map(comp => (
+                      <button
+                        key={comp}
+                        onClick={() => { setActiveComponent(comp); setActiveTab(1 as 1 | 2 | 3); setSelectedYear(''); }}
+                        className="flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-150 border-2"
+                        style={
+                          activeComponent === comp
+                            ? { borderColor: componentColors[comp], backgroundColor: `${componentColors[comp]}22`, color: componentColors[comp] }
+                            : { borderColor: '#2a2a2a', backgroundColor: 'transparent', color: '#6b7280' }
+                        }
+                      >
+                        {comp === 'Biology' ? '\u{1F9EC}' : comp === 'Chemistry' ? '\u{2697}\uFE0F' : '\u{269B}\uFE0F'} {comp}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* Paper tabs */}
                 <div className="flex gap-2 mb-6">
                   {paperNumbers.map(n => (
@@ -105,7 +144,7 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                       className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 border-2"
                       style={
                         activeTab === n
-                          ? { borderColor: tabColors[n], backgroundColor: `${tabColors[n]}22`, color: tabColors[n] }
+                          ? { borderColor: color, backgroundColor: `${color}22`, color }
                           : { borderColor: '#2a2a2a', backgroundColor: 'transparent', color: '#6b7280' }
                       }
                     >

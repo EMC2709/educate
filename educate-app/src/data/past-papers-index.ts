@@ -14,6 +14,7 @@ export interface PaperEntry {
   duration?: string;
   marks?: number;
   tiered?: boolean;           // Has Foundation/Higher variants
+  component?: string;         // For Combined Science: 'Biology' | 'Chemistry' | 'Physics'
   pmtSubject: string;         // kept for reference only
   pmtBoard: string;
   pmtPaper: string;
@@ -214,9 +215,37 @@ export const PAST_PAPERS_INDEX: Record<string, Record<string, BoardPastPapers>> 
     AQA: {
       officialUrl: 'https://www.aqa.org.uk/subjects/science/gcse/combined-science-trilogy-8464/assessment-resources',
       papers: [
-        { number: 1, title: 'Paper 1: Biology 1', description: 'Cell biology, organisation, infection, bioenergetics.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Biology-Paper-1', years: SCI_YEARS },
-        { number: 2, title: 'Paper 2: Chemistry 1', description: 'Atomic structure, bonding, quantitative, chemical changes.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Chemistry-Paper-1', years: SCI_YEARS },
-        { number: 3, title: 'Paper 3: Physics 1', description: 'Energy, electricity, particle model, atomic structure.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Physics-Paper-1', years: SCI_YEARS },
+        // Biology
+        { number: 1, title: 'Biology Paper 1', description: 'Cell biology, organisation, infection & response, bioenergetics.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Biology-Paper-1', aqaCode: '84641', years: SCI_YEARS, component: 'Biology' as const },
+        { number: 2, title: 'Biology Paper 2', description: 'Homeostasis, inheritance, variation & evolution, ecology.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Biology-Paper-2', aqaCode: '84642', years: SCI_YEARS, component: 'Biology' as const },
+        // Chemistry
+        { number: 1, title: 'Chemistry Paper 1', description: 'Atomic structure, bonding, quantitative chemistry, chemical changes, energy changes.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Chemistry-Paper-1', aqaCode: '84643', years: SCI_YEARS, component: 'Chemistry' as const },
+        { number: 2, title: 'Chemistry Paper 2', description: 'Rates, organic, chemical analysis, atmosphere, using resources.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Chemistry-Paper-2', aqaCode: '84644', years: SCI_YEARS, component: 'Chemistry' as const },
+        // Physics
+        { number: 1, title: 'Physics Paper 1', description: 'Energy, electricity, particle model of matter, atomic structure.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Physics-Paper-1', aqaCode: '84645', years: SCI_YEARS, component: 'Physics' as const },
+        { number: 2, title: 'Physics Paper 2', description: 'Forces, waves, magnetism & electromagnetism, space physics.', duration: '1hr 15min', marks: 70, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'AQA', pmtPaper: 'Physics-Paper-2', aqaCode: '84646', years: SCI_YEARS, component: 'Physics' as const },
+      ],
+    },
+    Edexcel: {
+      officialUrl: 'https://qualifications.pearson.com/en/qualifications/edexcel-gcses/combined-science-2016.html',
+      papers: [
+        { number: 1, title: 'Biology Paper 1', description: 'Key concepts, cells & control, genetics, natural selection, health.', duration: '1hr 10min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'Edexcel', pmtPaper: 'Biology-Paper-1', years: SCI_YEARS, component: 'Biology' as const },
+        { number: 2, title: 'Biology Paper 2', description: 'Plant structures, animal coordination, exchange, ecosystems.', duration: '1hr 10min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'Edexcel', pmtPaper: 'Biology-Paper-2', years: SCI_YEARS, component: 'Biology' as const },
+        { number: 1, title: 'Chemistry Paper 1', description: 'Key concepts, states of matter, chemical changes, extracting metals.', duration: '1hr 10min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'Edexcel', pmtPaper: 'Chemistry-Paper-1', years: SCI_YEARS, component: 'Chemistry' as const },
+        { number: 2, title: 'Chemistry Paper 2', description: 'Groups, rates, fuels, earth & atmosphere, key concepts.', duration: '1hr 10min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'Edexcel', pmtPaper: 'Chemistry-Paper-2', years: SCI_YEARS, component: 'Chemistry' as const },
+        { number: 1, title: 'Physics Paper 1', description: 'Key concepts, motion & forces, conservation of energy, waves, light.', duration: '1hr 10min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'Edexcel', pmtPaper: 'Physics-Paper-1', years: SCI_YEARS, component: 'Physics' as const },
+        { number: 2, title: 'Physics Paper 2', description: 'Energy, magnetism, electromagnetic induction, particle model, radioactivity.', duration: '1hr 10min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'Edexcel', pmtPaper: 'Physics-Paper-2', years: SCI_YEARS, component: 'Physics' as const },
+      ],
+    },
+    OCR: {
+      officialUrl: 'https://www.ocr.org.uk/qualifications/gcse/combined-science-a-gateway-science-suite-j250-from-2016/',
+      papers: [
+        { number: 1, title: 'Biology Paper 1', description: 'Cell level systems, scaling up, organism level systems.', duration: '1hr 15min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'OCR', pmtPaper: 'Biology-Paper-1', years: SCI_YEARS, component: 'Biology' as const },
+        { number: 2, title: 'Biology Paper 2', description: 'Community level systems, genes, inheritance, global challenges.', duration: '1hr 15min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'OCR', pmtPaper: 'Biology-Paper-2', years: SCI_YEARS, component: 'Biology' as const },
+        { number: 1, title: 'Chemistry Paper 1', description: 'Particles, elements, compounds, chemical reactions.', duration: '1hr 15min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'OCR', pmtPaper: 'Chemistry-Paper-1', years: SCI_YEARS, component: 'Chemistry' as const },
+        { number: 2, title: 'Chemistry Paper 2', description: 'Predicting & identifying substances, monitoring chemical reactions.', duration: '1hr 15min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'OCR', pmtPaper: 'Chemistry-Paper-2', years: SCI_YEARS, component: 'Chemistry' as const },
+        { number: 1, title: 'Physics Paper 1', description: 'Matter, forces and motion, energy and waves.', duration: '1hr 15min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'OCR', pmtPaper: 'Physics-Paper-1', years: SCI_YEARS, component: 'Physics' as const },
+        { number: 2, title: 'Physics Paper 2', description: 'Electricity, magnetism, radiation, global challenges.', duration: '1hr 15min', marks: 60, tiered: true, pmtSubject: 'Combined-Science', pmtBoard: 'OCR', pmtPaper: 'Physics-Paper-2', years: SCI_YEARS, component: 'Physics' as const },
       ],
     },
   },
