@@ -53,6 +53,13 @@ export default function HomePage() {
   const [subjects, setSubjects] = useState<UserSubject[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
+  // Fallback: if Clerk doesn't signal isLoaded within 5s, show guest view
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+  useEffect(() => {
+    if (isLoaded) return;
+    const t = setTimeout(() => setClerkTimedOut(true), 5000);
+    return () => clearTimeout(t);
+  }, [isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -146,12 +153,13 @@ export default function HomePage() {
       .catch(() => { setRedirecting(true); router.push('/onboarding'); });
   }, [isSignedIn, isLoaded, router]);
 
-  // Not signed in — show exam boards (original flow)
-  if (!isSignedIn && isLoaded) {
+  // Clerk didn't load in time, or user is not signed in — show guest view
+  if (clerkTimedOut || (!isSignedIn && isLoaded)) {
     return <GuestHome />;
   }
 
-  if (loading || redirecting || !subjects) {
+  // Still waiting on Clerk or fetching subjects
+  if (!isLoaded || loading || redirecting || !subjects) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-neutral-500 text-sm">Loading your subjects...</div>
