@@ -110,44 +110,68 @@ export default function ExamPaperPage({
 
         setLoadingDb(true);
 
-        // Step 1 — find all papers for this exam_type + component (up to 100)
-        // We deliberately skip the subject filter because DB subject names differ
-        // (e.g. "Combined Science Trilogy" vs app's "Combined Science")
-        const listParams = new URLSearchParams({ limit: '100' });
-        listParams.set('examType', gcseType);
-        if (component) listParams.set('component', component);
-        // If paper_number metadata exists, prefer it
-        if (paperNum) listParams.set('paperNumber', paperNum);
+        type PaperMeta = { id: string; year: number | null; paper_number: string | null; total_questions: number };
 
-        fetch(`/api/past-papers?${listParams}`)
-          .then(r => r.ok ? r.json() : null)
-          .then(async listData => {
-            const papers: { id: string; year: number | null; paper_number: string | null; total_questions: number }[] =
-              listData?.papers ?? [];
-            if (papers.length === 0) return null;
+        // If we have a direct paper ID from the papers list, use it — skip guessing entirely
+        const directId = (info as { paperId?: string }).paperId ?? null;
 
-            // Step 2 — pick a specific paper deterministically based on year
-            // so different year selections always yield different papers.
-            // Prefer an exact year match when the DB has year metadata.
-            const yearInt = parseInt(year) || 0;
-            let picked = papers.find(p => p.year === yearInt && p.total_questions > 0);
-            if (!picked) {
-              // No exact year match — use year as a consistent index offset
-              const withQs = papers.filter(p => p.total_questions > 0);
-              if (withQs.length === 0) return null;
-              // Map year → stable index: 2024→0, 2023→1, 2022→2 …
-              const offset = yearInt > 2000 ? (2025 - yearInt) : 0;
-              picked = withQs[offset % withQs.length];
-            }
+        const fetchPaperById = (pid: string) =>
+          fetch(`/api/past-papers?id=${pid}`).then(r => r.ok ? r.json() : null);
 
-            // Step 3 — fetch the full paper (all questions in order)
-            const paperRes = await fetch(`/api/past-papers?id=${picked.id}`);
-            if (!paperRes.ok) return null;
-            return paperRes.json();
-          })
-          .then(paperData => {
-            const qs: { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: number }[] =
-              paperData?.questions ?? [];
+        const pickAndFetch = async (): Promise<unknown> => {
+          if (directId) return fetchPaperById(directId);
+
+          // Step 1 — query by examType + component (+ paperNumber if set)
+          // Many papers have component set but null paper_number, so try without
+          // paperNumber as a fallback.
+          const base = new URLSearchParams({ limit: '100', examType: gcseType });
+          if (component) base.set('component', component);
+          if (paperNum) base.set('paperNumber', paperNum);
+
+          let papers: PaperMeta[] = await fetch(`/api/past-papers?${base}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => d?.papers ?? []);
+
+          // Fallback: drop paperNumber filter (most DB papers have null paper_number)
+          if (papers.length === 0 && paperNum) {
+            const noPN = new URLSearchParams({ limit: '100', examType: gcseType });
+            if (component) noPN.set('component', component);
+            papers = await fetch(`/api/past-papers?${noPN}`)
+              .then(r => r.ok ? r.json() : null)
+              .then(d => d?.papers ?? []);
+          }
+
+          // Second fallback: drop component too (catch-all)
+          if (papers.length === 0) {
+            const noComp = new URLSearchParams({ limit: '100', examType: gcseType });
+            papers = await fetch(`/api/past-papers?${noComp}`)
+              .then(r => r.ok ? r.json() : null)
+              .then(d => d?.papers ?? []);
+          }
+
+          if (papers.length === 0) return null;
+
+          // Step 2 — pick a paper. Prefer exact year match; fall back to index offset
+          // so different year buttons always yield different papers.
+          const yearInt = parseInt(year) || 0;
+          const withQs = papers.filter(p => p.total_questions > 0);
+          if (withQs.length === 0) return null;
+
+          let picked = withQs.find(p => p.year === yearInt) ?? null;
+          if (!picked) {
+            // No exact year match — use a stable index: 2024→0, 2023→1, 2022→2 …
+            const offset = yearInt > 2000 ? (2025 - yearInt) : 0;
+            picked = withQs[offset % withQs.length];
+          }
+
+          return fetchPaperById(picked.id);
+        };
+
+        pickAndFetch()
+          .then((paperData: unknown) => {
+            type QRow = { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: number };
+            const pd = paperData as { questions?: QRow[] } | null;
+            const qs: QRow[] = pd?.questions ?? [];
             if (qs.length === 0) return;
 
             // Sort by question_number so they appear in exam order

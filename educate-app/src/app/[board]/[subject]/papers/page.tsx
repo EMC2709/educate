@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useMemo } from 'react';
+import { use, useState, useMemo, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { EXAM_BOARDS } from '@/data/exam-boards';
@@ -54,6 +54,31 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
   }, [yearPapers, selectedYear]);
 
   const currentYear = selectedYearPaper?.year ?? '';
+
+  // DB paper lookup — fetch available papers so we can pass paperId directly to practice page
+  type DbPaper = { id: string; year: number | null; total_questions: number };
+  const [dbPapers, setDbPapers] = useState<DbPaper[]>([]);
+  useEffect(() => {
+    const examType = `GCSE_${boardName}`;
+    const params = new URLSearchParams({ examType, limit: '100' });
+    if (isCombinedScience && activeComponent) params.set('component', activeComponent);
+    fetch(`/api/past-papers?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setDbPapers((data?.papers ?? []).filter((p: DbPaper) => p.total_questions > 0)))
+      .catch(() => {});
+  }, [boardName, isCombinedScience, activeComponent]);
+
+  // Find best DB paper for the currently selected year
+  const dbPaperForYear = useMemo(() => {
+    if (dbPapers.length === 0) return null;
+    const yearInt = parseInt(currentYear) || 0;
+    // Exact year match first
+    const exact = dbPapers.find(p => p.year === yearInt);
+    if (exact) return exact;
+    // No exact match — deterministic index offset so different years give different papers
+    const offset = yearInt > 2000 ? (2025 - yearInt) : 0;
+    return dbPapers[offset % dbPapers.length];
+  }, [dbPapers, currentYear]);
 
   const tabColors: Record<1 | 2 | 3, string> = {
     1: '#6366f1',
@@ -283,6 +308,8 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                                 component: activePaper?.component ?? null,
                                 paperNumber: `Paper ${activeTab}`,
                                 board: boardName,
+                                // Pass direct DB paper ID so the practice page doesn't have to guess
+                                paperId: dbPaperForYear?.id ?? null,
                               }));
                             } catch {}
                             window.location.href = `/${boardName}/${encodeURIComponent(subject)}/paper`;
