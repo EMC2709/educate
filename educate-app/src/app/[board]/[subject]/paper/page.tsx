@@ -275,8 +275,6 @@ export default function ExamPaperPage({
 
   const [questions, setQuestions] = useState<Question[]>(staticQuestions);
   const [loadingDb, setLoadingDb] = useState(false);
-  const [driveFileId, setDriveFileId] = useState<string | null>(null);
-  const [pdfFailed, setPdfFailed] = useState(false);
   const [mode, setMode] = useState<Mode>('intro');
   const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ''));
   const [paperInfo, setPaperInfo] = useState<PaperInfo>({
@@ -315,103 +313,55 @@ export default function ExamPaperPage({
         setLoadingDb(true);
 
         type PaperMeta = { id: string; year: number | null; paper_number: string | null; total_questions: number };
-
-        // If we have a direct paper ID from the papers list, use it — skip guessing entirely
-        const directId = (info as { paperId?: string }).paperId ?? null;
-
-        type PaperResp = { paper?: { drive_file_id?: string }; questions?: QRow[] };
-        const fetchPaperById = (pid: string): Promise<PaperResp | null> =>
-          fetch(`/api/past-papers?id=${pid}`).then(r => r.ok ? r.json() : null);
-
         type QRow = { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: number };
-        const TARGET_MARKS = 70;
 
-        const fetchQs = (pid: string): Promise<{ qs: QRow[]; driveId: string | null }> =>
-          fetchPaperById(pid).then(d => ({
-            qs: (d as PaperResp | null)?.questions ?? [],
-            driveId: (d as PaperResp | null)?.paper?.drive_file_id ?? null,
-          }));
+        // Resolve which paper to load
+        const resolvePaperId = async (): Promise<string | null> => {
+          // Direct ID passed from papers list — use it immediately
+          const directId = (info as { paperId?: string }).paperId ?? null;
+          if (directId) return directId;
 
-        const pickAndFetch = async (): Promise<{ questions: QRow[]; driveFileId: string | null }> => {
-          // Resolve the starting paper pool
-          let pool: PaperMeta[] = [];
+          // Otherwise find the best match by examType + component + year
+          const base = new URLSearchParams({ limit: '100', examType: gcseType });
+          if (component) base.set('component', component);
+          if (paperNum) base.set('paperNumber', paperNum);
+          let papers: PaperMeta[] = await fetch(`/api/past-papers?${base}`)
+            .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
 
-          if (directId) {
-            // We have a direct ID — still build the pool for topping-up
-            const base = new URLSearchParams({ limit: '100', examType: gcseType });
-            if (component) base.set('component', component);
-            pool = await fetch(`/api/past-papers?${base}`)
-              .then(r => r.ok ? r.json() : null)
-              .then(d => (d?.papers ?? []).filter((p: PaperMeta) => p.total_questions > 0));
-            // Put the direct-ID paper first
-            pool = [{ id: directId, year: null, paper_number: null, total_questions: 0 },
-              ...pool.filter(p => p.id !== directId)];
-          } else {
-            // Step 1 — query by examType + component + paperNumber
-            const base = new URLSearchParams({ limit: '100', examType: gcseType });
-            if (component) base.set('component', component);
-            if (paperNum) base.set('paperNumber', paperNum);
-            pool = await fetch(`/api/past-papers?${base}`)
-              .then(r => r.ok ? r.json() : null)
-              .then(d => d?.papers ?? []);
-
-            // Fallback: drop paperNumber
-            if (pool.length === 0 && paperNum) {
-              const noPN = new URLSearchParams({ limit: '100', examType: gcseType });
-              if (component) noPN.set('component', component);
-              pool = await fetch(`/api/past-papers?${noPN}`)
-                .then(r => r.ok ? r.json() : null)
-                .then(d => d?.papers ?? []);
-            }
-            // Final fallback: drop component
-            if (pool.length === 0) {
-              const noComp = new URLSearchParams({ limit: '100', examType: gcseType });
-              pool = await fetch(`/api/past-papers?${noComp}`)
-                .then(r => r.ok ? r.json() : null)
-                .then(d => d?.papers ?? []);
-            }
-
-            if (pool.length === 0) return { questions: [], driveFileId: null };
-
-            // Pick primary paper by year, then deterministic index
-            const yearInt = parseInt(year) || 0;
-            const withQs = pool.filter(p => p.total_questions > 0);
-            if (withQs.length === 0) return { questions: [], driveFileId: null };
-            let picked = withQs.find(p => p.year === yearInt) ?? null;
-            if (!picked) {
-              const offset = yearInt > 2000 ? (2025 - yearInt) : 0;
-              picked = withQs[offset % withQs.length];
-            }
-            // Reorder pool: primary first, then rest in year-descending order
-            pool = [picked, ...withQs.filter(p => p.id !== picked!.id)];
+          // Fallback: drop paperNumber (many papers have null paper_number)
+          if (papers.length === 0 && paperNum) {
+            const noPN = new URLSearchParams({ limit: '100', examType: gcseType });
+            if (component) noPN.set('component', component);
+            papers = await fetch(`/api/past-papers?${noPN}`)
+              .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
+          }
+          // Final fallback: just examType
+          if (papers.length === 0) {
+            const noComp = new URLSearchParams({ limit: '100', examType: gcseType });
+            papers = await fetch(`/api/past-papers?${noComp}`)
+              .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
           }
 
-          // Step 2 — fetch primary paper's questions (captures driveFileId)
-          const primary = await fetchQs(pool[0].id);
-          const allQs: QRow[] = [...primary.qs];
-          const primaryDriveId = primary.driveId;
-          const seenTexts = new Set(primary.qs.map(q => q.question_text?.trim().slice(0, 80)));
-          let totalMarks = allQs.reduce((s, q) => s + (q.marks || 1), 0);
+          const withQs = papers.filter(p => p.total_questions > 0);
+          if (withQs.length === 0) return null;
 
-          // Step 3 — top up from additional papers until we reach TARGET_MARKS
-          for (let i = 1; i < pool.length && totalMarks < TARGET_MARKS; i++) {
-            const extra = await fetchQs(pool[i].id);
-            for (const q of extra.qs) {
-              const key = q.question_text?.trim().slice(0, 80);
-              if (seenTexts.has(key)) continue; // skip duplicates
-              seenTexts.add(key);
-              allQs.push(q);
-              totalMarks += q.marks || 1;
-              if (totalMarks >= TARGET_MARKS) break;
-            }
-          }
-
-          return { questions: allQs, driveFileId: primaryDriveId };
+          // Prefer exact year match, then deterministic index so different years give different papers
+          const yearInt = parseInt(year) || 0;
+          const byYear = withQs.find(p => p.year === yearInt);
+          if (byYear) return byYear.id;
+          const offset = yearInt > 2000 ? (2025 - yearInt) : 0;
+          return withQs[offset % withQs.length].id;
         };
 
-        pickAndFetch()
-          .then(({ questions: qs, driveFileId: dfid }) => {
-            if (dfid) setDriveFileId(dfid);
+        resolvePaperId()
+          .then(async paperId => {
+            if (!paperId) return [];
+            const res = await fetch(`/api/past-papers?id=${paperId}`);
+            if (!res.ok) return [];
+            const data = await res.json() as { questions?: QRow[] };
+            return data.questions ?? [];
+          })
+          .then((qs: QRow[]) => {
             if (qs.length === 0) return;
 
             // Sort by question_number so they appear in exam order
@@ -592,44 +542,6 @@ export default function ExamPaperPage({
               </button>
             </div>
           </div>
-
-          {/* ── Actual PDF from Google Drive (if available & public) ── */}
-          {driveFileId && !pdfFailed && (
-            <div className="max-w-4xl mx-auto px-3 sm:px-6 pt-6">
-              <div className="bg-neutral-900 border border-neutral-700 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-700">
-                  <span className="text-xs font-semibold text-neutral-400">📄 Original Exam Paper PDF</span>
-                  <div className="flex items-center gap-3">
-                    <a
-                      href={`https://drive.google.com/file/d/${driveFileId}/view`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-indigo-400 hover:text-indigo-300 no-underline"
-                    >
-                      Open in Drive ↗
-                    </a>
-                    <button
-                      onClick={() => setPdfFailed(true)}
-                      className="text-xs text-neutral-600 hover:text-neutral-400 bg-transparent border-none cursor-pointer"
-                    >
-                      ✕ Hide
-                    </button>
-                  </div>
-                </div>
-                <iframe
-                  src={`https://drive.google.com/file/d/${driveFileId}/preview`}
-                  className="w-full border-none"
-                  style={{ height: '80vh', minHeight: 600 }}
-                  allow="autoplay"
-                  onError={() => setPdfFailed(true)}
-                  title="Exam paper PDF"
-                />
-              </div>
-              <p className="text-xs text-neutral-600 text-center mt-2 mb-4">
-                Read the paper above — type your answers in the boxes below
-              </p>
-            </div>
-          )}
 
           {/* Paper sheet */}
           <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6">
