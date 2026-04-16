@@ -61,6 +61,8 @@ const LIMIT_ARG   = process.argv.indexOf('--limit');
 const MAX_FILES   = LIMIT_ARG >= 0 ? parseInt(process.argv[LIMIT_ARG + 1] ?? '99999') : 99999;
 const CONC_ARG    = process.argv.indexOf('--concurrency');
 const CONCURRENCY = CONC_ARG >= 0 ? parseInt(process.argv[CONC_ARG + 1] ?? '4') : 4;
+const OFFSET_ARG  = process.argv.indexOf('--offset');
+const OFFSET      = OFFSET_ARG >= 0 ? parseInt(process.argv[OFFSET_ARG + 1] ?? '0') : 0;
 
 // Minimum characters to consider a PDF text-based
 const TEXT_THRESHOLD = 300;
@@ -223,8 +225,8 @@ async function extractQuestionsFromPDFVision(
 
     const base64 = fs.readFileSync(pdfPath).toString('base64');
     const res = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 4096,
+      model: 'claude-sonnet-4-5',
+      max_tokens: 8192,
       messages: [{
         role: 'user',
         content: [
@@ -234,10 +236,11 @@ async function extractQuestionsFromPDFVision(
           } as unknown as Anthropic.ContentBlock,
           {
             type: 'text',
-            text: `This is a ${examType} ${subject} past paper or mark scheme. Extract ALL exam questions.
-Return ONLY a JSON array — no other text:
-[{ "question_number": "1a", "question_text": "full question text here", "marks": 3, "topic": "algebra", "mark_scheme": "model answer if this is a mark scheme" }]
-If this is a mark scheme, put the mark scheme answers in the mark_scheme field.`,
+            text: `This is a ${examType} ${subject} past paper. Extract EVERY SINGLE question and sub-question from the entire paper.
+Return ONLY a JSON array — no other text, no markdown fences:
+[{ "question_number": "1a", "question_text": "full question text", "marks": 3, "topic": "topic name", "mark_scheme": "answer if this is a mark scheme" }]
+Include ALL questions including multiple choice, structured questions, extended writing questions.
+Do NOT skip or summarise any questions. Include the complete question text for each.`,
           },
         ],
       }],
@@ -249,7 +252,127 @@ If this is a mark scheme, put the mark scheme answers in the mark_scheme field.`
   return [];
 }
 
+// ── Heuristic question parser (no API needed) ────────────────────────────────
+// Parses AQA/OCR/Edexcel/SQA exam papers using regex patterns.
+// Works entirely offline — no Claude calls needed.
+function extractQuestionsHeuristic(text: string, subject: string): ExtractedQuestion[] {
+  const questions: ExtractedQuestion[] = [];
+  const lines = text.split('\n');
+
+  // Marks patterns: "[2 marks]", "(3 marks)", "[3]", "2 marks"
+  const marksRe = /\[(\d+)\s*marks?\]|\((\d+)\s*marks?\)|\[(\d+)\]\s*$|(\d+)\s*marks?\s*$/i;
+
+  // Question number patterns: "1", "1.", "1 ", "(1)", "Q1", "1(a)", "1 (a)", etc.
+  const qStartRe = /^(?:Q\.?\s*)?(\d{1,2})\s*(?:\(([a-zA-Z])\))?\s*(?:\(([ivxIVX]+)\))?\s+\S/;
+  const subQRe   = /^\s*(?:\(([a-zA-Z])\)|\(([ivxIVX]+)\))\s+\S/;
+
+  let currentQNum    = '';
+  let currentQText:  string[] = [];
+  let currentMarks   = 0;
+
+  const flush = () => {
+    if (currentQText.length === 0) return;
+    const text = currentQText.join(' ').replace(/\s+/g, ' ').trim();
+    if (text.length < 10) return;
+    questions.push({
+      question_number: currentQNum,
+      question_text:   text,
+      marks:           currentMarks,
+      topic:           subject,
+    });
+    currentQText  = [];
+    currentMarks  = 0;
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    // Skip header/footer noise
+    if (/^(page|©|please turn over|turn over|end of questions|do not write)/i.test(line)) continue;
+
+    // Extract marks from line
+    const mMatch = line.match(marksRe);
+    const lineMarks = mMatch ? parseInt(mMatch[1] ?? mMatch[2] ?? mMatch[3] ?? mMatch[4] ?? '0') : 0;
+    if (lineMarks > 0 && lineMarks > currentMarks) currentMarks = lineMarks;
+
+    // New main question
+    const qm = line.match(qStartRe);
+    if (qm) {
+      flush();
+      const part = qm[2] ? `(${qm[2]})` : qm[3] ? `(${qm[3]})` : '';
+      currentQNum = `${qm[1]}${part}`;
+      currentQText = [line.replace(marksRe, '').trim()];
+      continue;
+    }
+
+    // Sub-question
+    const sq = line.match(subQRe);
+    if (sq && currentQNum) {
+      flush();
+      const sub = sq[1] ?? sq[2] ?? '';
+      currentQNum = `${currentQNum.replace(/\(.*\)$/, '')}(${sub})`;
+      currentQText = [line.replace(marksRe, '').trim()];
+      continue;
+    }
+
+    // Continuation line
+    if (currentQText.length > 0) {
+      currentQText.push(line.replace(marksRe, '').trim());
+    }
+  }
+  flush();
+
+  // Filter out very short garbage entries
+  return questions.filter(q =>
+    q.question_text.length > 15 &&
+    !/^(answer all questions|instructions|information|advice)/i.test(q.question_text)
+  );
+}
+
 // ── Question extraction via Claude Haiku (text-based) ────────────────────────
+// Processes the full text in chunks so nothing is missed.
+const CHUNK_SIZE = 12000;   // chars per Claude call
+const CHUNK_OVERLAP = 500;  // overlap to avoid cutting mid-question
+
+async function extractQuestionsFromChunk(
+  anthropic: Anthropic,
+  chunk: string,
+  subject: string,
+  examType: string,
+): Promise<ExtractedQuestion[]> {
+  try {
+    const res = await withRetry(() => anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: `Extract ALL exam questions from this ${examType} ${subject} past paper excerpt.
+Return ONLY a JSON array — no other text, no markdown fences:
+[{"question_number":"1a","question_text":"full question text","marks":3,"topic":"Biology","mark_scheme":"answer if present"}]
+Include every question and sub-question. Do NOT skip any. If a mark scheme answer is visible for a question, include it in mark_scheme.
+
+TEXT:
+${chunk}`,
+      }],
+    }));
+    const text = (res.content[0] as { text: string }).text.trim();
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    const raw = JSON.parse(match[0]) as Array<Record<string, unknown>>;
+    return raw.map(r => ({
+      question_number: String(r.question_number ?? r.q ?? ''),
+      question_text:   String(r.question_text   ?? r.t ?? ''),
+      marks:           Number(r.marks           ?? r.m ?? 0),
+      topic:           String(r.topic           ?? ''),
+      mark_scheme:     r.mark_scheme ? String(r.mark_scheme) : undefined,
+    }));
+  } catch (e) {
+    process.stderr.write(`  [extractQuestionsFromChunk warn] ${(e as Error).message}\n`);
+    return [];
+  }
+}
+
 async function extractQuestions(
   anthropic: Anthropic,
   fullText: string,
@@ -257,37 +380,29 @@ async function extractQuestions(
   examType: string,
 ): Promise<ExtractedQuestion[]> {
   if (!fullText || fullText.trim().length < TEXT_THRESHOLD) return [];
-  try {
-    const res = await withRetry(() => anthropic.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: `Extract questions from this ${examType} ${subject} paper. JSON array only, no prose:
-[{"q":"1a","t":"question text","m":3,"topic":"algebra"}]
-Use "q" for number, "t" for text, "m" for marks, "topic" for topic.
 
-TEXT:
-${fullText.slice(0, 5000)}`,
-      }],
-    }));
-    const text = (res.content[0] as { text: string }).text.trim();
-    const match = text.match(/\[[\s\S]*\]/);
-    if (match) {
-      // Support both short {q,t,m,topic} and long {question_number,question_text,marks,topic} keys
-      const raw = JSON.parse(match[0]) as Array<Record<string, unknown>>;
-      return raw.map(r => ({
-        question_number: (r.question_number ?? r.q ?? '') as string,
-        question_text:   (r.question_text   ?? r.t ?? '') as string,
-        marks:           (r.marks           ?? r.m ?? 0)  as number,
-        topic:           (r.topic           ?? '')        as string,
-        mark_scheme:     (r.mark_scheme     ?? r.ms ?? undefined) as string | undefined,
-      })) as ExtractedQuestion[];
-    }
-  } catch (e) {
-    process.stderr.write(`  [extractQuestions warn] ${(e as Error).message}\n`);
+  // Split into overlapping chunks so long papers are fully processed
+  const chunks: string[] = [];
+  for (let start = 0; start < fullText.length; start += CHUNK_SIZE - CHUNK_OVERLAP) {
+    chunks.push(fullText.slice(start, start + CHUNK_SIZE));
+    if (start + CHUNK_SIZE >= fullText.length) break;
   }
-  return [];
+
+  const allQuestions: ExtractedQuestion[] = [];
+  const seenTexts = new Set<string>();
+
+  for (const chunk of chunks) {
+    const qs = await extractQuestionsFromChunk(anthropic, chunk, subject, examType);
+    for (const q of qs) {
+      const key = q.question_text.trim().slice(0, 60);
+      if (key && !seenTexts.has(key)) {
+        seenTexts.add(key);
+        allQuestions.push(q);
+      }
+    }
+  }
+
+  return allQuestions;
 }
 
 // ── Metadata from filename ────────────────────────────────────────────────────
@@ -389,12 +504,16 @@ async function processPaper(
     let questions: ExtractedQuestion[];
 
     if (fullText.trim().length >= TEXT_THRESHOLD) {
-      questions = await extractQuestions(anthropic, fullText, entry.subject, entry.exam_type);
+      // Tier A: heuristic parser (fast, no API, works for structured exam papers)
+      questions = extractQuestionsHeuristic(fullText, entry.subject);
+      console.log(`${tag} 📐 heuristic: ${questions.length} questions`);
+      // NOTE: Claude fallback disabled — API rate-limited until 2026-05-01.
+      // Papers where heuristic returns 0 are saved with 0 questions; they can be
+      // reprocessed later without --force since skip logic spares non-empty papers.
     } else {
-      // Tier 3: Claude Vision on the raw PDF bytes
-      console.log(`${tag} 👁  Vision fallback`);
-      questions = await extractQuestionsFromPDFVision(anthropic, tmpFile, entry.subject, entry.exam_type);
-      usedVision = true;
+      // Text too short — skip Claude Vision (rate-limited), record 0 questions.
+      console.log(`${tag} ⚠  text too short (${fullText.trim().length} chars), skipping (no Claude)`);
+      questions = [];
     }
 
     const hasImages = usedOCR || usedVision;
@@ -426,7 +545,7 @@ async function runPool<T>(items: T[], concurrency: number, fn: (item: T, i: numb
 async function main() {
   console.log('\n📚 Educate Past Papers Processor  (3-tier extraction)');
   console.log('═'.repeat(55));
-  console.log(`   Concurrency: ${CONCURRENCY} | Limit: ${MAX_FILES} | Dry run: ${DRY_RUN} | Force: ${FORCE}`);
+  console.log(`   Concurrency: ${CONCURRENCY} | Limit: ${MAX_FILES} | Offset: ${OFFSET} | Dry run: ${DRY_RUN} | Force: ${FORCE}`);
   console.log('   Extraction: pdf-parse → Drive OCR → Claude Vision');
   console.log('   Skip logic: only skip papers with total_questions > 0');
   console.log('═'.repeat(55) + '\n');
@@ -442,7 +561,8 @@ async function main() {
   if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 
   const all       = await crawlDrive(drive);
-  const toProcess = all.slice(0, MAX_FILES);
+  const sliced    = all.slice(OFFSET);
+  const toProcess = sliced.slice(0, MAX_FILES);
   const counters  = { processed: 0, skipped: 0, errored: 0 };
   const t0        = Date.now();
 

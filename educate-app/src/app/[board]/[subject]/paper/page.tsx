@@ -313,7 +313,24 @@ export default function ExamPaperPage({
         setLoadingDb(true);
 
         type PaperMeta = { id: string; year: number | null; paper_number: string | null; total_questions: number };
-        type QRow = { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: number };
+        type QRow = { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: string | number | null };
+
+        // Parse "25(c)" → [25, 'c', 0]   "18(iii)" → [18, 0, 3]   "3" → [3,0,0]
+        const parseQN = (qn: string | number | null | undefined): [number, number, number] => {
+          if (qn == null) return [9999, 0, 0];
+          const s = String(qn);
+          const m = s.match(/^(\d+)\s*(?:\(([a-z]|[ivx]+)\))?\s*(?:\(([a-z]|[ivx]+)\))?/i);
+          if (!m) return [9999, 0, 0];
+          const main = parseInt(m[1]) || 9999;
+          const letterToNum = (x?: string) => {
+            if (!x) return 0;
+            if (/^[a-z]$/i.test(x)) return x.toLowerCase().charCodeAt(0) - 96;
+            // roman numeral
+            const roman: Record<string, number> = { i:1, ii:2, iii:3, iv:4, v:5, vi:6, vii:7, viii:8, ix:9, x:10 };
+            return roman[x.toLowerCase()] ?? 0;
+          };
+          return [main, letterToNum(m[2]), letterToNum(m[3])];
+        };
 
         // Resolve which paper to load
         const resolvePaperId = async (): Promise<string | null> => {
@@ -364,8 +381,12 @@ export default function ExamPaperPage({
           .then((qs: QRow[]) => {
             if (qs.length === 0) return;
 
-            // Sort by question_number so they appear in exam order
-            qs.sort((a, b) => (a.question_number ?? 999) - (b.question_number ?? 999));
+            // Sort by parsed question_number (supports "25(c)", "18(iii)", etc.)
+            qs.sort((a, b) => {
+              const [a1, a2, a3] = parseQN(a.question_number);
+              const [b1, b2, b3] = parseQN(b.question_number);
+              return a1 - b1 || a2 - b2 || a3 - b3;
+            });
 
             const dbQs: Question[] = qs.map(q => ({
               question: q.question_text,
