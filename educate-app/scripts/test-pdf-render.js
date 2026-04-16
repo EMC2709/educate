@@ -34,11 +34,11 @@ for (const line of fs.readFileSync(envPath, 'utf-8').split(/\r?\n/)) {
 
   // Try to render
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  pdfjs.GlobalWorkerOptions.workerSrc = '';
+  const { pathToFileURL } = require('node:url');
+  pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')).href;
   const t1 = Date.now();
   const doc = await pdfjs.getDocument({
     data: new Uint8Array(buf),
-    disableWorker: true,
     isEvalSupported: false,
     useSystemFonts: true,
   }).promise;

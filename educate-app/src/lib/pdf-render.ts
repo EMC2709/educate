@@ -11,8 +11,18 @@ let pdfjsLib: any = null;
 async function getPdfjs(): Promise<any> {
   if (pdfjsLib) return pdfjsLib;
   pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  // Disable worker — we run in the main thread in serverless
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+  // In Node/serverless, point workerSrc at the bundled worker file so pdfjs
+  // can spin up its fake worker without trying to resolve a CDN URL.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createRequire } = await import('node:module');
+  const { pathToFileURL } = await import('node:url');
+  const require = createRequire(import.meta.url);
+  try {
+    const p = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pathToFileURL(p).href;
+  } catch {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.mjs';
+  }
   return pdfjsLib;
 }
 
@@ -56,7 +66,6 @@ export async function renderPdfPage({ pdfBuffer, pageNumber, width = 1000 }: Ren
 
   const doc = await pdfjs.getDocument({
     data: new Uint8Array(pdfBuffer),
-    disableWorker: true,
     isEvalSupported: false,
     useSystemFonts: true,
   }).promise;
@@ -93,7 +102,6 @@ export async function getPdfPageCount(pdfBuffer: Buffer): Promise<number> {
   const pdfjs = await getPdfjs();
   const doc = await pdfjs.getDocument({
     data: new Uint8Array(pdfBuffer),
-    disableWorker: true,
     isEvalSupported: false,
     useSystemFonts: true,
   }).promise;
