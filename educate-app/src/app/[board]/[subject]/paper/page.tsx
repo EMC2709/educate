@@ -288,6 +288,9 @@ export default function ExamPaperPage({
   const [elapsed, setElapsed] = useState<number>(0);
   const [driveFileId, setDriveFileId] = useState<string | null>(null);
   const [pdfPanelOpen, setPdfPanelOpen] = useState<boolean>(false);
+  const [paperDbId, setPaperDbId] = useState<string | null>(null);
+  const [pageCount, setPageCount] = useState<number>(0);
+  const [expandedPage, setExpandedPage] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -379,6 +382,12 @@ export default function ExamPaperPage({
             if (!res.ok) return [];
             const data = await res.json() as { paper?: { drive_file_id?: string }; questions?: QRow[] };
             if (data.paper?.drive_file_id) setDriveFileId(data.paper.drive_file_id);
+            setPaperDbId(paperId);
+            // Kick off page count fetch (non-blocking)
+            fetch(`/api/paper-pagecount?id=${paperId}`)
+              .then(r => r.ok ? r.json() : null)
+              .then(d => { if (d?.pageCount) setPageCount(d.pageCount); })
+              .catch(() => {});
             return data.questions ?? [];
           })
           .then((qs: QRow[]) => {
@@ -621,6 +630,65 @@ export default function ExamPaperPage({
                   </ul>
                 </div>
               </div>
+
+              {/* PDF page thumbnails — scroll horizontally, click to expand inline */}
+              {paperDbId && pageCount > 0 && (
+                <div className="border-b border-gray-200 px-8 py-5 bg-gray-50" style={{ fontFamily: 'Arial, sans-serif' }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-black uppercase tracking-wider text-black">
+                      Paper pages <span className="text-gray-500 font-normal normal-case">· click to enlarge for figures &amp; diagrams</span>
+                    </p>
+                    <span className="text-[10px] text-gray-500">{pageCount} page{pageCount === 1 ? '' : 's'}</span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {Array.from({ length: pageCount }, (_, idx) => {
+                      const pageNum = idx + 1;
+                      const isOpen = expandedPage === pageNum;
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setExpandedPage(isOpen ? null : pageNum)}
+                          className={`shrink-0 border-2 bg-white rounded overflow-hidden transition-all hover:border-indigo-500 cursor-pointer ${
+                            isOpen ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-300'
+                          }`}
+                          title={`Page ${pageNum}`}
+                          style={{ width: 90, height: 127 }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/api/paper-page?id=${paperDbId}&page=${pageNum}&w=180`}
+                            alt={`Page ${pageNum}`}
+                            loading="lazy"
+                            className="w-full h-full object-cover object-top"
+                          />
+                          <span className="block text-[10px] font-bold text-gray-600 text-center -mt-5 bg-white/90 py-0.5">
+                            {pageNum}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {expandedPage !== null && (
+                    <div className="mt-4 border-2 border-gray-300 bg-white rounded overflow-hidden">
+                      <div className="flex items-center justify-between bg-gray-100 px-3 py-1.5 border-b border-gray-300">
+                        <span className="text-xs font-bold text-gray-700">Page {expandedPage} of {pageCount}</span>
+                        <button
+                          onClick={() => setExpandedPage(null)}
+                          className="text-xs font-bold text-gray-600 hover:text-black bg-transparent border-none cursor-pointer"
+                        >
+                          ✕ Close
+                        </button>
+                      </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/api/paper-page?id=${paperDbId}&page=${expandedPage}&w=1400`}
+                        alt={`Page ${expandedPage}`}
+                        className="w-full block"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Questions */}
               <div className="px-8 py-6 space-y-0">

@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Keep native/WASM PDF deps out of the bundle — used only in server routes
+  serverExternalPackages: ['@napi-rs/canvas', 'pdfjs-dist'],
   async headers() {
     return [
       {
