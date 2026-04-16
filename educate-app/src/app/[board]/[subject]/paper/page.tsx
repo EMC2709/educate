@@ -22,6 +22,32 @@ interface PaperInfo {
 
 type Mode = 'intro' | 'exam' | 'results';
 
+// Detect whether a question needs MCQ, drawing, or written answer
+function detectAnswerType(text: string): 'mcq' | 'drawing' | 'written' {
+  // MCQ: 3+ lines matching "A) ...", "B) ...", "C) ..." or "A. " etc
+  const mcqMatches = text.match(/(?:^|\n)\s*[A-D][.)]\s+\S/gm) ?? [];
+  if (mcqMatches.length >= 3) return 'mcq';
+  // Drawing questions
+  if (/\b(draw|sketch|label|complete the diagram|plot|mark on|shade|circle the|underline)\b/i.test(text)) return 'drawing';
+  return 'written';
+}
+
+// Parse MCQ question into stem + options
+function parseMCQ(text: string): { stem: string; options: { letter: string; text: string }[] } {
+  const lines = text.split('\n');
+  const options: { letter: string; text: string }[] = [];
+  const stemLines: string[] = [];
+  for (const line of lines) {
+    const m = line.match(/^\s*([A-D])[.)]\s+(.+)/);
+    if (m) {
+      options.push({ letter: m[1], text: m[2].trim() });
+    } else if (options.length === 0) {
+      stemLines.push(line);
+    }
+  }
+  return { stem: stemLines.join('\n').trim(), options };
+}
+
 /* Lined answer box — draws CSS horizontal lines like real exam paper */
 function LinedBox({
   value,
@@ -53,6 +79,182 @@ function LinedBox({
         placeholder={placeholder ?? ''}
         className="absolute inset-0 w-full h-full bg-transparent border-none outline-none resize-none text-sm text-gray-900 px-1 py-0 font-[inherit] leading-8 placeholder-gray-300"
         style={{ lineHeight: `${LINE_H}px` }}
+      />
+    </div>
+  );
+}
+
+/* MCQ answer selector */
+function MCQBox({
+  options,
+  selected,
+  onChange,
+}: {
+  options: { letter: string; text: string }[];
+  selected: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-2 mt-2">
+      {options.map(opt => (
+        <label
+          key={opt.letter}
+          className="flex items-start gap-3 cursor-pointer group"
+          style={{ fontFamily: 'Arial, sans-serif' }}
+        >
+          <div
+            className="shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-black mt-0.5 transition-all"
+            style={
+              selected === opt.letter
+                ? { borderColor: '#6366f1', backgroundColor: '#6366f1', color: '#fff' }
+                : { borderColor: '#9ca3af', backgroundColor: '#fff', color: '#6b7280' }
+            }
+            onClick={() => onChange(selected === opt.letter ? '' : opt.letter)}
+          >
+            {opt.letter}
+          </div>
+          <div
+            className="flex-1 text-sm leading-relaxed py-0.5 px-3 rounded-lg border transition-all"
+            style={
+              selected === opt.letter
+                ? { borderColor: '#6366f1', backgroundColor: '#eef2ff', color: '#3730a3' }
+                : { borderColor: '#e5e7eb', backgroundColor: '#f9fafb', color: '#374151' }
+            }
+            onClick={() => onChange(selected === opt.letter ? '' : opt.letter)}
+          >
+            {opt.text}
+          </div>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/* Drawing canvas — supports mouse and touch */
+function DrawingCanvas({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const tool = useRef<'pen' | 'eraser'>('pen');
+  const [activeTool, setActiveTool] = useState<'pen' | 'eraser'>('pen');
+
+  // Restore saved drawing
+  useEffect(() => {
+    if (!value || !canvasRef.current) return;
+    const img = new window.Image();
+    img.onload = () => {
+      const ctx = canvasRef.current?.getContext('2d');
+      if (ctx && canvasRef.current) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        ctx.drawImage(img, 0, 0);
+      }
+    };
+    img.src = value;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getPos = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if ('touches' in e) {
+      const t = e.touches[0];
+      return { x: (t.clientX - rect.left) * scaleX, y: (t.clientY - rect.top) * scaleY };
+    }
+    return { x: ((e as React.MouseEvent).clientX - rect.left) * scaleX, y: ((e as React.MouseEvent).clientY - rect.top) * scaleY };
+  };
+
+  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!canvasRef.current) return;
+    e.preventDefault();
+    drawing.current = true;
+    lastPos.current = getPos(e, canvasRef.current);
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!drawing.current || !canvasRef.current || !lastPos.current) return;
+    e.preventDefault();
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+    const pos = getPos(e, canvasRef.current);
+    ctx.beginPath();
+    ctx.moveTo(lastPos.current.x, lastPos.current.y);
+    ctx.lineTo(pos.x, pos.y);
+    if (tool.current === 'eraser') {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 18;
+    } else {
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 2;
+    }
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    lastPos.current = pos;
+  };
+
+  const endDraw = () => {
+    if (!drawing.current || !canvasRef.current) return;
+    drawing.current = false;
+    lastPos.current = null;
+    onChange(canvasRef.current.toDataURL());
+  };
+
+  const clear = () => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    onChange('');
+  };
+
+  const switchTool = (t: 'pen' | 'eraser') => {
+    tool.current = t;
+    setActiveTool(t);
+  };
+
+  return (
+    <div className="mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Draw here:</span>
+        <button
+          onClick={() => switchTool('pen')}
+          className="text-[10px] px-2 py-0.5 rounded border transition-all"
+          style={activeTool === 'pen'
+            ? { borderColor: '#374151', backgroundColor: '#374151', color: '#fff' }
+            : { borderColor: '#d1d5db', backgroundColor: '#fff', color: '#6b7280' }}
+        >✏️ Pen</button>
+        <button
+          onClick={() => switchTool('eraser')}
+          className="text-[10px] px-2 py-0.5 rounded border transition-all"
+          style={activeTool === 'eraser'
+            ? { borderColor: '#374151', backgroundColor: '#374151', color: '#fff' }
+            : { borderColor: '#d1d5db', backgroundColor: '#fff', color: '#6b7280' }}
+        >◻ Eraser</button>
+        <button
+          onClick={clear}
+          className="text-[10px] px-2 py-0.5 rounded border border-red-200 text-red-400 hover:bg-red-50 transition-all"
+        >✕ Clear</button>
+      </div>
+      <canvas
+        ref={canvasRef}
+        width={800}
+        height={220}
+        className="border border-gray-400 bg-white w-full cursor-crosshair touch-none rounded-sm"
+        style={{ display: 'block' }}
+        onMouseDown={startDraw}
+        onMouseMove={draw}
+        onMouseUp={endDraw}
+        onMouseLeave={endDraw}
+        onTouchStart={startDraw}
+        onTouchMove={draw}
+        onTouchEnd={endDraw}
       />
     </div>
   );
@@ -234,7 +436,12 @@ export default function ExamPaperPage({
   }, [mode]);
 
   const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
-  const attemptedCount = answers.filter(a => a.trim().length > 0).length;
+  const attemptedCount = answers.filter((a, i) => {
+    if (!a) return false;
+    const qType = detectAnswerType(questions[i]?.question ?? '');
+    if (qType === 'drawing') return a.startsWith('data:');
+    return a.trim().length > 0;
+  }).length;
 
   function getTimeSince() {
     const m = Math.floor(elapsed / 60);
@@ -325,7 +532,9 @@ export default function ExamPaperPage({
             <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 mb-6">
               <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-3">Instructions</h2>
               <ul className="space-y-2 text-sm text-neutral-300">
-                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Answer all questions in the lined spaces provided</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Answer all questions in the spaces provided</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Multiple-choice questions: select the best answer</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Drawing questions: use the canvas to sketch your answer</li>
                 <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Marks for each question are shown in the right margin</li>
                 <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Use the hint button if stuck — but try without first</li>
                 <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>After finishing, model answers appear for self-marking</li>
@@ -419,7 +628,7 @@ export default function ExamPaperPage({
               {/* Questions */}
               <div className="px-8 py-6 space-y-0">
                 {questions.map((q, i) => {
-                  const linesForAnswer = Math.max(4, q.marks * 4);
+                  const qType = detectAnswerType(q.question);
                   return (
                     <div key={i} className="py-5 border-b border-gray-200 last:border-b-0">
                       {/* Question row: number | text | marks */}
@@ -438,20 +647,53 @@ export default function ExamPaperPage({
                             </p>
                           )}
 
-                          {/* Question text */}
-                          <div className="text-sm text-black leading-relaxed mb-4 prose prose-sm max-w-none prose-p:my-0">
-                            <MessageContent content={q.question} />
-                          </div>
+                          {/* Question text — for MCQ the stem is rendered in the answer block */}
+                          {qType !== 'mcq' && (
+                            <div className="text-sm text-black leading-relaxed mb-4 prose prose-sm max-w-none prose-p:my-0">
+                              <MessageContent content={q.question} />
+                            </div>
+                          )}
 
-                          {/* Lined answer area */}
-                          <div className="border border-gray-400 bg-white" style={{ borderRadius: 0 }}>
-                            <LinedBox
-                              value={answers[i]}
-                              onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
-                              lines={linesForAnswer}
-                              placeholder="Write your answer here…"
-                            />
-                          </div>
+                          {/* Answer area — type depends on question content */}
+                          {(() => {
+                            if (qType === 'mcq') {
+                              const { stem, options } = parseMCQ(q.question);
+                              return (
+                                <>
+                                  {stem && (
+                                    <div className="text-sm text-black leading-relaxed mb-3 prose prose-sm max-w-none prose-p:my-0">
+                                      <MessageContent content={stem} />
+                                    </div>
+                                  )}
+                                  <MCQBox
+                                    options={options}
+                                    selected={answers[i]}
+                                    onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
+                                  />
+                                </>
+                              );
+                            }
+                            if (qType === 'drawing') {
+                              return (
+                                <DrawingCanvas
+                                  value={answers[i]}
+                                  onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
+                                />
+                              );
+                            }
+                            // Default: lined text area
+                            const linesForAnswer = Math.max(4, q.marks * 4);
+                            return (
+                              <div className="border border-gray-400 bg-white" style={{ borderRadius: 0 }}>
+                                <LinedBox
+                                  value={answers[i]}
+                                  onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
+                                  lines={linesForAnswer}
+                                  placeholder="Write your answer here…"
+                                />
+                              </div>
+                            );
+                          })()}
 
                           {/* Hint */}
                           <details className="mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -555,8 +797,11 @@ export default function ExamPaperPage({
 
             <div className="px-8 py-6 space-y-0">
               {questions.map((q, i) => {
-                const userAnswer = answers[i].trim();
-                const isAttempted = userAnswer.length > 0;
+                const userAnswer = answers[i];
+                const qType = detectAnswerType(q.question);
+                const isAttempted = qType === 'drawing'
+                  ? userAnswer.startsWith('data:')
+                  : userAnswer.trim().length > 0;
                 const isRevealed = revealed[i];
 
                 return (
@@ -578,15 +823,34 @@ export default function ExamPaperPage({
                           <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ fontFamily: 'Arial, sans-serif', color: isAttempted ? '#059669' : '#9ca3af' }}>
                             Your answer
                           </p>
-                          {isAttempted ? (
-                            <div className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-                              {userAnswer}
-                            </div>
-                          ) : (
-                            <div className="border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-400 italic" style={{ fontFamily: 'Arial, sans-serif' }}>
-                              Not attempted
-                            </div>
-                          )}
+                          {(() => {
+                            if (!isAttempted) {
+                              return (
+                                <div className="border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-400 italic" style={{ fontFamily: 'Arial, sans-serif' }}>
+                                  Not attempted
+                                </div>
+                              );
+                            }
+                            if (qType === 'mcq') {
+                              return (
+                                <div className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-gray-800">
+                                  Selected: {userAnswer}
+                                </div>
+                              );
+                            }
+                            if (qType === 'drawing') {
+                              return userAnswer.startsWith('data:') ? (
+                                <img src={userAnswer} alt="Your drawing" className="border border-emerald-300 max-w-full" style={{ maxHeight: 200 }} />
+                              ) : (
+                                <div className="border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-400 italic" style={{ fontFamily: 'Arial, sans-serif' }}>No drawing made</div>
+                              );
+                            }
+                            return (
+                              <div className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                                {userAnswer}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Model answer */}
