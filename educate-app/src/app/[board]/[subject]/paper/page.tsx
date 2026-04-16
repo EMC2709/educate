@@ -286,6 +286,8 @@ export default function ExamPaperPage({
   });
   const [revealed, setRevealed] = useState<boolean[]>(() => questions.map(() => false));
   const [elapsed, setElapsed] = useState<number>(0);
+  const [driveFileId, setDriveFileId] = useState<string | null>(null);
+  const [pdfPanelOpen, setPdfPanelOpen] = useState<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -375,7 +377,8 @@ export default function ExamPaperPage({
             if (!paperId) return [];
             const res = await fetch(`/api/past-papers?id=${paperId}`);
             if (!res.ok) return [];
-            const data = await res.json() as { questions?: QRow[] };
+            const data = await res.json() as { paper?: { drive_file_id?: string }; questions?: QRow[] };
+            if (data.paper?.drive_file_id) setDriveFileId(data.paper.drive_file_id);
             return data.questions ?? [];
           })
           .then((qs: QRow[]) => {
@@ -541,7 +544,7 @@ export default function ExamPaperPage({
     return (
       <div className="flex min-h-screen bg-neutral-950">
         <Sidebar />
-        <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <div className={`flex-1 overflow-y-auto pb-20 md:pb-0 transition-all duration-300 ${pdfPanelOpen && driveFileId ? 'md:mr-[45vw]' : ''}`}>
 
           {/* Sticky bar */}
           <div className="sticky top-0 z-20 bg-neutral-950/95 backdrop-blur border-b border-neutral-800 px-4 sm:px-6 py-2.5">
@@ -555,12 +558,27 @@ export default function ExamPaperPage({
                   {attemptedCount}/{questions.length} answered
                 </span>
               </div>
-              <button
-                onClick={() => setMode('results')}
-                className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold px-4 py-2 rounded-lg border-none cursor-pointer transition-colors shrink-0"
-              >
-                Finish &amp; Mark →
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {driveFileId && (
+                  <button
+                    onClick={() => setPdfPanelOpen(o => !o)}
+                    className={`text-xs font-bold px-3 py-2 rounded-lg border-none cursor-pointer transition-colors ${
+                      pdfPanelOpen
+                        ? 'bg-amber-500 hover:bg-amber-400 text-black'
+                        : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200'
+                    }`}
+                    title="Show original PDF pages (figures, diagrams)"
+                  >
+                    {pdfPanelOpen ? 'Hide PDF' : '📄 PDF Figures'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setMode('results')}
+                  className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold px-4 py-2 rounded-lg border-none cursor-pointer transition-colors"
+                >
+                  Finish &amp; Mark →
+                </button>
+              </div>
             </div>
           </div>
 
@@ -723,6 +741,59 @@ export default function ExamPaperPage({
             </div>
           </div>
         </div>
+
+        {/* PDF Reference Drawer — original paper pages for figures/diagrams */}
+        {driveFileId && (
+          <div
+            className={`fixed top-0 right-0 h-screen bg-neutral-900 border-l border-neutral-800 shadow-2xl transition-transform duration-300 z-30 ${
+              pdfPanelOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+            style={{ width: 'min(92vw, 720px)' }}
+          >
+            <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-800 bg-neutral-950">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-400 text-sm">📄</span>
+                <span className="text-xs text-neutral-300 font-semibold">
+                  Original Paper — Figures &amp; Diagrams
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`https://drive.google.com/file/d/${driveFileId}/view`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-neutral-400 hover:text-white transition-colors"
+                  title="Open in new tab"
+                >
+                  ↗ Open
+                </a>
+                <button
+                  onClick={() => setPdfPanelOpen(false)}
+                  className="text-neutral-400 hover:text-white bg-transparent border-none cursor-pointer text-lg leading-none"
+                  aria-label="Close PDF panel"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={`https://drive.google.com/file/d/${driveFileId}/preview`}
+              className="w-full border-none"
+              style={{ height: 'calc(100vh - 40px)' }}
+              title="Original paper PDF"
+              allow="autoplay"
+            />
+          </div>
+        )}
+
+        {/* Mobile-only: full-screen overlay when PDF panel open */}
+        {driveFileId && pdfPanelOpen && (
+          <div
+            onClick={() => setPdfPanelOpen(false)}
+            className="md:hidden fixed inset-0 bg-black/60 z-20"
+          />
+        )}
+
         <MobileNav />
       </div>
     );
