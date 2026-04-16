@@ -343,26 +343,29 @@ export default function ExamPaperPage({
           const directId = (info as { paperId?: string }).paperId ?? null;
           if (directId) return directId;
 
-          // Otherwise find the best match by examType + component + year
-          const base = new URLSearchParams({ limit: '100', examType: gcseType });
+          // Otherwise find the best match by SUBJECT + examType + component + year
+          // IMPORTANT: subject is always locked — we never fall back across subjects
+          // (prevents e.g. a Chemistry paper appearing in the Spanish section).
+          const base = new URLSearchParams({ limit: '100', examType: gcseType, subject });
           if (component) base.set('component', component);
           if (paperNum) base.set('paperNumber', paperNum);
           let papers: PaperMeta[] = await fetch(`/api/past-papers?${base}`)
             .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
 
-          // Fallback: drop paperNumber (many papers have null paper_number)
+          // Fallback 1: drop paperNumber but KEEP subject + component (many papers have null paper_number)
           if (papers.length === 0 && paperNum) {
-            const noPN = new URLSearchParams({ limit: '100', examType: gcseType });
+            const noPN = new URLSearchParams({ limit: '100', examType: gcseType, subject });
             if (component) noPN.set('component', component);
             papers = await fetch(`/api/past-papers?${noPN}`)
               .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
           }
-          // Final fallback: just examType
-          if (papers.length === 0) {
-            const noComp = new URLSearchParams({ limit: '100', examType: gcseType });
+          // Fallback 2: drop component but KEEP subject (no cross-subject leakage)
+          if (papers.length === 0 && component) {
+            const noComp = new URLSearchParams({ limit: '100', examType: gcseType, subject });
             papers = await fetch(`/api/past-papers?${noComp}`)
               .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
           }
+          // No final cross-subject fallback — if no paper matches the subject, return null
 
           const withQs = papers.filter(p => p.total_questions > 0);
           if (withQs.length === 0) return null;
