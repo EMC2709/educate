@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useEffect, useRef } from 'react';
+import { use, useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { EXAM_BOARDS } from '@/data/exam-boards';
@@ -260,6 +260,82 @@ function DrawingCanvas({
   );
 }
 
+// ── Loading screen with progress bar & staged labels ─────────────────────────
+// Asymptotic faux-progress: climbs fast at first, slows as it nears 90%, only
+// hits 100% when real loading finishes (component unmounts). Feels responsive
+// even if the network is slow — never looks stalled.
+function PaperLoadingProgress({ subject, component }: { subject: string; component: string | null }) {
+  const [progress, setProgress] = useState(8);
+  const [stage, setStage] = useState(0);
+
+  const stages = useMemo(() => [
+    'Finding the right paper…',
+    'Loading questions…',
+    `Preparing ${component ? `${component} ` : ''}${subject} paper…`,
+    'Almost there…',
+  ], [subject, component]);
+
+  useEffect(() => {
+    // Tick progress asymptotically toward 90% (never completes — unmount does)
+    const interval = setInterval(() => {
+      setProgress(p => {
+        if (p >= 90) return p;
+        const remaining = 90 - p;
+        return p + Math.max(0.4, remaining * 0.04);
+      });
+    }, 120);
+    // Cycle through stage labels
+    const stageInterval = setInterval(() => {
+      setStage(s => (s + 1) % stages.length);
+    }, 1400);
+    return () => { clearInterval(interval); clearInterval(stageInterval); };
+  }, [stages.length]);
+
+  return (
+    <div className="w-full max-w-md">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+        <p className="text-neutral-200 text-sm font-semibold">Loading paper</p>
+      </div>
+
+      {/* Progress bar */}
+      <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden mb-3">
+        <div
+          className="h-full bg-gradient-to-r from-indigo-500 via-indigo-400 to-purple-500 rounded-full transition-all duration-200 ease-out"
+          style={{ width: `${progress}%` }}
+        >
+          {/* Moving shimmer inside the bar for perceived activity */}
+          <div className="h-full w-full relative overflow-hidden">
+            <div
+              className="absolute inset-y-0 w-1/3 bg-white/25 blur-sm"
+              style={{ animation: 'paper-shimmer 1.2s linear infinite' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Stage label — fades between messages */}
+      <p
+        key={stage}
+        className="text-xs text-neutral-400 animate-[paper-fade-in_0.4s_ease-out]"
+      >
+        {stages[stage]}
+      </p>
+
+      <style jsx>{`
+        @keyframes paper-shimmer {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(400%); }
+        }
+        @keyframes paper-fade-in {
+          from { opacity: 0; transform: translateY(2px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function ExamPaperPage({
   params,
 }: {
@@ -449,10 +525,7 @@ export default function ExamPaperPage({
       <div className="flex min-h-screen">
         <Sidebar />
         <div className="flex-1 flex items-center justify-center p-8 pb-20 md:pb-8">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-neutral-400 text-sm">Loading {paperInfo.component ? `${paperInfo.component} ` : ''}questions…</p>
-          </div>
+          <PaperLoadingProgress subject={subject} component={paperInfo.component ?? null} />
         </div>
         <MobileNav />
       </div>
