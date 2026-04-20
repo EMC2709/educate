@@ -8,10 +8,10 @@ const schema = z.object({
   subject: z.string().max(80),
   board: z.string().max(40),
   questionType: z.string().max(40),
-  question: z.string().max(2000),
-  modelAnswer: z.string().max(2000),
+  question: z.string().max(4000),
+  modelAnswer: z.string().max(10000),
   acceptedAnswers: z.array(z.string()).optional(),
-  userAnswer: z.string().max(2000),
+  userAnswer: z.string().max(4000),
   marks: z.number().int().min(1).max(25),
 });
 
