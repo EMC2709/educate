@@ -211,10 +211,16 @@ function flatNorm(s: string): string {
     .replace(/[^a-z0-9+\-*/^=<>.]/g, '');
 }
 
-/** Crude suffix stripper for loose matching. */
+/** Crude suffix stripper for loose matching. Handles comparatives/superlatives. */
 function stem(w: string): string {
   if (w.length <= 4) return w;
   return w
+    // Comparative/superlative first (higher→high, greater→great, etc.)
+    .replace(/ier$/, 'y')     // happier → happy
+    .replace(/iest$/, 'y')    // happiest → happy
+    .replace(/er$/, '')       // higher → high, lower → low, greater → great
+    .replace(/est$/, '')      // highest → high, lowest → low
+    // Then standard suffixes
     .replace(/(ies|ied|ing|ly|es|ed|s)$/, '')
     .replace(/(ation|ments?|ness|ity|ties|ous|ive|al)$/, '');
 }
@@ -396,8 +402,15 @@ function exactMatchStrategy(
         };
       }
     } else {
-      // Longer candidate: user must contain most of it, or equal it
-      if (u === c || (u.includes(c) && u.length <= c.length * 1.5)) {
+      // Longer candidate: user must contain most of it, or equal it,
+      // OR share very high token overlap (Jaccard >= 0.75 on content words).
+      const uTokens = new Set(u.replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(t => t.length >= 3));
+      const cTokens = new Set(c.replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(t => t.length >= 3));
+      const intersection = [...uTokens].filter(t => cTokens.has(t)).length;
+      const union = new Set([...uTokens, ...cTokens]).size;
+      const jaccard = union > 0 ? intersection / union : 0;
+
+      if (u === c || (u.includes(c) && u.length <= c.length * 1.5) || jaccard >= 0.75) {
         return {
           marksAwarded: maxMarks,
           maxMarks,
@@ -486,8 +499,7 @@ function markingPointsStrategy(
   maxMarks: number,
 ): ScoreResult {
   const points = extractMarkingPoints(modelAnswer);
-  if (points.length < 2) {
-    // Not enough points to benefit from this strategy
+  if (points.length < 1) {
     return emptyResult(maxMarks);
   }
 
@@ -615,10 +627,17 @@ export function scoreAnswer(
   const numerical = numericalStrategy(userAnswer, candidates, maxMarks);
   if (numerical) results.push(numerical);
 
-  // Strategies 3 & 4: run against every candidate, keep the best
+  // Strategies 3 & 4: run against every candidate (model + accepted answers), keep the best
   for (const candidate of candidates) {
     results.push(markingPointsStrategy(userAnswer, candidate, maxMarks));
     results.push(keyPhraseStrategy(userAnswer, candidate, maxMarks));
+  }
+
+  // Extra pass: key-phrase strategy using the COMBINED text of all candidates.
+  // This helps when the model answer is verbose but acceptedAnswers use simpler terms.
+  if (candidates.length > 1) {
+    const combined = candidates.join('. ');
+    results.push(keyPhraseStrategy(userAnswer, combined, maxMarks));
   }
 
   if (results.length === 0) return emptyResult(maxMarks);

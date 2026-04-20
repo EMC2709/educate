@@ -16,53 +16,51 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your-api-key-here') {
-    return NextResponse.json(
-      { correct: false, feedback: 'API key not configured.', modelAnswer: '', marksAwarded: 0 },
-      { status: 503 }
-    );
-  }
-
-  // Require authentication
+  // Note: deterministic scoring runs for everyone.
+  // AI feedback only runs if an API key is present and the user is signed in.
   const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-  }
+  const aiEnabled = !!userId &&
+    !!process.env.ANTHROPIC_API_KEY &&
+    process.env.ANTHROPIC_API_KEY !== 'your-api-key-here';
 
   try {
     const body = await request.json();
-    const { subject, questionType, question, modelAnswer, acceptedAnswers, userAnswer, marks } = schema.parse(body);
+    // Clamp marks to valid range — avoid Zod errors if bank has marks:0 edge case
+    const rawBody = { ...body, marks: Math.max(1, Math.min(25, Math.round(Number(body.marks) || 1))) };
+    const { subject, questionType, question, modelAnswer, acceptedAnswers, userAnswer, marks } = schema.parse(rawBody);
 
-    // --- Step 1: Deterministic rule-based scoring against the bank's model answer ---
+    // --- Step 1: Deterministic rule-based scoring (always runs, no auth needed) ---
     const score = scoreAnswer(userAnswer, modelAnswer, marks, acceptedAnswers);
 
-    // --- Step 2: Ask AI ONLY for plain-text feedback (short, no JSON, no schema) ---
+    // --- Step 2: AI feedback (only when signed in AND API key available) ---
     let feedback = '';
 
-    try {
-      const prompt = buildFeedbackPrompt({
-        subject,
-        question,
-        userAnswer,
-        modelAnswer,
-        marksAwarded: score.marksAwarded,
-        maxMarks: score.maxMarks,
-        matchedTerms: score.matchedTerms,
-        missedTerms: score.missedTerms,
-      });
+    if (aiEnabled) {
+      try {
+        const prompt = buildFeedbackPrompt({
+          subject,
+          question,
+          userAnswer,
+          modelAnswer,
+          marksAwarded: score.marksAwarded,
+          maxMarks: score.maxMarks,
+          matchedTerms: score.matchedTerms,
+          missedTerms: score.missedTerms,
+        });
 
-      const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-20250514',
-        max_tokens: 300,
-        messages: [{ role: 'user', content: prompt }],
-      });
+        const message = await anthropic.messages.create({
+          model: 'claude-3-5-haiku-20241022',
+          max_tokens: 300,
+          messages: [{ role: 'user', content: prompt }],
+        });
 
-      feedback = message.content
-        .map(b => (b.type === 'text' ? b.text : ''))
-        .join('')
-        .trim();
-    } catch (aiError) {
-      console.error('AI feedback error (continuing without AI feedback):', aiError);
+        feedback = message.content
+          .map(b => (b.type === 'text' ? b.text : ''))
+          .join('')
+          .trim();
+      } catch (aiError) {
+        console.error('AI feedback error (using deterministic fallback):', aiError);
+      }
     }
 
     // --- Step 3: Fallback feedback if AI is unavailable or failed ---
