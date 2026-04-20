@@ -133,6 +133,20 @@ export default function AssignedPractice() {
     newDone.add(currentIndex);
     setDoneSet(newDone);
 
+    // Award XP for completing a question (fire-and-forget)
+    const q = questions[currentIndex];
+    if (q) {
+      fetch('/api/award-xp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marksAwarded: q.marks ?? 1, questionType: 'short', attempted: true }),
+      }).then(r => r.json()).then(data => {
+        if ((data as { xpGained?: number }).xpGained ?? 0 > 0) {
+          window.dispatchEvent(new Event('educate-xp-updated'));
+        }
+      }).catch(() => {});
+    }
+
     const completed = newDone.size >= questions.length;
     await saveProgress(newDone, completed);
 

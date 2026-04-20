@@ -21,6 +21,7 @@ import { useChat } from '@/context/ChatContext';
 import { shuffle } from '@/lib/shuffle';
 import { getBankQuestionsForSelection, getBankCardsForSelection } from '@/lib/question-helpers';
 import { checkAchievements, type Achievement } from '@/lib/achievements';
+import { PhysicsEquationSheet } from '@/components/quiz/PhysicsEquationSheet';
 import type { Question, Flashcard, FeedbackResult, QuestionType } from '@/types';
 
 export default function QuizPage({
@@ -176,13 +177,17 @@ export default function QuizPage({
         setLoading(false);
         return;
       }
-      // Fallback: whole-subject flashcard bank before hitting the API
-      const mainCards = (QUESTION_BANK as unknown as Record<string, Record<string, Flashcard[]>>)[subject]?.flashcard;
-      if (mainCards && mainCards.length >= 1) {
-        setLoadingSource('bank');
-        setFlashcards(shuffle(mainCards).slice(0, 12));
-        setLoading(false);
-        return;
+      // Only use the whole-subject flashcard bank when no topic was selected.
+      // If a selection was made and the subtopic bank is too small, go to AI so
+      // focusStr is respected — otherwise cards from other topics leak in.
+      if (!focusStr) {
+        const mainCards = (QUESTION_BANK as unknown as Record<string, Record<string, Flashcard[]>>)[subject]?.flashcard;
+        if (mainCards && mainCards.length >= 1) {
+          setLoadingSource('bank');
+          setFlashcards(shuffle(mainCards).slice(0, 12));
+          setLoading(false);
+          return;
+        }
       }
       // AI flashcard generation (only if AI is enabled)
       const aiEnabledFlash = localStorage.getItem('educate-ai-disabled') !== 'true';
@@ -215,16 +220,17 @@ export default function QuizPage({
         return;
       }
 
-      // When a specific subtopic was selected but has fewer than 3 questions of this
-      // type (common for 'long' questions — subtopic banks hold only 1 each), fall back
-      // to the whole-subject bank before ever hitting the AI API.  This guarantees that
-      // all 26 subjects always load without an auth requirement.
-      const mainBankQs = (QUESTION_BANK as unknown as Record<string, Record<string, Question[]>>)[subject]?.[questionType];
-      if (mainBankQs && mainBankQs.length >= 1) {
-        setLoadingSource('bank');
-        setQuestions(shuffle(mainBankQs).slice(0, 5));
-        setLoading(false);
-        return;
+      // Only use the whole-subject bank when no topic was selected.
+      // If a selection was made and the subtopic bank is too small, fall through to AI
+      // so focusStr is respected — otherwise off-topic questions from the full bank leak in.
+      if (!focusStr) {
+        const mainBankQs = (QUESTION_BANK as unknown as Record<string, Record<string, Question[]>>)[subject]?.[questionType];
+        if (mainBankQs && mainBankQs.length >= 1) {
+          setLoadingSource('bank');
+          setQuestions(shuffle(mainBankQs).slice(0, 5));
+          setLoading(false);
+          return;
+        }
       }
 
       // 2nd fallback: try scraped questions from the database (GCSE only)
@@ -290,7 +296,7 @@ export default function QuizPage({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject, board: boardName, questionType, question: q.question,
-          modelAnswer: q.answer, userAnswer, marks: q.marks,
+          modelAnswer: q.answer, acceptedAnswers: q.acceptedAnswers, userAnswer, marks: q.marks,
         }),
       });
       if (res.status === 401) {
@@ -313,18 +319,19 @@ export default function QuizPage({
         }
       }
 
-      // Award XP immediately after this question
-      if (isSignedIn && (parsed.marksAwarded ?? 0) > 0) {
+      // Award XP immediately after this question (even 0-mark attempts get 1 XP)
+      if (isSignedIn) {
         fetch('/api/award-xp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ marksAwarded: parsed.marksAwarded, questionType }),
+          body: JSON.stringify({ marksAwarded: parsed.marksAwarded ?? 0, questionType, attempted: true }),
         })
           .then(r => r.json())
           .then(data => {
             if ((data.xpGained ?? 0) > 0) {
               setXpToast({ xp: data.xpGained, levelUp: data.xpResult?.leveledUp });
               setTimeout(() => setXpToast(null), 2500);
+              window.dispatchEvent(new Event('educate-xp-updated'));
             }
           })
           .catch(console.error);
@@ -373,10 +380,13 @@ export default function QuizPage({
     router.push(`/${boardName}/${encodeURIComponent(subject)}/topics?type=${questionType}`);
   };
 
+  const isPhysicsSubject = subject === 'Physics' || subject === 'Combined Science';
+
   return (
     <div className="min-h-screen">
       <Navbar board={boardName} subject={subject} score={score} loadingSource={loadingSource} questionType={questionType} />
       <div className="flex min-h-[calc(100vh-56px)]">
+        {isPhysicsSubject && <PhysicsEquationSheet />}
         <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           <div className="max-w-2xl mx-auto">
             {/* Loading */}
@@ -389,7 +399,7 @@ export default function QuizPage({
 
             {/* Flashcards */}
             {!loading && questionType === 'flashcard' && flashcards.length > 0 && (
-              <FlashcardDeck cards={flashcards} board={board} onBack={resetToTopics} onNewDeck={loadQuiz} />
+              <FlashcardDeck cards={flashcards} board={board} subject={subject} onBack={resetToTopics} onNewDeck={loadQuiz} />
             )}
 
             {/* Questions */}
@@ -413,6 +423,7 @@ export default function QuizPage({
                   question={questions[currentQ]}
                   typeLabel={qTypeCfg.label}
                   typeColor={qTypeCfg.color}
+                  questionType={questionType as 'short' | 'mid' | 'long' | 'flashcard' | 'past-paper'}
                 />
 
                 {!feedback ? (
@@ -420,6 +431,7 @@ export default function QuizPage({
                     value={userAnswer}
                     onChange={setUserAnswer}
                     questionType={questionType}
+                    subject={subject}
                     accentColor={qTypeCfg.color}
                     onSubmit={checkAnswer}
                     onHint={handleHint}

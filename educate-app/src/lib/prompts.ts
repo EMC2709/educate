@@ -5,7 +5,7 @@ export function generateQuestionsPrompt(
   focusStr: string | null
 ): string {
   const focusLine = focusStr
-    ? `Focus SPECIFICALLY on these topics/subtopics: ${focusStr}. All questions must be about these areas only.`
+    ? `IMPORTANT: Every single question MUST be specifically about these selected topics/subtopics ONLY: ${focusStr}. Do NOT include questions about any other topics, even related ones.`
     : '';
 
   const configs: Record<string, { label: string; marks: number }> = {
@@ -17,9 +17,9 @@ export function generateQuestionsPrompt(
   const cfg = configs[type];
   if (!cfg) throw new Error(`Invalid question type: ${type}`);
 
-  return `You are a GCSE ${subject} examiner for ${board}. Generate 5 ${cfg.label} questions. ${focusLine}
+  return `You are a GCSE ${subject} examiner for ${board}. Generate exactly 5 ${cfg.label} questions. ${focusLine}
 
-Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
+Respond ONLY with a valid JSON array — no markdown, no backticks, no preamble, no explanation:
 [{"question":"Question text","answer":"Detailed model answer","marks":${cfg.marks},"hint":"Brief hint"}]`;
 }
 
@@ -36,12 +36,12 @@ export function generateFlashcardsPrompt(
   focusStr: string | null
 ): string {
   const focusLine = focusStr
-    ? `Focus SPECIFICALLY on these topics/subtopics: ${focusStr}. All questions must be about these areas only.`
+    ? `IMPORTANT: Every flashcard MUST be specifically about these selected topics/subtopics ONLY: ${focusStr}. Do NOT include cards about any other topics.`
     : '';
 
-  return `You are a GCSE ${subject} teacher for ${board}. Generate 12 flashcards covering key terms, concepts and definitions for GCSE level. ${focusLine}
+  return `You are a GCSE ${subject} teacher for ${board}. Generate exactly 12 flashcards covering key terms, concepts and definitions at GCSE level. ${focusLine}
 
-Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
+Respond ONLY with a valid JSON array — no markdown, no backticks, no preamble, no explanation:
 [{"term":"Key term","definition":"Clear GCSE-level definition (2-3 sentences)","example":"Brief example or null"}]`;
 }
 

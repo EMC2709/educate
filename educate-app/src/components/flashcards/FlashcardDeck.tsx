@@ -6,7 +6,7 @@ import { FlashcardCard } from './FlashcardCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Button } from '@/components/ui/Button';
 import { useChat } from '@/context/ChatContext';
-import { initCard, gradeCard, confidenceToGrade } from '@/lib/spaced-repetition';
+import { initCard, gradeCard, confidenceToGrade, getDueCards } from '@/lib/spaced-repetition';
 import { useToast } from '@/components/ui/Toast';
 import { recordActivity } from '@/lib/streak';
 import { unlockAchievement } from '@/lib/achievements';
@@ -20,25 +20,35 @@ interface FlashcardDeckProps {
 }
 
 export function FlashcardDeck({ cards, board, onBack, onNewDeck, subject }: FlashcardDeckProps) {
+  const [orderedCards, setOrderedCards] = useState<Flashcard[]>(cards);
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState<number[]>([]);
   const [unknown, setUnknown] = useState<number[]>([]);
   const [done, setDone] = useState(false);
+  const [dueCount, setDueCount] = useState(0);
   const [swipeHint, setSwipeHint] = useState<'left' | 'right' | null>(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const { setChatOpen, setChatInput } = useChat();
   const { showToast } = useToast();
 
-  const card = cards[idx];
+  const card = orderedCards[idx];
 
-  // Initialize SR cards
+  // Initialize SR cards and sort due cards first
   useEffect(() => {
     if (subject) {
       cards.forEach(c => {
         initCard(`${subject}:${c.term}`, c.term, c.definition);
       });
+      // Sort: due cards first, then new/upcoming
+      const dueIds = new Set(getDueCards(subject).map(c => c.term));
+      const due = cards.filter(c => dueIds.has(c.term));
+      const rest = cards.filter(c => !dueIds.has(c.term));
+      setOrderedCards([...due, ...rest]);
+      setDueCount(due.length);
+    } else {
+      setOrderedCards(cards);
     }
   }, [cards, subject]);
 
@@ -55,10 +65,10 @@ export function FlashcardDeck({ cards, board, onBack, onNewDeck, subject }: Flas
 
     setFlipped(false);
     setTimeout(() => {
-      if (idx < cards.length - 1) setIdx(p => p + 1);
+      if (idx < orderedCards.length - 1) setIdx(p => p + 1);
       else setDone(true);
     }, 200);
-  }, [idx, cards.length, subject, card]);
+  }, [idx, orderedCards.length, subject, card]);
 
   const mark = useCallback((isKnown: boolean) => {
     markWithSR(isKnown ? 'good' : 'again');
@@ -104,7 +114,7 @@ export function FlashcardDeck({ cards, board, onBack, onNewDeck, subject }: Flas
       <div className="text-center py-10 sm:py-16 max-w-md mx-auto px-4">
         <div className="text-5xl mb-4">&#127881;</div>
         <h2 className="font-bold text-2xl mb-2">Deck Complete!</h2>
-        <p className="text-neutral-400 mb-8">You knew {known.length} of {cards.length} cards</p>
+        <p className="text-neutral-400 mb-8">You knew {known.length} of {orderedCards.length} cards</p>
         <div className="flex gap-4 justify-center mb-8">
           <div className="bg-emerald-500/10 border border-emerald-500 rounded-xl px-6 sm:px-7 py-4">
             <p className="text-emerald-400 font-bold text-2xl m-0">{known.length}</p>
@@ -129,14 +139,17 @@ export function FlashcardDeck({ cards, board, onBack, onNewDeck, subject }: Flas
       <div className="flex justify-between items-center mb-5">
         <Button variant="ghost" onClick={onBack}>&#8592; Change Topics</Button>
         <div className="flex gap-2 items-center">
+          {dueCount > 0 && (
+            <span className="bg-amber-500/15 text-amber-400 text-xs px-2.5 py-0.5 rounded-lg">&#128337; {dueCount} due</span>
+          )}
           <span className="bg-emerald-500/15 text-emerald-400 text-xs px-2.5 py-0.5 rounded-lg">&#10003; {known.length}</span>
           <span className="bg-rose-500/15 text-rose-400 text-xs px-2.5 py-0.5 rounded-lg">&#10007; {unknown.length}</span>
-          <span className="text-neutral-500 text-sm">{idx + 1}/{cards.length}</span>
+          <span className="text-neutral-500 text-sm">{idx + 1}/{orderedCards.length}</span>
         </div>
       </div>
 
       <div className="mb-6">
-        <ProgressBar value={(idx / cards.length) * 100} />
+        <ProgressBar value={(idx / orderedCards.length) * 100} />
       </div>
 
       <div

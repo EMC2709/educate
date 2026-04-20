@@ -7,12 +7,13 @@ import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { getLevelTitle, levelProgress } from '@/lib/xp-client';
 import { getRank } from '@/lib/ranks';
 import { getBanner, RARITY_COLORS, getBannerBackground, getBannerBackgroundSize } from '@/lib/banners';
-import { getStreakData } from '@/lib/streak';
+import { getStreakData, getShieldCount } from '@/lib/streak';
 import { RankEmblem } from '@/components/ui/RankEmblem';
 
 interface Profile {
   userId: string;
   displayName: string;
+  username: string;
   avatarUrl?: string;
   xp: number;
   level: number;
@@ -66,9 +67,17 @@ export default function ProfilePage() {
   const [market, setMarket] = useState<MarketplaceData>({ coins: 0, activeBannerId: null });
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
+  const [shields, setShields] = useState(0);
+
+  // Edit profile state
+  const [editing, setEditing] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
-    try { setStreak(getStreakData().currentStreak); } catch {}
+    try { setStreak(getStreakData().currentStreak); setShields(getShieldCount()); } catch {}
     Promise.all([
       fetch('/api/profile').then(r => r.json()),
       fetch('/api/quiz-history').then(r => r.json()),
@@ -79,6 +88,38 @@ export default function ProfilePage() {
       setMarket({ coins: m.coins ?? 0, activeBannerId: m.activeBannerId ?? null });
     }).finally(() => setLoading(false));
   }, []);
+
+  function startEdit() {
+    if (!profile) return;
+    setEditDisplayName(profile.displayName);
+    setEditUsername(profile.username ?? '');
+    setEditError(null);
+    setEditing(true);
+  }
+
+  async function saveEdit() {
+    if (!profile) return;
+    setSaving(true);
+    setEditError(null);
+    try {
+      const trimName = editDisplayName.trim();
+      const trimUser = editUsername.trim();
+      if (!trimName) { setEditError('Display name cannot be empty.'); setSaving(false); return; }
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: trimName, username: trimUser || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setEditError(data.error ?? 'Save failed.'); setSaving(false); return; }
+      setProfile(p => p ? { ...p, displayName: trimName, username: trimUser } : p);
+      setEditing(false);
+    } catch {
+      setEditError('Network error — please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -175,9 +216,65 @@ export default function ProfilePage() {
                       ? <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
                       : initials}
                   </div>
-                  <div className="min-w-0">
-                    <h1 className="text-lg font-extrabold text-white m-0 truncate">{profile.displayName}</h1>
-                    <p className="text-xs m-0" style={{ color: rank.color }}>{getLevelTitle(profile.level)} · Lv.{profile.level}</p>
+                  <div className="min-w-0 flex-1">
+                    {editing ? (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[10px] text-neutral-400 uppercase tracking-wide block mb-0.5">Display Name</label>
+                          <input
+                            value={editDisplayName}
+                            onChange={e => setEditDisplayName(e.target.value)}
+                            maxLength={30}
+                            className="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-2.5 py-1.5 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                            placeholder="Your name"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-neutral-400 uppercase tracking-wide block mb-0.5">Username</label>
+                          <input
+                            value={editUsername}
+                            onChange={e => setEditUsername(e.target.value)}
+                            maxLength={30}
+                            className="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-2.5 py-1.5 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                            placeholder="username"
+                          />
+                        </div>
+                        {editError && <p className="text-xs text-red-400 m-0">{editError}</p>}
+                        <div className="flex gap-2 pt-0.5">
+                          <button
+                            onClick={saveEdit}
+                            disabled={saving}
+                            className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer border-0 transition-colors"
+                          >
+                            {saving ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setEditing(false)}
+                            disabled={saving}
+                            className="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer border-0 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0">
+                          <h1 className="text-lg font-extrabold text-white m-0 truncate">{profile.displayName}</h1>
+                          {profile.username && (
+                            <p className="text-[11px] text-neutral-500 m-0">@{profile.username}</p>
+                          )}
+                          <p className="text-xs m-0" style={{ color: rank.color }}>{getLevelTitle(profile.level)} · Lv.{profile.level}</p>
+                        </div>
+                        <button
+                          onClick={startEdit}
+                          title="Edit profile"
+                          className="mt-0.5 shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white cursor-pointer border-0 transition-colors"
+                        >
+                          ✏️
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {/* Active banner */}
@@ -217,6 +314,12 @@ export default function ProfilePage() {
                 <div className="text-2xl mb-1">{stat.icon}</div>
                 <p className="text-lg font-extrabold m-0" style={{ color: stat.color }}>{stat.value}</p>
                 <p className="text-[10px] text-neutral-500 m-0 mt-0.5">{stat.label}</p>
+                {stat.label === 'Streak' && shields > 0 && (
+                  <div className="mt-1.5 inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{ backgroundColor: '#78350f33', color: '#fbbf24', border: '1px solid #92400e' }}>
+                    🛡️ × {shields}
+                  </div>
+                )}
               </div>
             ))}
           </div>

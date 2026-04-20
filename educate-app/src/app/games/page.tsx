@@ -259,8 +259,22 @@ export default function GamesHubPage() {
       href: '/games/tic-tac-toe',
       icon: '\u{274E}',
       title: 'Noughts & Crosses',
-      desc: 'Answer questions to claim squares. Play vs a friend or AI.',
+      desc: 'Answer multiple-choice questions to claim squares. Local or online.',
       color: '#10b981',
+    },
+    {
+      href: '/games/battleships',
+      icon: '\u{1F6A2}',
+      title: 'Battleships',
+      desc: 'Sink the enemy fleet! Answer questions to fire your shots.',
+      color: '#3b82f6',
+    },
+    {
+      href: '/games/relay',
+      icon: '\u{1F3C3}',
+      title: 'Running Relay',
+      desc: 'Race to the finish line — every correct answer moves you closer.',
+      color: '#f43f5e',
     },
   ];
 

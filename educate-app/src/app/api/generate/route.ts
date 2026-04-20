@@ -1,93 +1,113 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@clerk/nextjs/server';
-import { anthropic } from '@/lib/anthropic';
-import { generateQuestionsPrompt, generateFlashcardsPrompt, generatePastPaperPrompt } from '@/lib/prompts';
-import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
+import { QUESTION_BANK } from '@/data/question-bank';
+import { PAST_PAPER_BANK } from '@/data/past-paper-bank';
+import { SUBTOPIC_BANK } from '@/data/subtopic-bank';
+import { shuffle } from '@/lib/shuffle';
+import type { Question, Flashcard } from '@/types';
 
-// Bound input sizes so a malicious caller can't smuggle a huge prompt into
-// the upstream model.
 const schema = z.object({
   subject: z.string().min(1).max(80),
   board: z.string().min(1).max(40),
   type: z.enum(['short', 'mid', 'long', 'flashcard', 'past-paper']),
-  focusStr: z.string().max(500).nullable(),
+  focusStr: z.string().max(500).nullable().optional(),
 });
 
-// 20 generations per user per hour. AI calls are the most expensive endpoint.
-const LIMIT = 20;
-const WINDOW_MS = 60 * 60 * 1000;
+/** Case-insensitive fuzzy match */
+function fuzzyMatch(a: string, b: string): boolean {
+  const na = a.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const nb = b.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
+/**
+ * Collect subtopic-bank questions of a given type matching the focusStr.
+ * Returns null if no matching subtopic content is found.
+ */
+function getSubtopicBankContent(
+  subject: string,
+  type: 'short' | 'mid' | 'long' | 'flashcard',
+  focusStr: string,
+): Question[] | Flashcard[] | null {
+  const subjectBank = SUBTOPIC_BANK[subject];
+  if (!subjectBank) return null;
+
+  const collected: (Question | Flashcard)[] = [];
+
+  for (const [groupName, subtopics] of Object.entries(subjectBank)) {
+    const groupMatch = fuzzyMatch(groupName, focusStr);
+    for (const [subtopicName, content] of Object.entries(subtopics)) {
+      if (groupMatch || fuzzyMatch(subtopicName, focusStr)) {
+        const items = content[type];
+        if (items && items.length > 0) {
+          collected.push(...items);
+        }
+      }
+    }
+  }
+
+  return collected.length > 0 ? (collected as Question[] | Flashcard[]) : null;
+}
 
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your-api-key-here') {
-    return NextResponse.json(
-      { error: 'API key not configured. Add your ANTHROPIC_API_KEY to .env.local and restart the server.' },
-      { status: 503 }
-    );
-  }
-
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Sign in required to generate content.' }, { status: 401 });
-  }
-
-  // Rate limit BEFORE we touch the upstream API.
-  const key = getRateLimitKey('generate', userId, request);
-  const rl = rateLimit(key, LIMIT, WINDOW_MS);
-  if (!rl.ok) {
-    return NextResponse.json(
-      { error: `You've hit the hourly limit (${LIMIT} generations / hour). Try again in ${Math.ceil(rl.retryAfterSec / 60)} min.` },
-      { status: 429, headers: rateLimitHeaders(LIMIT, rl) }
-    );
-  }
-
   let parsedBody;
   try {
     parsedBody = schema.parse(await request.json());
   } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400, headers: rateLimitHeaders(LIMIT, rl) });
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { subject, board, type, focusStr } = parsedBody;
+  const { subject, type, focusStr } = parsedBody;
 
   try {
-    const prompt = type === 'flashcard'
-      ? generateFlashcardsPrompt(subject, board, focusStr)
-      : type === 'past-paper'
-        ? generatePastPaperPrompt(subject, board)
-        : generateQuestionsPrompt(subject, board, type, focusStr);
-
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: type === 'flashcard' ? 1800 : type === 'past-paper' ? 2000 : 1400,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const text = message.content
-      .map(b => (b.type === 'text' ? b.text : ''))
-      .join('')
-      .trim();
-
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      return NextResponse.json(
-        { error: 'AI returned malformed content. Please try again.' },
-        { status: 502, headers: rateLimitHeaders(LIMIT, rl) }
-      );
-    }
-
+    // ── Flashcards ────────────────────────────────────────────────────────────
     if (type === 'flashcard') {
-      return NextResponse.json({ flashcards: parsed }, { headers: rateLimitHeaders(LIMIT, rl) });
+      // Prefer subtopic-bank content if user focused on a specific topic
+      if (focusStr) {
+        const topicCards = getSubtopicBankContent(subject, 'flashcard', focusStr) as Flashcard[] | null;
+        if (topicCards && topicCards.length > 0) {
+          return NextResponse.json({ flashcards: shuffle(topicCards).slice(0, 10) });
+        }
+      }
+      const subjectCards = QUESTION_BANK[subject]?.flashcard;
+      if (subjectCards && subjectCards.length > 0) {
+        return NextResponse.json({ flashcards: shuffle(subjectCards).slice(0, 10) });
+      }
+      return NextResponse.json({ error: 'No flashcards available for this subject yet.' }, { status: 404 });
     }
-    return NextResponse.json({ questions: parsed }, { headers: rateLimitHeaders(LIMIT, rl) });
+
+    // ── Past-paper ────────────────────────────────────────────────────────────
+    if (type === 'past-paper') {
+      const papers = PAST_PAPER_BANK[subject];
+      if (papers && papers.length > 0) {
+        return NextResponse.json({ questions: shuffle(papers).slice(0, 3) });
+      }
+      // Fallback to long questions if no past-paper bank for this subject
+      const longQs = QUESTION_BANK[subject]?.long;
+      if (longQs && longQs.length > 0) {
+        return NextResponse.json({ questions: shuffle(longQs).slice(0, 3) });
+      }
+      return NextResponse.json({ error: 'No past-paper questions available for this subject yet.' }, { status: 404 });
+    }
+
+    // ── Short / Mid / Long ────────────────────────────────────────────────────
+    // Prefer topic-focused content when a focusStr is provided (mastery mode)
+    if (focusStr) {
+      const topicQs = getSubtopicBankContent(subject, type, focusStr) as Question[] | null;
+      if (topicQs && topicQs.length > 0) {
+        return NextResponse.json({ questions: shuffle(topicQs).slice(0, 5) });
+      }
+    }
+
+    // Fall back to whole-subject bank
+    const subjectQs = QUESTION_BANK[subject]?.[type];
+    if (subjectQs && subjectQs.length > 0) {
+      return NextResponse.json({ questions: shuffle(subjectQs).slice(0, 5) });
+    }
+
+    return NextResponse.json({ error: `No ${type} questions available for ${subject} yet.` }, { status: 404 });
   } catch (error) {
     console.error('Generate API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate content' },
-      { status: 500, headers: rateLimitHeaders(LIMIT, rl) }
-    );
+    return NextResponse.json({ error: 'Failed to load questions.' }, { status: 500 });
   }
 }

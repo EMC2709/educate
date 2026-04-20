@@ -16,13 +16,22 @@ Thumbs.db
 # Temp files
 *.log
 .gitnexus
+.vercel
 
-# Claude Code / AI tooling (local only)
+# Claude / AI tooling (local only)
 .claude/
 .claude-flow/
+.swarm/
 .mcp.json
 educate-app/.claude/
 educate-app/.claude-flow/
 educate-app/.mcp.json
 CLAUDE.md
 AGENTS.md
+ruflo-setup.sh
+RUFLO-READY.md
+COMPLETE-SETUP-SUMMARY.md
+SECURITY-REVIEW-INSTALL.md
+AUTO-AGENTS.md
+RUFLO-SETUP.md
+UI-UX-PRO-INTEGRATION.md

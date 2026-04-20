@@ -1,11 +1,14 @@
 'use client';
 
+import { useRef } from 'react';
 import type { QuestionType } from '@/types';
+import { MathSymbolPad } from './MathSymbolPad';
 
 interface AnswerInputProps {
   value: string;
   onChange: (value: string) => void;
   questionType: QuestionType;
+  subject: string;
   accentColor: string;
   onSubmit: () => void;
   onHint: () => void;
@@ -24,16 +27,59 @@ const minHeights: Record<string, string> = {
   long: 'min-h-[180px] sm:min-h-[220px]',
 };
 
-export function AnswerInput({ value, onChange, questionType, accentColor, onSubmit, onHint, disabled }: AnswerInputProps) {
+const MATHS_SUBJECTS = ['Mathematics', 'Further Mathematics', 'Statistics'];
+
+export function AnswerInput({
+  value,
+  onChange,
+  questionType,
+  subject,
+  accentColor,
+  onSubmit,
+  onHint,
+  disabled,
+}: AnswerInputProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isMaths = MATHS_SUBJECTS.includes(subject);
+
+  /** Insert a symbol at the textarea cursor position */
+  function insertSymbol(symbol: string) {
+    const el = textareaRef.current;
+    if (!el) {
+      onChange(value + symbol);
+      return;
+    }
+    const start = el.selectionStart ?? value.length;
+    const end = el.selectionEnd ?? value.length;
+    const newValue = value.slice(0, start) + symbol + value.slice(end);
+    onChange(newValue);
+    // Restore focus and move cursor after the inserted symbol
+    requestAnimationFrame(() => {
+      el.focus();
+      const newPos = start + symbol.length;
+      el.setSelectionRange(newPos, newPos);
+    });
+  }
+
   return (
     <div>
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholders[questionType] || 'Type your answer...'}
         className={`w-full bg-neutral-900 border border-neutral-700 rounded-xl p-4 text-white text-sm leading-relaxed resize-y outline-none font-inherit ${minHeights[questionType] || 'min-h-[100px]'} focus:border-indigo-500 placeholder:text-neutral-600 transition-colors`}
         onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) onSubmit(); }}
       />
+
+      {/* Maths symbol pad — shown between textarea and action buttons */}
+      {isMaths && (
+        <div className="mt-2 flex items-center gap-2">
+          <MathSymbolPad onInsert={insertSymbol} />
+          <span className="text-[10px] text-neutral-600">Insert symbols at cursor</span>
+        </div>
+      )}
+
       <div className="flex gap-2.5 mt-3">
         <button
           onClick={onSubmit}

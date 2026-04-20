@@ -29,6 +29,11 @@ interface GameSession {
   status: 'waiting' | 'active' | 'finished';
 }
 
+interface MCQState {
+  options: string[];
+  correctIndex: number;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const WIN_LINES = [
@@ -59,7 +64,6 @@ function getSubjectQuestions(subject: string): Question[] {
 
 const AVAILABLE_SUBJECTS = Object.keys(QUESTION_BANK).filter(s => getSubjectQuestions(s).length >= 9);
 
-/** Deterministic shuffle keyed to the game ID so both clients see the same order. */
 function seededShuffle<T>(arr: T[], seed: string): T[] {
   let hash = 0;
   for (const c of seed) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
@@ -86,6 +90,37 @@ function getOrCreatePlayerId(): string {
   return id;
 }
 
+function generateMCQ(correct: string, allQuestions: Question[]): MCQState {
+  const correctClean = correct.split('\n')[0].replace(/^\d+[\.\)]\s*/, '').trim().slice(0, 80);
+
+  const wrongs: string[] = [];
+  const seen = new Set([correctClean.toLowerCase()]);
+  for (const q of allQuestions) {
+    const candidates = [
+      ...(q.acceptedAnswers ?? []),
+      q.answer.split('\n')[0].replace(/^\d+[\.\)]\s*/, '').trim(),
+    ];
+    for (const c of candidates) {
+      const clean = c.trim().slice(0, 80);
+      if (clean.length > 3 && clean.length < 80 && !seen.has(clean.toLowerCase())) {
+        seen.add(clean.toLowerCase());
+        wrongs.push(clean);
+        if (wrongs.length >= 20) break;
+      }
+    }
+    if (wrongs.length >= 20) break;
+  }
+
+  const shuffledWrongs = shuffle(wrongs);
+  const distractors = shuffledWrongs.slice(0, 3);
+  while (distractors.length < 3) {
+    distractors.push(['Not enough information', 'Cannot be determined', 'None of the above'][distractors.length]);
+  }
+
+  const opts = shuffle([correctClean, ...distractors]);
+  return { options: opts, correctIndex: opts.indexOf(correctClean) };
+}
+
 // ─── Inner component (uses useSearchParams) ───────────────────────────────────
 
 function TicTacToeInner() {
@@ -101,11 +136,11 @@ function TicTacToeInner() {
   const [currentPlayer, setCurrentPlayer] = useState<Player>('X');
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [answer, setAnswer] = useState('');
+  const [mcq, setMcq] = useState<MCQState | null>(null);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [answerResult, setAnswerResult] = useState<'correct' | 'wrong' | null>(null);
   const [winner, setWinner] = useState<CellState | 'draw' | null>(null);
   const [winLine, setWinLine] = useState<number[] | null>(null);
-  const [checking, setChecking] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [scores, setScores] = useState({ X: 0, O: 0 });
@@ -122,17 +157,16 @@ function TicTacToeInner() {
   const [dbUnavailable, setDbUnavailable] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  // Online question tracking (seeded, shared between both players)
   const [onlineQuestions, setOnlineQuestions] = useState<Question[]>([]);
   const [onlineSelectedCell, setOnlineSelectedCell] = useState<number | null>(null);
   const [onlineCurrentQuestion, setOnlineCurrentQuestion] = useState<Question | null>(null);
-  const [onlineAnswer, setOnlineAnswer] = useState('');
+  const [onlineMcq, setOnlineMcq] = useState<MCQState | null>(null);
+  const [onlineSelectedOption, setOnlineSelectedOption] = useState<number | null>(null);
   const [onlineAnswerResult, setOnlineAnswerResult] = useState<'correct' | 'wrong' | null>(null);
-  const [onlineChecking, setOnlineChecking] = useState(false);
+  const [onlineResolving, setOnlineResolving] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Init player ID on client
   useEffect(() => {
     setMyPlayerId(getOrCreatePlayerId());
   }, []);
@@ -182,16 +216,13 @@ function TicTacToeInner() {
         }
         return;
       }
-      // Set up questions seeded by game ID
       const qs = seededShuffle(getSubjectQuestions(onlineSubject), data.gameId as string);
       setOnlineQuestions(qs);
       setMySymbol('X');
-      // Fetch full session
       const sessionRes = await fetch(`/api/game?id=${data.gameId}`);
       const session = await sessionRes.json() as GameSession;
       setGameSession(session);
       setMode('online-waiting');
-      // Poll until friend joins
       startPolling(data.roomCode as string, (updated) => {
         setGameSession(updated);
         if (updated.status === 'active') {
@@ -233,7 +264,6 @@ function TicTacToeInner() {
       setMySymbol('O');
       setGameSession(session);
       setMode('online-game');
-      // Poll for turn changes
       startPolling(session.room_code, (updated) => {
         setGameSession(updated);
         if (updated.status === 'finished') stopPolling();
@@ -252,115 +282,93 @@ function TicTacToeInner() {
     if (onlineBoard[i]) return;
     if (gameSession.current_turn !== mySymbol) return;
     if (gameSession.status !== 'active') return;
-    // Pick question = questions[filledCells % length]
+    if (onlineCurrentQuestion) return;
     const filledCount = onlineBoard.filter(c => c !== '').length;
     const q = onlineQuestions[filledCount % onlineQuestions.length];
+    const newMcq = generateMCQ(q.answer, onlineQuestions);
     setOnlineSelectedCell(i);
     setOnlineCurrentQuestion(q);
-    setOnlineAnswer('');
+    setOnlineMcq(newMcq);
+    setOnlineSelectedOption(null);
     setOnlineAnswerResult(null);
   };
 
-  // ── Online: submit answer ──
-  const submitOnlineAnswer = async () => {
-    if (!onlineCurrentQuestion || !onlineAnswer.trim() || onlineChecking || !gameSession) return;
-    setOnlineChecking(true);
+  // ── Online: select MCQ option ──
+  const handleOnlineSelectOption = async (i: number) => {
+    if (!onlineCurrentQuestion || !onlineMcq || onlineSelectedOption !== null || onlineResolving || !gameSession) return;
+    setOnlineSelectedOption(i);
+    setOnlineResolving(true);
 
-    try {
-      const res = await fetch('/api/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: gameSession.subject,
-          board: 'AQA',
-          questionType: 'short',
-          question: onlineCurrentQuestion.question,
-          modelAnswer: onlineCurrentQuestion.answer,
-          userAnswer: onlineAnswer,
-          marks: onlineCurrentQuestion.marks,
-        }),
-      });
+    const isCorrect = i === onlineMcq.correctIndex;
+    setOnlineAnswerResult(isCorrect ? 'correct' : 'wrong');
 
-      let isCorrect = false;
-      if (res.ok) {
-        const data = await res.json();
-        isCorrect = (data as { correct: boolean }).correct;
-      } else {
-        const keywords = onlineCurrentQuestion.answer.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-        const al = onlineAnswer.toLowerCase();
-        const matches = keywords.filter(k => al.includes(k)).length;
-        isCorrect = matches >= Math.max(1, Math.floor(keywords.length * 0.3));
+    // Award XP (fire-and-forget)
+    fetch('/api/award-xp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ marksAwarded: isCorrect ? onlineCurrentQuestion.marks : 0, questionType: 'short', attempted: true }),
+    }).then(r => r.json()).then(data => {
+      if ((data as { xpGained?: number }).xpGained ?? 0 > 0) {
+        window.dispatchEvent(new Event('educate-xp-updated'));
+      }
+    }).catch(() => {});
+
+    setTimeout(async () => {
+      const currentBoard = [...(gameSession.board_state as CellState[])];
+      let newBoard = currentBoard;
+      const nextTurn: Player = mySymbol === 'X' ? 'O' : 'X';
+      let newWinner: string | null = null;
+      let newStatus: string = gameSession.status;
+
+      if (isCorrect && onlineSelectedCell !== null) {
+        newBoard = [...currentBoard];
+        newBoard[onlineSelectedCell] = mySymbol;
+        const w = checkWinner(newBoard);
+        if (w) {
+          newWinner = w;
+          newStatus = 'finished';
+        } else if (isDraw(newBoard)) {
+          newWinner = 'draw';
+          newStatus = 'finished';
+        }
       }
 
-      setOnlineAnswerResult(isCorrect ? 'correct' : 'wrong');
-
-      setTimeout(async () => {
-        const currentBoard = [...(gameSession.board_state as CellState[])];
-        let newBoard = currentBoard;
-        const nextTurn: Player = mySymbol === 'X' ? 'O' : 'X';
-        let newWinner: string | null = null;
-        let newStatus: string = gameSession.status;
-
-        if (isCorrect && onlineSelectedCell !== null) {
-          newBoard = [...currentBoard];
-          newBoard[onlineSelectedCell] = mySymbol;
-          const w = checkWinner(newBoard);
-          if (w) {
-            newWinner = w;
-            newStatus = 'finished';
-          } else if (isDraw(newBoard)) {
-            newWinner = 'draw';
-            newStatus = 'finished';
-          }
+      try {
+        await fetch('/api/game', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: gameSession.id,
+            boardState: newBoard,
+            currentTurn: nextTurn,
+            winner: newWinner,
+            status: newStatus,
+          }),
+        });
+        const refreshed = await fetch(`/api/game?id=${gameSession.id}`);
+        if (refreshed.ok) {
+          setGameSession(await refreshed.json() as GameSession);
         }
+      } catch {
+        // ignore
+      }
 
-        // PATCH server
-        try {
-          await fetch('/api/game', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              gameId: gameSession.id,
-              boardState: newBoard,
-              currentTurn: nextTurn,
-              winner: newWinner,
-              status: newStatus,
-            }),
-          });
-          // Re-fetch to stay in sync
-          const refreshed = await fetch(`/api/game?id=${gameSession.id}`);
-          if (refreshed.ok) {
-            setGameSession(await refreshed.json() as GameSession);
-          }
-        } catch {
-          // ignore
-        }
+      setOnlineSelectedCell(null);
+      setOnlineCurrentQuestion(null);
+      setOnlineMcq(null);
+      setOnlineSelectedOption(null);
+      setOnlineAnswerResult(null);
+      setOnlineResolving(false);
 
-        setOnlineSelectedCell(null);
-        setOnlineCurrentQuestion(null);
-        setOnlineAnswerResult(null);
-        setOnlineAnswer('');
-        setOnlineChecking(false);
-
-        if (newStatus === 'finished') stopPolling();
-        else if (nextTurn !== mySymbol) {
-          // Start polling for the other player's move
-          startPolling(gameSession.room_code, (updated) => {
-            setGameSession(updated);
-            if (updated.status === 'finished') stopPolling();
-          });
-        }
-      }, 1500);
-    } catch {
-      setOnlineAnswerResult('wrong');
-      setTimeout(() => {
-        setOnlineSelectedCell(null);
-        setOnlineCurrentQuestion(null);
-        setOnlineAnswerResult(null);
-        setOnlineAnswer('');
-        setOnlineChecking(false);
-      }, 1500);
-    }
+      if (newStatus === 'finished') {
+        stopPolling();
+      } else if (nextTurn !== mySymbol) {
+        startPolling(gameSession.room_code, (updated) => {
+          setGameSession(updated);
+          if (updated.status === 'finished') stopPolling();
+        });
+      }
+    }, 1500);
   };
 
   // ── Copy share link ──
@@ -376,7 +384,7 @@ function TicTacToeInner() {
     }
   };
 
-  // ─── Local game logic (unchanged) ─────────────────────────────────────────
+  // ─── Local game logic ──────────────────────────────────────────────────────
 
   const startGame = useCallback(() => {
     const qs = shuffle(getSubjectQuestions(subject));
@@ -393,81 +401,100 @@ function TicTacToeInner() {
 
   const selectCell = (i: number) => {
     if (board[i] || phase !== 'playing' || winner) return;
+    const q = questions[questionIndex % questions.length];
+    const newMcq = generateMCQ(q.answer, questions);
     setSelectedCell(i);
-    setCurrentQuestion(questions[questionIndex % questions.length]);
-    setQuestionIndex(prev => prev + 1);
-    setAnswer('');
+    setCurrentQuestion(q);
+    setMcq(newMcq);
+    setSelectedOption(null);
     setAnswerResult(null);
+    setQuestionIndex(prev => prev + 1);
     setPhase('question');
   };
 
-  const submitAnswer = async () => {
-    if (!currentQuestion || !answer.trim() || checking) return;
-    setChecking(true);
+  const handleSelectOption = (i: number) => {
+    if (!currentQuestion || !mcq || selectedOption !== null) return;
+    setSelectedOption(i);
 
-    try {
-      const res = await fetch('/api/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject,
-          board: 'AQA',
-          questionType: 'short',
-          question: currentQuestion.question,
-          modelAnswer: currentQuestion.answer,
-          userAnswer: answer,
-          marks: currentQuestion.marks,
-        }),
-      });
+    const isCorrect = i === mcq.correctIndex;
+    setAnswerResult(isCorrect ? 'correct' : 'wrong');
 
-      let isCorrect = false;
-      if (res.ok) {
-        const data = await res.json();
-        isCorrect = (data as { correct: boolean }).correct;
-      } else {
-        const keywords = currentQuestion.answer.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-        const answerLower = answer.toLowerCase();
-        const matches = keywords.filter(k => answerLower.includes(k)).length;
-        isCorrect = matches >= Math.max(1, Math.floor(keywords.length * 0.3));
+    // Award XP (fire-and-forget)
+    fetch('/api/award-xp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ marksAwarded: isCorrect ? currentQuestion.marks : 0, questionType: 'short', attempted: true }),
+    }).then(r => r.json()).then(data => {
+      if ((data as { xpGained?: number }).xpGained ?? 0 > 0) {
+        window.dispatchEvent(new Event('educate-xp-updated'));
       }
+    }).catch(() => {});
 
-      setAnswerResult(isCorrect ? 'correct' : 'wrong');
+    setTimeout(() => {
+      if (isCorrect && selectedCell !== null) {
+        const newBoard = [...board];
+        newBoard[selectedCell] = currentPlayer;
+        setBoard(newBoard);
+        setScores(prev => ({ ...prev, [currentPlayer]: prev[currentPlayer] + 1 }));
 
-      setTimeout(() => {
-        if (isCorrect && selectedCell !== null) {
-          const newBoard = [...board];
-          newBoard[selectedCell] = currentPlayer;
-          setBoard(newBoard);
-          setScores(prev => ({ ...prev, [currentPlayer]: prev[currentPlayer] + 1 }));
-
-          const w = checkWinner(newBoard);
-          if (w) {
-            setWinner(w);
-            setWinLine(WIN_LINES.find(([a, b, c]) => newBoard[a] === w && newBoard[b] === w && newBoard[c] === w) ?? null);
-            setPhase('finished');
-            return;
-          }
-          if (isDraw(newBoard)) {
-            setWinner('draw');
-            setPhase('finished');
-            return;
-          }
+        const w = checkWinner(newBoard);
+        if (w) {
+          setWinner(w);
+          setWinLine(WIN_LINES.find(([a, b, c]) => newBoard[a] === w && newBoard[b] === w && newBoard[c] === w) ?? null);
+          setPhase('finished');
+          return;
         }
-        setCurrentPlayer(prev => prev === 'X' ? 'O' : 'X');
-        setPhase('playing');
-      }, 1500);
-    } catch {
-      setAnswerResult('wrong');
-      setTimeout(() => {
-        setCurrentPlayer(prev => prev === 'X' ? 'O' : 'X');
-        setPhase('playing');
-      }, 1500);
-    }
-
-    setChecking(false);
+        if (isDraw(newBoard)) {
+          setWinner('draw');
+          setPhase('finished');
+          return;
+        }
+      }
+      setCurrentPlayer(prev => prev === 'X' ? 'O' : 'X');
+      setSelectedOption(null);
+      setAnswerResult(null);
+      setMcq(null);
+      setCurrentQuestion(null);
+      setPhase('playing');
+    }, 1500);
   };
 
   const playerColors = { X: '#6366f1', O: '#f43f5e' };
+
+  // ─── MCQ button renderer ───────────────────────────────────────────────────
+
+  const renderMCQButtons = (
+    options: string[],
+    correctIndex: number,
+    pickedIndex: number | null,
+    onSelect: (i: number) => void,
+    disabled: boolean,
+  ) => (
+    <div className="mt-4">
+      {(['A', 'B', 'C', 'D'] as const).map((label, i) => (
+        <button
+          key={i}
+          onClick={() => onSelect(i)}
+          disabled={pickedIndex !== null || disabled}
+          className={`w-full text-left py-3 px-4 rounded-xl text-sm border-2 cursor-pointer transition-all mb-2
+            ${pickedIndex === null
+              ? 'border-neutral-700 bg-neutral-800 text-white hover:border-indigo-500 hover:bg-indigo-500/10'
+              : pickedIndex === i && i === correctIndex
+                ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400'
+                : pickedIndex === i
+                  ? 'border-rose-500 bg-rose-500/15 text-rose-400'
+                  : i === correctIndex && pickedIndex !== null
+                    ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                    : 'border-neutral-800 bg-neutral-900 text-neutral-500'
+            }`}
+          style={{ fontWeight: 600 }}
+        >
+          <span className="text-neutral-500 mr-2 font-bold">{label}.</span>
+          {options[i] ?? ''}
+        </button>
+      ))}
+    </div>
+  );
 
   // ─── DB Unavailable screen ─────────────────────────────────────────────────
 
@@ -495,7 +522,7 @@ function TicTacToeInner() {
     );
   }
 
-  // ─── Shared page wrapper ───────────────────────────────────────────────────
+  // ─── Page ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen">
@@ -508,7 +535,7 @@ function TicTacToeInner() {
           <p className="text-neutral-500 text-sm">Answer questions to claim squares!</p>
         </div>
 
-        {/* ── Mode picker ────────────────────────────────────────────────── */}
+        {/* ── Mode picker ──────────────────────────────────────────────── */}
         {mode === 'pick' && (
           <div className="space-y-3">
             <button
@@ -538,7 +565,7 @@ function TicTacToeInner() {
           </div>
         )}
 
-        {/* ── Local setup ────────────────────────────────────────────────── */}
+        {/* ── Local setup ────────────────────────────────────────────── */}
         {mode === 'local' && phase === 'setup' && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-5">
@@ -592,7 +619,7 @@ function TicTacToeInner() {
           </div>
         )}
 
-        {/* ── Online: Create game setup ───────────────────────────────────── */}
+        {/* ── Online: Create game setup ─────────────────────────────── */}
         {mode === 'online-create' && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-5">
@@ -648,7 +675,7 @@ function TicTacToeInner() {
           </div>
         )}
 
-        {/* ── Online: Join game setup ─────────────────────────────────────── */}
+        {/* ── Online: Join game setup ───────────────────────────────── */}
         {mode === 'online-join' && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-5">
@@ -691,7 +718,7 @@ function TicTacToeInner() {
           </div>
         )}
 
-        {/* ── Online: Waiting for friend ──────────────────────────────────── */}
+        {/* ── Online: Waiting for friend ────────────────────────────── */}
         {mode === 'online-waiting' && gameSession && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center">
             <div className="text-5xl mb-4">&#8987;</div>
@@ -719,10 +746,9 @@ function TicTacToeInner() {
           </div>
         )}
 
-        {/* ── Online: Game in progress ────────────────────────────────────── */}
+        {/* ── Online: Game in progress ──────────────────────────────── */}
         {mode === 'online-game' && gameSession && (
           <>
-            {/* Status bar */}
             {gameSession.status !== 'finished' && (
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -750,7 +776,6 @@ function TicTacToeInner() {
               </div>
             )}
 
-            {/* Board */}
             {(() => {
               const onlineBoard = gameSession.board_state as CellState[];
               const onlineWinner = gameSession.winner as CellState | 'draw' | null;
@@ -785,41 +810,21 @@ function TicTacToeInner() {
             })()}
 
             {/* Online question popup */}
-            {onlineCurrentQuestion && (
+            {onlineCurrentQuestion && onlineMcq && (
               <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-5 mb-4">
-                <p className="text-xs text-neutral-500 mb-2">Answer to claim the square:</p>
-                <p className="text-sm sm:text-base text-white font-medium mb-4 leading-relaxed">
+                <p className="text-xs text-neutral-500 mb-2">Choose the correct answer to claim the square:</p>
+                <p className="text-sm sm:text-base text-white font-medium leading-relaxed">
                   {onlineCurrentQuestion.question}
                 </p>
-
-                {onlineAnswerResult === null ? (
-                  <>
-                    <textarea
-                      value={onlineAnswer}
-                      onChange={e => setOnlineAnswer(e.target.value)}
-                      placeholder="Type your answer..."
-                      className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 resize-none min-h-[80px] mb-3"
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitOnlineAnswer(); } }}
-                    />
-                    <button
-                      onClick={submitOnlineAnswer}
-                      disabled={!onlineAnswer.trim() || onlineChecking}
-                      className="w-full py-2.5 rounded-xl text-sm font-bold text-white border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-500 hover:bg-indigo-400 transition-colors"
-                    >
-                      {onlineChecking ? 'Checking...' : 'Submit Answer'}
-                    </button>
-                  </>
-                ) : (
-                  <div className={`text-center py-4 rounded-xl ${onlineAnswerResult === 'correct' ? 'bg-emerald-500/15' : 'bg-red-500/15'}`}>
-                    <span className="text-3xl">{onlineAnswerResult === 'correct' ? '\u2705' : '\u274C'}</span>
-                    <p className={`text-sm font-bold mt-2 ${onlineAnswerResult === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {onlineAnswerResult !== null && (
+                  <div className={`mt-3 text-center py-3 rounded-xl ${onlineAnswerResult === 'correct' ? 'bg-emerald-500/15' : 'bg-red-500/15'}`}>
+                    <span className="text-2xl">{onlineAnswerResult === 'correct' ? '\u2705' : '\u274C'}</span>
+                    <p className={`text-sm font-bold mt-1 ${onlineAnswerResult === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}>
                       {onlineAnswerResult === 'correct' ? 'Correct! Square claimed!' : 'Wrong! Turn lost.'}
                     </p>
-                    {onlineAnswerResult === 'wrong' && (
-                      <p className="text-xs text-neutral-500 mt-1 px-4">Answer: {onlineCurrentQuestion.answer.slice(0, 120)}...</p>
-                    )}
                   </div>
                 )}
+                {renderMCQButtons(onlineMcq.options, onlineMcq.correctIndex, onlineSelectedOption, handleOnlineSelectOption, onlineResolving)}
               </div>
             )}
 
@@ -846,13 +851,13 @@ function TicTacToeInner() {
                 )}
                 <div className="flex gap-3 mt-4 justify-center">
                   <button
-                    onClick={() => { stopPolling(); setMode('online-create'); setGameSession(null); setOnlineCurrentQuestion(null); setOnlineSelectedCell(null); }}
+                    onClick={() => { stopPolling(); setMode('online-create'); setGameSession(null); setOnlineCurrentQuestion(null); setOnlineSelectedCell(null); setOnlineMcq(null); }}
                     className="bg-indigo-500 text-white border-none rounded-xl px-6 py-2.5 text-sm font-semibold cursor-pointer hover:bg-indigo-400"
                   >
                     New Game
                   </button>
                   <button
-                    onClick={() => { stopPolling(); setMode('pick'); setGameSession(null); setOnlineCurrentQuestion(null); setOnlineSelectedCell(null); }}
+                    onClick={() => { stopPolling(); setMode('pick'); setGameSession(null); setOnlineCurrentQuestion(null); setOnlineSelectedCell(null); setOnlineMcq(null); }}
                     className="bg-neutral-700 text-white border-none rounded-xl px-6 py-2.5 text-sm font-semibold cursor-pointer hover:bg-neutral-600"
                   >
                     Main Menu
@@ -863,7 +868,7 @@ function TicTacToeInner() {
           </>
         )}
 
-        {/* ── Local: Playing / Question / Finished ───────────────────────── */}
+        {/* ── Local: Playing / Question / Finished ──────────────────── */}
         {mode === 'local' && phase !== 'setup' && (
           <>
             <div className="flex items-center justify-between mb-4">
@@ -901,44 +906,23 @@ function TicTacToeInner() {
               })}
             </div>
 
-            {phase === 'question' && currentQuestion && (
-              <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-5 mb-4 animate-[fadeIn_0.2s]">
+            {phase === 'question' && currentQuestion && mcq && (
+              <div className="bg-neutral-900 border-2 border-neutral-700 rounded-2xl p-5 mb-4">
                 <p className="text-xs text-neutral-500 mb-2">
-                  {playerNames[currentPlayer]} &mdash; answer to claim square:
+                  {playerNames[currentPlayer]} &mdash; choose the correct answer to claim the square:
                 </p>
-                <p className="text-sm sm:text-base text-white font-medium mb-4 leading-relaxed">
+                <p className="text-sm sm:text-base text-white font-medium leading-relaxed">
                   {currentQuestion.question}
                 </p>
-
-                {answerResult === null ? (
-                  <>
-                    <textarea
-                      value={answer}
-                      onChange={e => setAnswer(e.target.value)}
-                      placeholder="Type your answer..."
-                      className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 resize-none min-h-[80px] mb-3"
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitAnswer(); } }}
-                    />
-                    <button
-                      onClick={submitAnswer}
-                      disabled={!answer.trim() || checking}
-                      className="w-full py-2.5 rounded-xl text-sm font-bold text-white border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: playerColors[currentPlayer] }}
-                    >
-                      {checking ? 'Checking...' : 'Submit Answer'}
-                    </button>
-                  </>
-                ) : (
-                  <div className={`text-center py-4 rounded-xl ${answerResult === 'correct' ? 'bg-emerald-500/15' : 'bg-red-500/15'}`}>
-                    <span className="text-3xl">{answerResult === 'correct' ? '\u2705' : '\u274C'}</span>
-                    <p className={`text-sm font-bold mt-2 ${answerResult === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {answerResult !== null && (
+                  <div className={`mt-3 text-center py-3 rounded-xl ${answerResult === 'correct' ? 'bg-emerald-500/15' : 'bg-red-500/15'}`}>
+                    <span className="text-2xl">{answerResult === 'correct' ? '\u2705' : '\u274C'}</span>
+                    <p className={`text-sm font-bold mt-1 ${answerResult === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}>
                       {answerResult === 'correct' ? 'Correct! Square claimed!' : 'Wrong! Turn lost.'}
                     </p>
-                    {answerResult === 'wrong' && (
-                      <p className="text-xs text-neutral-500 mt-1 px-4">Answer: {currentQuestion.answer.slice(0, 120)}...</p>
-                    )}
                   </div>
                 )}
+                {renderMCQButtons(mcq.options, mcq.correctIndex, selectedOption, handleSelectOption, false)}
               </div>
             )}
 

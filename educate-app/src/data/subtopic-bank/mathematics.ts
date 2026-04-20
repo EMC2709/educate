@@ -28,7 +28,7 @@ export const mathematicsSubtopics: Record<string, Record<string, SubtopicContent
         { question: "\u00a35,000 is invested at 3.5% compound interest per year. Calculate the value after 4 years to the nearest penny.", answer: "A = 5000 \u00d7 (1.035)\u2074 = 5000 \u00d7 1.14752... = \u00a35737.62", marks: 3, hint: "Use A = P(1 + r/100)\u207f" },
       ],
       long: [
-        { question: "A house price rises by 8% in year 1, falls by 5% in year 2, then rises by 3% in year 3. Find the overall percentage change from the start price. Show all working.", answer: "Multiplier = 1.08 \u00d7 0.95 \u00d7 1.03 = 1.08 \u00d7 0.9785 = 1.056... \u00d7 1.03... Let start = \u00a3100. After y1: \u00a3108. After y2: \u00a3108 \u00d7 0.95 = \u00a3102.60. After y3: \u00a3102.60 \u00d7 1.03 = \u00a3105.678. Overall change = +5.678% \u2248 +5.68%", marks: 5, hint: "Apply each multiplier in sequence to a starting value of 100. The final value minus 100 gives the percentage change." },
+        { question: "A house price rises by 8% in year 1, falls by 5% in year 2, then rises by 3% in year 3. Find the overall percentage change from the start price. Show all working.\n\n```mermaid\ngraph LR\n  A[\"£100\"] -->|\"×1.08 (+8%)\"| B[\"£108\"]\n  B -->|\"×0.95 (−5%)\"| C[\"£102.60\"]\n  C -->|\"×1.03 (+3%)\"| D[\"£105.68\"]\n  D --> E[\"Overall: +5.68%\"]\n```", answer: "Let start = £100. After y1: £108. After y2: £108 × 0.95 = £102.60. After y3: £102.60 × 1.03 = £105.678. Overall change = **+5.68%**", marks: 5, hint: "Apply each multiplier in sequence to a starting value of 100. The final value minus 100 gives the percentage change." },
       ],
       flashcard: [
         { term: "Percentage Multiplier", definition: "To increase by r%: multiply by (1 + r/100). To decrease by r%: multiply by (1 \u2212 r/100). Reverse percentage: divide by the multiplier.", example: "20% increase: \u00d7 1.2. After 20% increase gives \u00a360: original = 60 \u00f7 1.2 = \u00a350" },
@@ -89,14 +89,14 @@ export const mathematicsSubtopics: Record<string, Record<string, SubtopicContent
     },
     "Factorising": {
       short: [
-        { question: "Factorise fully: 6x\u00b2y \u2212 9xy\u00b2", answer: "3xy(2x \u2212 3y)", marks: 2, hint: "Find the HCF of all terms: 3xy" },
-        { question: "Factorise: x\u00b2 \u2212 9", answer: "(x+3)(x\u22123)", marks: 1, hint: "Difference of two squares: a\u00b2\u2212b\u00b2 = (a+b)(a\u2212b)" },
+        { question: "Factorise fully: 6x²y − 9xy²\n\n```mermaid\ngraph LR\n  A[\"6x²y − 9xy²\"] -->|\"HCF = 3xy\"| B[\"3xy(? − ?)\"]\n  B --> C[\"3xy(2x − 3y)\"]\n```", answer: "**3xy(2x − 3y)**", marks: 2, hint: "Find the HCF of all terms: 3xy" },
+        { question: "Factorise: x² − 9\n\n```mermaid\ngraph LR\n  A[\"x² − 9\"] -->|\"DOTS: a²−b²\"| B[\"a=x, b=3\"]\n  B --> C[\"(x+3)(x−3)\"]\n```", answer: "**(x+3)(x−3)**", marks: 1, hint: "Difference of two squares: a²−b² = (a+b)(a−b)" },
       ],
       mid: [
-        { question: "Factorise fully: 2x\u00b2 + 5x \u2212 12", answer: "ac = \u221224. Pairs: \u22123 and 8. Split: 2x\u00b2 \u2212 3x + 8x \u2212 12 = x(2x\u22123) + 4(2x\u22123) = (x+4)(2x\u22123)", marks: 3, hint: "Multiply a \u00d7 c, find two numbers that multiply to that and add to b, then split the middle term" },
+        { question: "Factorise fully: 2x² + 5x − 12\n\n```mermaid\ngraph TD\n  A[\"2x² + 5x − 12\"] -->|\"a×c = 2×(−12) = −24\"| B[\"Find pair: p×q = −24, p+q = 5\"]\n  B -->|\"−3 and 8\"| C[\"Split: 2x²−3x+8x−12\"]\n  C --> D[\"Group: x(2x−3)+4(2x−3)\"]\n  D --> E[\"(x+4)(2x−3)\"]\n```", answer: "ac = −24. Pairs: −3 and 8. Split: 2x² − 3x + 8x − 12 = x(2x−3) + 4(2x−3) = **(x+4)(2x−3)**", marks: 3, hint: "Multiply a × c, find two numbers that multiply to that and add to b, then split the middle term" },
       ],
       long: [
-        { question: "Solve 3x\u00b2 \u2212 10x + 8 = 0 by factorising. Show all working.", answer: "ac = 24, need two numbers that multiply to 24 and add to \u221210: \u22124 and \u22126. Split: 3x\u00b2\u22124x\u22126x+8 = x(3x\u22124)\u22122(3x\u22124) = (x\u22122)(3x\u22124) = 0. x = 2 or x = 4/3", marks: 5, hint: "Factorise the quadratic, then set each bracket equal to zero" },
+        { question: "Solve 3x² − 10x + 8 = 0 by factorising. Show all working.\n\n```mermaid\ngraph TD\n  A[\"3x² − 10x + 8 = 0\"] --> B[\"a×c = 24\"]\n  B --> C[\"Pair: −4 and −6\"]\n  C --> D[\"Split middle term\"]\n  D --> E[\"Group and factorise\"]\n  E --> F[\"Set each bracket = 0\"]\n```", answer: "ac = 24, need two numbers that multiply to 24 and add to −10: −4 and −6. Split: 3x²−4x−6x+8 = x(3x−4)−2(3x−4) = (x−2)(3x−4) = 0. **x = 2 or x = 4/3**", marks: 5, hint: "Factorise the quadratic, then set each bracket equal to zero" },
       ],
       flashcard: [
         { term: "Factorising Quadratics (a=1)", definition: "x\u00b2 + bx + c: find two numbers p and q where p\u00d7q = c and p+q = b. Write as (x+p)(x+q).", example: "x\u00b2+7x+12: p\u00d7q=12, p+q=7 \u2192 p=3,q=4 \u2192 (x+3)(x+4)" },
@@ -106,13 +106,13 @@ export const mathematicsSubtopics: Record<string, Record<string, SubtopicContent
     },
     "Simultaneous Equations": {
       short: [
-        { question: "Solve: y = 2x + 1 and y = x + 5", answer: "2x+1 = x+5 \u2192 x = 4, y = 9", marks: 2, hint: "Set the two expressions for y equal to each other" },
+        { question: "Solve: y = 2x + 1 and y = x + 5\n\n```mermaid\ngraph LR\n  A[\"y = 2x + 1\"] --> C[\"Set equal\"]\n  B[\"y = x + 5\"] --> C\n  C --> D[\"2x + 1 = x + 5\"]\n  D --> E[\"x = 4, y = 9\"]\n```", answer: "2x+1 = x+5 → **x = 4, y = 9**", marks: 2, hint: "Set the two expressions for y equal to each other" },
       ],
       mid: [
-        { question: "Solve: 3x + 2y = 13 and 2x \u2212 y = 4.", answer: "From eq2: y = 2x\u22124. Sub into eq1: 3x+2(2x\u22124)=13 \u2192 7x=21 \u2192 x=3, y=2.", marks: 4, hint: "Rearrange one equation to make y the subject, then substitute" },
+        { question: "Solve: 3x + 2y = 13 and 2x − y = 4.\n\n```mermaid\ngraph TD\n  A[\"Eq1: 3x + 2y = 13\"] --> C[\"Substitute\"]\n  B[\"Eq2: 2x − y = 4\"] -->|\"Rearrange: y = 2x−4\"| C\n  C --> D[\"3x + 2(2x−4) = 13\"]\n  D --> E[\"7x = 21 → x = 3\"]\n  E --> F[\"y = 2(3)−4 = 2\"]\n```", answer: "From eq2: y = 2x−4. Sub into eq1: 3x+2(2x−4)=13 → 7x=21 → **x=3, y=2**.", marks: 4, hint: "Rearrange one equation to make y the subject, then substitute" },
       ],
       long: [
-        { question: "Solve simultaneously: x\u00b2 + y\u00b2 = 25 and y = x + 1. Show all solutions.", answer: "Sub y=x+1: x\u00b2+(x+1)\u00b2=25 \u2192 x\u00b2+x\u00b2+2x+1=25 \u2192 2x\u00b2+2x\u221224=0 \u2192 x\u00b2+x\u221212=0 \u2192 (x+4)(x\u22123)=0. x=\u22124,y=\u22123 or x=3,y=4.", marks: 6, hint: "Substitute the linear equation into the quadratic, form a quadratic, solve by factorising" },
+        { question: "Solve simultaneously: x² + y² = 25 and y = x + 1. Show all solutions.\n\n```mermaid\ngraph TD\n  A[\"Circle: x² + y² = 25\"] --> C[\"Sub y = x+1\"]\n  B[\"Line: y = x + 1\"] --> C\n  C --> D[\"x² + (x+1)² = 25\"]\n  D --> E[\"2x² + 2x − 24 = 0\"]\n  E --> F[\"x² + x − 12 = 0\"]\n  F --> G[\"(x+4)(x−3) = 0\"]\n  G --> H[\"x=−4, y=−3\"]\n  G --> I[\"x=3, y=4\"]\n```", answer: "Sub y=x+1: x²+(x+1)²=25 → x²+x²+2x+1=25 → 2x²+2x−24=0 → x²+x−12=0 → (x+4)(x−3)=0. **x=−4, y=−3** or **x=3, y=4**.", marks: 6, hint: "Substitute the linear equation into the quadratic, form a quadratic, solve by factorising" },
       ],
       flashcard: [
         { term: "Elimination Method", definition: "Make coefficients of one variable equal (multiply equations if needed), then add or subtract to eliminate that variable. Solve for the remaining variable, then substitute back.", example: "2x+y=7 and x+y=5: subtract \u2192 x=2, then y=3" },
@@ -121,14 +121,14 @@ export const mathematicsSubtopics: Record<string, Record<string, SubtopicContent
     },
     "Quadratics": {
       short: [
-        { question: "Solve x\u00b2 \u2212 7x + 10 = 0.", answer: "(x\u22125)(x\u22122) = 0 \u2192 x = 5 or x = 2", marks: 2, hint: "Factorise: find two numbers that multiply to 10 and add to \u22127" },
-        { question: "Write x\u00b2 + 6x + 7 in completed square form.", answer: "(x+3)\u00b2 \u2212 2", marks: 2, hint: "Halve the x coefficient to find the bracket, then adjust the constant" },
+        { question: "Solve x² − 7x + 10 = 0.\n\n```mermaid\ngraph LR\n  A[\"x² − 7x + 10 = 0\"] -->|\"Factorise\"| B[\"Find p,q: p×q=10, p+q=−7\"]\n  B --> C[\"(x−5)(x−2) = 0\"]\n  C --> D[\"x = 5 or x = 2\"]\n```", answer: "(x−5)(x−2) = 0 → **x = 5 or x = 2**", marks: 2, hint: "Factorise: find two numbers that multiply to 10 and add to −7" },
+        { question: "Write x² + 6x + 7 in completed square form.\n\n```mermaid\ngraph LR\n  A[\"x² + 6x + 7\"] -->|\"Half of 6 = 3\"| B[\"(x+3)²\"]\n  B -->|\"(x+3)² = x²+6x+9\"| C[\"Adjust: −9+7 = −2\"]\n  C --> D[\"(x+3)² − 2\"]\n```", answer: "**(x+3)² − 2**", marks: 2, hint: "Halve the x coefficient to find the bracket, then adjust the constant" },
       ],
       mid: [
-        { question: "Use the quadratic formula to solve 2x\u00b2 + 3x \u2212 5 = 0.", answer: "x = (\u22123 \u00b1 \u221a(9+40))/4 = (\u22123 \u00b1 7)/4. x = 1 or x = \u22125/2", marks: 3, hint: "a=2, b=3, c=\u22125. Calculate b\u00b2\u22124ac first" },
+        { question: "Use the quadratic formula to solve 2x² + 3x − 5 = 0.\n\n```mermaid\ngraph TD\n  A[\"a=2, b=3, c=−5\"] --> B[\"Discriminant: b²−4ac\"]\n  B --> C[\"9 − 4(2)(−5) = 49\"]\n  C --> D[\"x = (−3 ± √49) / 4\"]\n  D --> E[\"x = (−3+7)/4 = 1\"]\n  D --> F[\"x = (−3−7)/4 = −5/2\"]\n```", answer: "x = (−3 ± √(9+40))/4 = (−3 ± 7)/4. **x = 1 or x = −5/2**", marks: 3, hint: "a=2, b=3, c=−5. Calculate b²−4ac first" },
       ],
       long: [
-        { question: "A rectangular garden has length (x+5)m and width (x\u22122)m. Its area is 40m\u00b2. Find x and hence the dimensions of the garden.", answer: "(x+5)(x\u22122)=40 \u2192 x\u00b2+3x\u221210=40 \u2192 x\u00b2+3x\u221250=0. x=(\u22123\u00b1\u221a(9+200))/2=(\u22123\u00b1\u221a209)/2. x=(\u22123+14.46)/2\u22485.73. Length\u224810.73m, Width\u22483.73m. Only positive x valid.", marks: 6, hint: "Form the equation, rearrange to =0, use quadratic formula, reject negative solution, find dimensions" },
+        { question: "A rectangular garden has length (x+5)m and width (x−2)m. Its area is 40m².\n\n```mermaid\ngraph TD\n  subgraph \"Garden\"\n    L[\"Length = (x+5)m\"]\n    W[\"Width = (x−2)m\"]\n  end\n  A[\"Area = 40m²\"]\n  L --> E[\"(x+5)(x−2) = 40\"]\n  W --> E\n  A --> E\n  E --> F[\"Solve quadratic\"]\n```\n\nFind x and hence the dimensions of the garden.", answer: "(x+5)(x−2)=40 → x²+3x−10=40 → x²+3x−50=0. x=(−3±√(9+200))/2=(−3±√209)/2. x=(−3+14.46)/2≈5.73. Length≈**10.73m**, Width≈**3.73m**. Only positive x valid.", marks: 6, hint: "Form the equation, rearrange to =0, use quadratic formula, reject negative solution, find dimensions" },
       ],
       flashcard: [
         { term: "Quadratic Formula", definition: "For ax\u00b2+bx+c=0: x = (\u2212b \u00b1 \u221a(b\u00b2\u22124ac)) / 2a. The discriminant \u0394 = b\u00b2\u22124ac: \u0394>0 two real roots; \u0394=0 one repeated root; \u0394<0 no real roots.", example: "x\u00b2\u22125x+6=0: x=(5\u00b11)/2 \u2192 x=3 or x=2" },
@@ -140,47 +140,47 @@ export const mathematicsSubtopics: Record<string, Record<string, SubtopicContent
   "Geometry & Measures": {
     "Angles & Polygons": {
       short: [
-        { question: "Find the size of each interior angle of a regular octagon.", answer: "Sum of interior angles = (8\u22122)\u00d7180 = 1080\u00b0. Each angle = 1080\u00f78 = 135\u00b0", marks: 2, hint: "Sum = (n\u22122)\u00d7180, then divide by n" },
-        { question: "Two parallel lines are cut by a transversal. One angle is 65\u00b0. State the co-interior angle and give its value.", answer: "Co-interior (same-side interior) angles add up to 180\u00b0. Co-interior angle = 115\u00b0", marks: 2, hint: "Co-interior angles are between the parallel lines on the same side \u2014 they are supplementary" },
+        { question: "Find the size of each interior angle of a regular octagon.\n\n```mermaid\ngraph TD\n  A[\"Regular Octagon\"]\n  A --- B[\"n = 8 sides\"]\n  B --- C[\"Sum = (n−2)×180\"]\n  C --- D[\"Each angle = Sum ÷ n\"]\n```", answer: "Sum of interior angles = (8−2)×180 = 1080°. Each angle = 1080÷8 = **135°**", marks: 2, hint: "Sum = (n−2)×180, then divide by n" },
+        { question: "Two parallel lines are cut by a transversal. One angle is 65°.\n\n```mermaid\ngraph LR\n  subgraph \"Parallel Lines\"\n    A[\"65°\"] -->|\"Alternate (Z)\"| B[\"65°\"]\n    A -->|\"Co-interior (C)\"| C[\"? °\"]\n  end\n```\n\nState the co-interior angle and give its value.", answer: "Co-interior (same-side interior) angles add up to 180°. Co-interior angle = **115°**", marks: 2, hint: "Co-interior angles are between the parallel lines on the same side — they are supplementary" },
       ],
       mid: [
-        { question: "ABCD is a quadrilateral. Angle A = 2x, B = x+30, C = 3x\u221210, D = x+20. Find x and hence all four angles.", answer: "Sum = 360\u00b0: 2x + x+30 + 3x\u221210 + x+20 = 360 \u2192 7x+40 = 360 \u2192 x = 320/7 \u2248 45.7\u00b0. A\u224891.4\u00b0, B\u224875.7\u00b0, C\u2248127.1\u00b0, D\u224865.7\u00b0", marks: 4, hint: "All four angles of a quadrilateral sum to 360\u00b0" },
+        { question: "ABCD is a quadrilateral.\n\n```mermaid\ngraph TD\n  A[\"A = 2x\"] --- B[\"B = x+30\"]\n  B --- C[\"C = 3x−10\"]\n  C --- D[\"D = x+20\"]\n  D --- A\n```\n\nFind x and hence all four angles.", answer: "Sum = 360°: 2x + x+30 + 3x−10 + x+20 = 360 → 7x+40 = 360 → x = 320/7 ≈ 45.7°. A≈91.4°, B≈75.7°, C≈127.1°, D≈65.7°", marks: 4, hint: "All four angles of a quadrilateral sum to 360°" },
       ],
       long: [
-        { question: "Prove that the exterior angle of a triangle is equal to the sum of the two non-adjacent interior angles.", answer: "Let the triangle have interior angles a, b, c where angle c is adjacent to exterior angle d. On a straight line: c + d = 180\u00b0. Interior angles of a triangle: a + b + c = 180\u00b0. Therefore c = 180\u00b0 \u2212 a \u2212 b. Substituting: d = 180\u00b0 \u2212 c = 180\u00b0 \u2212 (180\u00b0 \u2212 a \u2212 b) = a + b. QED: exterior angle = sum of two non-adjacent interior angles.", marks: 5, hint: "Use angles on a straight line and angles in a triangle. Set up algebraic expressions." },
+        { question: "Prove that the exterior angle of a triangle is equal to the sum of the two non-adjacent interior angles.\n\n```mermaid\ngraph LR\n  subgraph \"Triangle\"\n    A[\"angle a\"] --- B[\"angle b\"]\n    B --- C[\"angle c\"]\n    C --- A\n  end\n  C -->|\"straight line\"| D[\"exterior angle d\"]\n```", answer: "Let the triangle have interior angles a, b, c where angle c is adjacent to exterior angle d. On a straight line: c + d = 180°. Interior angles of a triangle: a + b + c = 180°. Therefore c = 180° − a − b. Substituting: d = 180° − c = 180° − (180° − a − b) = a + b. **QED: exterior angle = sum of two non-adjacent interior angles.**", marks: 5, hint: "Use angles on a straight line and angles in a triangle. Set up algebraic expressions." },
       ],
       flashcard: [
-        { term: "Angle Rules \u2014 Parallel Lines", definition: "Alternate angles (Z-angles): equal. Corresponding angles (F-angles): equal. Co-interior angles (C-angles): add to 180\u00b0.", example: "Alternate: both 55\u00b0. Co-interior: 55\u00b0 and 125\u00b0" },
-        { term: "Polygon Angle Sums", definition: "Sum of interior angles of n-sided polygon = (n\u22122)\u00d7180\u00b0. Sum of exterior angles of ANY polygon = 360\u00b0. Each exterior angle of regular polygon = 360\u00b0\u00f7n.", example: "Pentagon: (5\u22122)\u00d7180=540\u00b0; regular pentagon interior angle = 108\u00b0" },
-        { term: "Circle Theorems", definition: "Angle at centre = 2 \u00d7 angle at circumference (same arc). Angles in semicircle = 90\u00b0. Opposite angles in cyclic quadrilateral add to 180\u00b0. Tangent perpendicular to radius.", example: "Arc AB subtends 40\u00b0 at circumference \u2192 80\u00b0 at centre" },
+        { term: "Angle Rules — Parallel Lines", definition: "Alternate angles (Z-angles): equal. Corresponding angles (F-angles): equal. Co-interior angles (C-angles): add to 180°.", example: "Alternate: both 55°. Co-interior: 55° and 125°" },
+        { term: "Polygon Angle Sums", definition: "Sum of interior angles of n-sided polygon = (n−2)×180°. Sum of exterior angles of ANY polygon = 360°. Each exterior angle of regular polygon = 360°÷n.", example: "Pentagon: (5−2)×180=540°; regular pentagon interior angle = 108°" },
+        { term: "Circle Theorems", definition: "Angle at centre = 2 × angle at circumference (same arc). Angles in semicircle = 90°. Opposite angles in cyclic quadrilateral add to 180°. Tangent perpendicular to radius.", example: "Arc AB subtends 40° at circumference → 80° at centre" },
       ],
     },
     "Area & Perimeter": {
       short: [
-        { question: "Find the area of a trapezium with parallel sides 7cm and 11cm and height 5cm.", answer: "Area = \u00bd(a+b)h = \u00bd(7+11)\u00d75 = 45cm\u00b2", marks: 2, hint: "Area of trapezium = \u00bd \u00d7 (sum of parallel sides) \u00d7 height" },
-        { question: "A circle has circumference 31.4cm. Find its area to 1 decimal place.", answer: "C = 2\u03c0r \u2192 r = 31.4/(2\u03c0) \u2248 5cm. Area = \u03c0\u00d725 \u2248 78.5cm\u00b2", marks: 3, hint: "Find r from the circumference, then use A = \u03c0r\u00b2" },
+        { question: "Find the area of a trapezium with parallel sides 7cm and 11cm and height 5cm.\n\n```mermaid\ngraph TD\n  subgraph \"Trapezium\"\n    A[\"a = 7cm\"] --- B[\"height = 5cm\"]\n    B --- C[\"b = 11cm\"]\n  end\n  D[\"Area = ½(a+b) × h\"]\n```", answer: "Area = ½(a+b)h = ½(7+11)×5 = **45cm²**", marks: 2, hint: "Area of trapezium = ½ × (sum of parallel sides) × height" },
+        { question: "A circle has circumference 31.4cm. Find its area to 1 decimal place.\n\n```mermaid\ngraph LR\n  A[\"C = 31.4cm\"] -->|\"C = 2πr\"| B[\"Find r\"]\n  B -->|\"A = πr²\"| C[\"Find Area\"]\n```", answer: "C = 2πr → r = 31.4/(2π) ≈ 5cm. Area = π×25 ≈ **78.5cm²**", marks: 3, hint: "Find r from the circumference, then use A = πr²" },
       ],
       mid: [
-        { question: "A path of uniform width 2m surrounds a rectangular garden 10m \u00d7 6m. Find the area of the path.", answer: "Outer rectangle: (10+4)\u00d7(6+4) = 14\u00d710 = 140m\u00b2. Inner: 10\u00d76=60m\u00b2. Path area = 80m\u00b2", marks: 3, hint: "Find outer dimensions by adding 2\u00d7width to each side" },
+        { question: "A path of uniform width 2m surrounds a rectangular garden 10m × 6m. Find the area of the path.\n\n```mermaid\ngraph TD\n  subgraph \"Outer: 14m × 10m\"\n    subgraph \"Inner Garden: 10m × 6m\"\n      G[\"Garden\"]\n    end\n    P[\"Path width = 2m all around\"]\n  end\n```", answer: "Outer rectangle: (10+4)×(6+4) = 14×10 = 140m². Inner: 10×6=60m². Path area = **80m²**", marks: 3, hint: "Find outer dimensions by adding 2×width to each side" },
       ],
       long: [
-        { question: "A sector has radius 8cm and arc length 10cm. Find (a) the angle in radians, (b) the area of the sector, (c) the area of the triangle formed by the two radii and the chord.", answer: "(a) Arc = r\u03b8 \u2192 \u03b8 = 10/8 = 1.25 rad. (b) Area sector = \u00bdr\u00b2\u03b8 = \u00bd\u00d764\u00d71.25 = 40cm\u00b2. (c) Area triangle = \u00bdr\u00b2sin\u03b8 = \u00bd\u00d764\u00d7sin(1.25) = 32\u00d70.9490 = 30.37cm\u00b2", marks: 6, hint: "Use arc = r\u03b8, area of sector = \u00bdr\u00b2\u03b8, area of triangle = \u00bdr\u00b2sin\u03b8" },
+        { question: "A sector has radius 8cm and arc length 10cm. Find (a) the angle in radians, (b) the area of the sector, (c) the area of the triangle formed by the two radii and the chord.\n\n```mermaid\ngraph TD\n  A[\"Sector\"] --- B[\"radius = 8cm\"]\n  A --- C[\"arc = 10cm\"]\n  B --> D[\"θ = arc ÷ r\"]\n  D --> E[\"Area sector = ½r²θ\"]\n  D --> F[\"Area triangle = ½r²sinθ\"]\n```", answer: "(a) Arc = rθ → θ = 10/8 = 1.25 rad. (b) Area sector = ½r²θ = ½×64×1.25 = **40cm²**. (c) Area triangle = ½r²sinθ = ½×64×sin(1.25) = 32×0.9490 = **30.37cm²**", marks: 6, hint: "Use arc = rθ, area of sector = ½r²θ, area of triangle = ½r²sinθ" },
       ],
       flashcard: [
-        { term: "Key Area Formulas", definition: "Rectangle: l\u00d7w. Triangle: \u00bdbh. Trapezium: \u00bd(a+b)h. Circle: \u03c0r\u00b2. Parallelogram: bh. Sector: \u00bdr\u00b2\u03b8 (radians) or (\u03b8/360)\u03c0r\u00b2 (degrees).", example: "Trapezium with parallel sides 5,9 and height 4: \u00bd(14)(4) = 28" },
-        { term: "Arc Length & Sector Area", definition: "Arc length = (\u03b8/360) \u00d7 2\u03c0r. Sector area = (\u03b8/360) \u00d7 \u03c0r\u00b2. Or in radians: arc = r\u03b8; sector = \u00bdr\u00b2\u03b8.", example: "Sector, r=6, \u03b8=60\u00b0: arc = (60/360)\u00d712\u03c0 = 2\u03c0 \u2248 6.28cm" },
+        { term: "Key Area Formulas", definition: "Rectangle: l×w. Triangle: ½bh. Trapezium: ½(a+b)h. Circle: πr². Parallelogram: bh. Sector: ½r²θ (radians) or (θ/360)πr² (degrees).", example: "Trapezium with parallel sides 5,9 and height 4: ½(14)(4) = 28" },
+        { term: "Arc Length & Sector Area", definition: "Arc length = (θ/360) × 2πr. Sector area = (θ/360) × πr². Or in radians: arc = rθ; sector = ½r²θ.", example: "Sector, r=6, θ=60°: arc = (60/360)×12π = 2π ≈ 6.28cm" },
       ],
     },
     "Pythagoras & Trigonometry": {
       short: [
-        { question: "A right-angled triangle has legs 5cm and 12cm. Find the hypotenuse.", answer: "h = \u221a(25+144) = \u221a169 = 13cm", marks: 2, hint: "a\u00b2 + b\u00b2 = c\u00b2" },
-        { question: "Find angle \u03b8 in a right-angled triangle where the opposite side is 6cm and hypotenuse is 10cm.", answer: "sin \u03b8 = 6/10 = 0.6. \u03b8 = sin\u207b\u00b9(0.6) = 36.87\u00b0 \u2248 36.9\u00b0", marks: 2, hint: "sin\u03b8 = opposite/hypotenuse" },
+        { question: "A right-angled triangle has legs 5cm and 12cm. Find the hypotenuse.\n\n```mermaid\ngraph TD\n  A[\"5cm\"] --- B[\"90°\"]\n  B --- C[\"12cm\"]\n  A ---|\"hypotenuse = ?\"| C\n```", answer: "h = √(25+144) = √169 = **13cm**", marks: 2, hint: "a² + b² = c²" },
+        { question: "Find angle θ in a right-angled triangle where the opposite side is 6cm and hypotenuse is 10cm.\n\n```mermaid\ngraph TD\n  A[\"θ = ?\"] ---|\"hypotenuse = 10cm\"| B[\"90°\"]\n  B ---|\"opposite = 6cm\"| A\n```", answer: "sin θ = 6/10 = 0.6. θ = sin⁻¹(0.6) = 36.87° ≈ **36.9°**", marks: 2, hint: "sinθ = opposite/hypotenuse" },
       ],
       mid: [
-        { question: "A 5m ladder leans against a wall, making an angle of 72\u00b0 with the ground. How high up the wall does it reach?", answer: "Height = 5 \u00d7 sin(72\u00b0) = 5 \u00d7 0.951 = 4.755 \u2248 4.76m", marks: 3, hint: "Draw the triangle. The height is opposite the 72\u00b0 angle." },
+        { question: "A 5m ladder leans against a wall, making an angle of 72° with the ground. How high up the wall does it reach?\n\n```mermaid\ngraph TD\n  W[\"Wall\"] ---|\"height = ?\"| G[\"Ground\"]\n  W ---|\"ladder = 5m\"| L[\"72°\"]\n  L --- G\n```", answer: "Height = 5 × sin(72°) = 5 × 0.951 = 4.755 ≈ **4.76m**", marks: 3, hint: "Draw the triangle. The height is opposite the 72° angle." },
       ],
       long: [
-        { question: "Two ships leave a port. Ship A travels 12km due North. Ship B travels 8km on a bearing of 065\u00b0. Find the distance between the ships.", answer: "Using cosine rule. Angle between paths = 65\u00b0. c\u00b2 = 12\u00b2+8\u00b2\u22122\u00d712\u00d78\u00d7cos65\u00b0 = 144+64\u2212192\u00d70.4226 = 208\u221281.14 = 126.86. c = \u221a126.86 \u2248 11.26km", marks: 6, hint: "The angle between the two directions is 65\u00b0. Use the cosine rule: c\u00b2 = a\u00b2 + b\u00b2 \u2212 2ab cosC" },
+        { question: "Two ships leave a port. Ship A travels 12km due North. Ship B travels 8km on a bearing of 065°. Find the distance between the ships.\n\n```mermaid\ngraph TD\n  P[\"Port\"] -->|\"12km North\"| A[\"Ship A\"]\n  P -->|\"8km bearing 065°\"| B[\"Ship B\"]\n  A ---|\"distance = ?\"| B\n  style P fill:#f59e0b,color:#000\n```", answer: "Using cosine rule. Angle between paths = 65°. c² = 12²+8²−2×12×8×cos65° = 144+64−192×0.4226 = 208−81.14 = 126.86. c = √126.86 ≈ **11.26km**", marks: 6, hint: "The angle between the two directions is 65°. Use the cosine rule: c² = a² + b² − 2ab cosC" },
       ],
       flashcard: [
         { term: "SOHCAHTOA", definition: "Sine = Opposite/Hypotenuse. Cosine = Adjacent/Hypotenuse. Tangent = Opposite/Adjacent. Only applies in right-angled triangles.", example: "tan\u03b8 = 4/3 \u2192 \u03b8 = tan\u207b\u00b9(4/3) = 53.1\u00b0" },
@@ -209,17 +209,17 @@ export const mathematicsSubtopics: Record<string, Record<string, SubtopicContent
     },
     "Tree Diagrams": {
       short: [
-        { question: "A bag has 3 red and 2 blue balls. One is taken, not replaced, then another is taken. What is P(both red)?", answer: "P(R then R) = 3/5 \u00d7 2/4 = 6/20 = 3/10", marks: 2, hint: "After first red ball, there are only 4 balls left, 2 of which are red" },
+        { question: "A bag has 3 red and 2 blue balls. One is taken, not replaced, then another is taken. What is P(both red)?\n\n```mermaid\ngraph LR\n  S((\"Start\")) -->|\"3/5\"| R1[\"Red\"]\n  S -->|\"2/5\"| B1[\"Blue\"]\n  R1 -->|\"2/4\"| R2[\"Red ✓\"]\n  R1 -->|\"2/4\"| B2[\"Blue\"]\n  B1 -->|\"3/4\"| R3[\"Red\"]\n  B1 -->|\"1/4\"| B3[\"Blue\"]\n```", answer: "P(R then R) = 3/5 × 2/4 = 6/20 = **3/10**", marks: 2, hint: "After first red ball, there are only 4 balls left, 2 of which are red" },
       ],
       mid: [
-        { question: "A box contains 5 red and 3 white counters. Two are drawn without replacement. Draw a tree diagram and find P(one of each colour).", answer: "P(RW) = 5/8 \u00d7 3/7 = 15/56. P(WR) = 3/8 \u00d7 5/7 = 15/56. P(one of each) = 30/56 = 15/28", marks: 4, hint: "Two branches for first draw, then two branches for each second draw. Don't replace counters." },
+        { question: "A box contains 5 red and 3 white counters. Two are drawn without replacement. Find P(one of each colour).\n\n```mermaid\ngraph LR\n  S((\"Start\")) -->|\"5/8\"| R1[\"Red\"]\n  S -->|\"3/8\"| W1[\"White\"]\n  R1 -->|\"4/7\"| R2[\"Red\"]\n  R1 -->|\"3/7\"| W2[\"White ✓\"]\n  W1 -->|\"5/7\"| R3[\"Red ✓\"]\n  W1 -->|\"2/7\"| W3[\"White\"]\n```", answer: "P(RW) = 5/8 × 3/7 = 15/56. P(WR) = 3/8 × 5/7 = 15/56. P(one of each) = 30/56 = **15/28**", marks: 4, hint: "Two branches for first draw, then two branches for each second draw. Don't replace counters." },
       ],
       long: [
-        { question: "Three friends independently attempt a puzzle. P(Alice solves it) = 0.7, P(Bob) = 0.5, P(Carly) = 0.6. Find the probability that (a) all three solve it, (b) exactly one solves it.", answer: "(a) 0.7\u00d70.5\u00d70.6 = 0.21. (b) P(A only) = 0.7\u00d70.5\u00d70.4 = 0.14. P(B only) = 0.3\u00d70.5\u00d70.4 = 0.06. P(C only) = 0.3\u00d70.5\u00d70.6 = 0.09. Total = 0.29", marks: 6, hint: "For exactly one, consider three cases: only Alice, only Bob, only Carly. Use complements for 'doesn't solve'" },
+        { question: "Three friends independently attempt a puzzle. P(Alice solves it) = 0.7, P(Bob) = 0.5, P(Carly) = 0.6. Find the probability that (a) all three solve it, (b) exactly one solves it.\n\n```mermaid\ngraph LR\n  S((\"Start\")) -->|\"0.7\"| A[\"Alice ✓\"]\n  S -->|\"0.3\"| A2[\"Alice ✗\"]\n  A -->|\"0.5\"| B[\"Bob ✓\"]\n  A -->|\"0.5\"| B2[\"Bob ✗\"]\n  A2 -->|\"0.5\"| B3[\"Bob ✓\"]\n  A2 -->|\"0.5\"| B4[\"Bob ✗\"]\n```\n\nEach Bob branch then splits into Carly (0.6 solves / 0.4 doesn't).", answer: "(a) 0.7×0.5×0.6 = **0.21**. (b) P(A only) = 0.7×0.5×0.4 = 0.14. P(B only) = 0.3×0.5×0.4 = 0.06. P(C only) = 0.3×0.5×0.6 = 0.09. Total = **0.29**", marks: 6, hint: "For exactly one, consider three cases: only Alice, only Bob, only Carly. Use complements for 'doesn't solve'" },
       ],
       flashcard: [
-        { term: "Tree Diagrams", definition: "Used to show all possible outcomes of two or more events. Multiply along branches for AND (probability of a path). Add branches for OR (probability of multiple paths).", example: "P(Head then Tail) = 0.5 \u00d7 0.5 = 0.25" },
-        { term: "Conditional Probability", definition: "P(B|A) = probability of B given A has occurred. For dependent events (without replacement): P(A and B) = P(A) \u00d7 P(B|A).", example: "Drawing 2 aces from a pack: 4/52 \u00d7 3/51 = 12/2652 = 1/221" },
+        { term: "Tree Diagrams", definition: "Used to show all possible outcomes of two or more events. Multiply along branches for AND (probability of a path). Add branches for OR (probability of multiple paths).", example: "P(Head then Tail) = 0.5 × 0.5 = 0.25" },
+        { term: "Conditional Probability", definition: "P(B|A) = probability of B given A has occurred. For dependent events (without replacement): P(A and B) = P(A) × P(B|A).", example: "Drawing 2 aces from a pack: 4/52 × 3/51 = 12/2652 = 1/221" },
       ],
     },
   },
@@ -233,7 +233,7 @@ export const mathematicsSubtopics: Record<string, Record<string, SubtopicContent
         { question: "Two classes take a test. Class A: mean 72, standard deviation 8. Class B: mean 72, standard deviation 3. Compare the two classes' performance.", answer: "Both classes have the same mean \u2014 their average performance is identical. However, Class B has a much smaller standard deviation, meaning their scores are more consistent and closely clustered around the mean. Class A has much greater spread, suggesting a wider range of abilities or inconsistent understanding of the material.", marks: 3, hint: "Compare both averages AND spread. What does a larger standard deviation tell you?" },
       ],
       long: [
-        { question: "A grouped frequency table shows: 0<x\u226410: 5, 10<x\u226420: 12, 20<x\u226430: 18, 30<x\u226440: 9, 40<x\u226450: 6. Estimate the mean and identify the modal class.", answer: "Midpoints: 5,15,25,35,45. \u03a3fx = 5\u00d75+12\u00d715+18\u00d725+9\u00d735+6\u00d745 = 25+180+450+315+270 = 1240. \u03a3f = 50. Mean = 1240/50 = 24.8. Modal class = 20<x\u226430 (highest frequency 18).", marks: 6, hint: "Use midpoints to estimate fx for each group. Sum all fx values then divide by total frequency." },
+        { question: "A grouped frequency table shows: 0<x≤10: 5, 10<x≤20: 12, 20<x≤30: 18, 30<x≤40: 9, 40<x≤50: 6. Estimate the mean and identify the modal class.\n\n```mermaid\ngraph LR\n  A[\"Class\"] --> B[\"Midpoint\"]\n  B --> C[\"f × midpoint\"]\n  C --> D[\"Σfx ÷ Σf\"]\n  D --> E[\"Estimated Mean\"]\n```\n\n| Class | f | Midpoint | f×m |\n|-------|---|----------|-----|\n| 0–10 | 5 | 5 | 25 |\n| 10–20 | 12 | 15 | 180 |\n| 20–30 | 18 | 25 | 450 |\n| 30–40 | 9 | 35 | 315 |\n| 40–50 | 6 | 45 | 270 |", answer: "Midpoints: 5,15,25,35,45. Σfx = 25+180+450+315+270 = 1240. Σf = 50. Mean = 1240/50 = **24.8**. Modal class = **20<x≤30** (highest frequency 18).", marks: 6, hint: "Use midpoints to estimate fx for each group. Sum all fx values then divide by total frequency." },
       ],
       flashcard: [
         { term: "Mean, Median, Mode", definition: "Mean = sum \u00f7 count. Median = middle value (ordered). Mode = most common. Mean uses all values (sensitive to outliers). Median resistant to outliers. Mode useful for categorical data.", example: "3,5,5,7,10: mean=6, median=5, mode=5" },

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { EXAM_BOARDS } from '@/data/exam-boards';
 import { getStreakData, getDailyXP } from '@/lib/streak';
-import { getNextExam, getDaysUntil, type ExamDate } from '@/lib/exam-dates';
+import { getNextExam, getDaysUntil, getExamDates, type ExamDate } from '@/lib/exam-dates';
 import { getChallenges, type Challenge } from '@/lib/challenges';
 import { BoardCard } from '@/components/home/BoardCard';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
@@ -187,6 +187,9 @@ export default function HomePage() {
             {/* Streak & Daily Goal */}
             <StreakWidget />
 
+            {/* Study Now recommendation */}
+            <StudyNowWidget subjects={subjects} />
+
             {/* Exam Countdown + Weekly Challenges */}
             <ExamCountdownWidget />
             <WeeklyChallengesWidget />
@@ -271,6 +274,83 @@ export default function HomePage() {
       </div>
       <MobileNav />
     </div>
+  );
+}
+
+// ── Study Now Widget ────────────────────────────────────────────────────────
+
+interface StudyRec { subject: string; topic: string; reason: string; href: string; urgency: 'high' | 'medium' | 'low' }
+
+function getStudyNowRec(subjects: UserSubject[]): StudyRec | null {
+  if (!subjects.length) return null;
+  try {
+    // 1. Exam urgency — exam in < 7 days
+    const exams = getExamDates();
+    const today = new Date().toISOString().split('T')[0];
+    const urgent = exams.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+    if (urgent.length > 0) {
+      const days = getDaysUntil(urgent[0].date);
+      if (days <= 7) {
+        const sub = subjects.find(s => s.subject === urgent[0].subject) || subjects[0];
+        return { subject: urgent[0].subject, topic: 'Full revision', reason: `\u23F0 Exam in ${days} day${days !== 1 ? 's' : ''}!`, href: `/${sub.board}/${encodeURIComponent(urgent[0].subject)}`, urgency: 'high' };
+      }
+    }
+    // 2. Weakest topic from quiz scores
+    const raw = localStorage.getItem('educate-quiz-scores');
+    if (raw) {
+      const scores: Record<string, { correct: number; total: number }> = JSON.parse(raw);
+      let worst: { key: string; acc: number } | null = null;
+      Object.entries(scores).forEach(([key, val]) => {
+        if (val.total >= 3) {
+          const acc = val.correct / val.total;
+          if (!worst || acc < worst.acc) worst = { key, acc };
+        }
+      });
+      if (worst && worst.acc < 0.7) {
+        const [subject, topicId] = (worst.key as string).split(':');
+        const sub = subjects.find(s => s.subject === subject);
+        if (sub) return { subject, topic: topicId || 'topic', reason: `\uD83D\uDCC9 ${Math.round(worst.acc * 100)}% accuracy — needs work`, href: `/${sub.board}/${encodeURIComponent(subject)}`, urgency: 'medium' };
+      }
+    }
+    // 3. SRS due cards
+    const srRaw = localStorage.getItem('educate-sr-data');
+    if (srRaw) {
+      const sr = JSON.parse(srRaw) as { cards: Record<string, { nextReview: string; id: string }> };
+      const todayStr = today;
+      const due = Object.values(sr.cards).filter(c => c.nextReview <= todayStr);
+      if (due.length > 0) {
+        const sub = subjects[0];
+        return { subject: sub.subject, topic: `${due.length} flashcard${due.length !== 1 ? 's' : ''} due`, reason: '\uD83D\uDCA1 Spaced repetition review due', href: `/${sub.board}/${encodeURIComponent(sub.subject)}`, urgency: 'medium' };
+      }
+    }
+    // 4. Fallback — pick first subject
+    const sub = subjects[0];
+    return { subject: sub.subject, topic: 'Quick revision', reason: '\uD83D\uDCDA Keep your streak going!', href: `/${sub.board}/${encodeURIComponent(sub.subject)}`, urgency: 'low' };
+  } catch { return null; }
+}
+
+function StudyNowWidget({ subjects }: { subjects: UserSubject[] }) {
+  const [rec, setRec] = useState<StudyRec | null>(null);
+  useEffect(() => { try { setRec(getStudyNowRec(subjects)); } catch {} }, [subjects]);
+  if (!rec) return null;
+  const colors = { high: { border: '#ef4444', bg: '#ef444410', badge: '#ef4444' }, medium: { border: '#f59e0b', bg: '#f59e0b10', badge: '#f59e0b' }, low: { border: '#6366f1', bg: '#6366f110', badge: '#6366f1' } };
+  const c = colors[rec.urgency];
+  return (
+    <Link href={rec.href} className="no-underline block mb-5">
+      <div className="rounded-2xl p-4 sm:p-5 flex items-center gap-4 transition-all border-2 hover:scale-[1.01]"
+        style={{ backgroundColor: c.bg, borderColor: c.border }}>
+        <span className="text-2xl sm:text-3xl flex-shrink-0">\uD83D\uDCDA</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs font-bold text-white">Study Now</span>
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: c.badge, color: '#fff' }}>{rec.urgency === 'high' ? 'URGENT' : rec.urgency === 'medium' ? 'RECOMMENDED' : 'SUGGESTED'}</span>
+          </div>
+          <p className="text-sm font-semibold text-white m-0 truncate">{rec.subject} — {rec.topic}</p>
+          <p className="text-xs text-neutral-400 m-0 mt-0.5">{rec.reason}</p>
+        </div>
+        <span className="text-neutral-400 hidden sm:block font-bold">\u2192</span>
+      </div>
+    </Link>
   );
 }
 

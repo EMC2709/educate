@@ -1,6 +1,7 @@
 export interface Question {
   question: string;
   answer: string;
+  acceptedAnswers?: string[];
   marks: number;
   hint: string;
   topic?: string;

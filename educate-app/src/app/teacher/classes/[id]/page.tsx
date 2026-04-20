@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { StudentsTab } from './StudentsTab';
 import { AssignmentsTab } from './AssignmentsTab';
 import { PastPapersTab } from './PastPapersTab';
+import { PerformanceTab } from './PerformanceTab';
 
 interface ClassDetail {
   id: string;
@@ -42,7 +43,7 @@ interface PastPaper {
 
 export type { ClassDetail, Assignment, PastPaper };
 
-type Tab = 'students' | 'assignments' | 'past-papers';
+type Tab = 'students' | 'assignments' | 'past-papers' | 'performance';
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -118,8 +119,8 @@ export default function ClassDetailPage() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-2">
-          {(['students', 'assignments', 'past-papers'] as Tab[]).map(tab => (
+        <div className="flex gap-2 flex-wrap">
+          {(['students', 'assignments', 'past-papers', 'performance'] as Tab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -129,7 +130,10 @@ export default function ClassDetailPage() {
                   : 'border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300'
               }`}
             >
-              {tab === 'students' ? 'Students' : tab === 'assignments' ? 'Assignments' : 'Past Papers'}
+              {tab === 'students' ? 'Students'
+                : tab === 'assignments' ? 'Assignments'
+                : tab === 'past-papers' ? 'Past Papers'
+                : '📊 Performance'}
             </button>
           ))}
         </div>
@@ -156,6 +160,10 @@ export default function ClassDetailPage() {
 
         {activeTab === 'past-papers' && (
           <PastPapersTab onAssign={handleAssignPaper} />
+        )}
+
+        {activeTab === 'performance' && (
+          <PerformanceTab classId={classId} />
         )}
       </div>
     </main>

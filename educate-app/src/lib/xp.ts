@@ -67,15 +67,27 @@ export async function ensureProfile(userId: string, displayName?: string): Promi
 }
 
 export async function awardXP(userId: string, xpGained: number): Promise<{ newXP: number; newLevel: number; leveledUp: boolean }> {
-  const profile = await ensureProfile(userId);
-  const newXP = profile.xp + xpGained;
-  const newLevel = levelFromXP(newXP);
-  const leveledUp = newLevel > profile.level;
-
-  await sql`
-    UPDATE profiles SET xp = ${newXP}, level = ${newLevel}, updated_at = now()
-    WHERE user_id = ${userId}
+  // Atomic increment — avoids race condition where two simultaneous answers
+  // both read the same xp value and the second write overwrites the first.
+  const result = await sql`
+    INSERT INTO profiles (user_id, xp, level, display_name)
+    VALUES (${userId}, ${xpGained}, 1, 'Student')
+    ON CONFLICT (user_id) DO UPDATE
+      SET xp = profiles.xp + ${xpGained},
+          updated_at = now()
+    RETURNING xp, level, display_name
   `;
+
+  const row = result[0] as { xp: number; level: number };
+  const newXP = row.xp;
+  const oldLevel = row.level;
+  const newLevel = levelFromXP(newXP);
+  const leveledUp = newLevel > oldLevel;
+
+  // Update level separately if it changed
+  if (leveledUp) {
+    await sql`UPDATE profiles SET level = ${newLevel}, updated_at = now() WHERE user_id = ${userId}`;
+  }
 
   return { newXP, newLevel, leveledUp };
 }

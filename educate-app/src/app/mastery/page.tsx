@@ -1,9 +1,38 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { SUBJECT_TOPICS } from '@/data/topic-map';
+
+// ── Confidence self-rating helpers ────────────────────────────────────────────
+const CONF_KEY = 'educate-subject-confidence';
+
+function getSubjectConfidence(subject: string): number {
+  try { const d = JSON.parse(localStorage.getItem(CONF_KEY) || '{}'); return d[subject] ?? 0; } catch { return 0; }
+}
+function saveSubjectConfidence(subject: string, rating: number) {
+  try { const d = JSON.parse(localStorage.getItem(CONF_KEY) || '{}'); d[subject] = rating; localStorage.setItem(CONF_KEY, JSON.stringify(d)); } catch {}
+}
+
+function StarRating({ subject, onRate }: { subject: string; onRate: () => void }) {
+  const [hover, setHover] = useState(0);
+  const rating = getSubjectConfidence(subject);
+  return (
+    <div className="flex items-center gap-0.5 mt-2" onClick={e => e.preventDefault()}>
+      <span className="text-[10px] text-neutral-600 mr-1">Confidence:</span>
+      {[1,2,3,4,5].map(i => (
+        <button key={i} type="button"
+          onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(0)}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); saveSubjectConfidence(subject, i); onRate(); }}
+          className="text-sm leading-none bg-transparent border-none cursor-pointer p-0"
+          style={{ color: i <= (hover || rating) ? '#fbbf24' : '#404040' }}>
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const SUBJECT_COLORS: Record<string, string> = {
   'Mathematics': '#a78bfa', 'English Language': '#f472b6', 'English Literature': '#ec4899',
@@ -48,6 +77,8 @@ function getTopicMastery(subject: string, topicId: string): MasteryLevel {
 
 export default function MasteryPage() {
   const [subjects, setSubjects] = useState<{ subject: string; board: string }[]>([]);
+  const [, forceUpdate] = useState(0);
+  const rerender = useCallback(() => forceUpdate(n => n + 1), []);
 
   useEffect(() => {
     try {
@@ -128,7 +159,8 @@ export default function MasteryPage() {
                             style={{ width: `${stats.pct}%`, backgroundColor: color }}
                           />
                         </div>
-                        <div className="mt-4 flex items-center gap-1.5 text-xs font-semibold" style={{ color }}>
+                        <StarRating subject={subject} onRate={rerender} />
+                        <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold" style={{ color }}>
                           <span>Start pathway</span>
                           <span>{'\u2192'}</span>
                         </div>

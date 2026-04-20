@@ -38,18 +38,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
-  let body: { subject?: string; playerName?: string; playerId?: string };
+  let body: { subject?: string; playerName?: string; playerId?: string; gameType?: string; initialState?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { subject, playerName, playerId } = body;
+  const { subject, playerName, playerId, gameType, initialState } = body;
   if (!subject) return NextResponse.json({ error: 'subject required' }, { status: 400 });
   if (!playerId) return NextResponse.json({ error: 'playerId required' }, { status: 400 });
 
   const hostName = playerName?.trim() || 'Player X';
+  const gt = gameType || 'tic-tac-toe';
+  const initBoard = initialState != null
+    ? JSON.stringify(initialState)
+    : JSON.stringify(['', '', '', '', '', '', '', '', '']);
 
   try {
     // Generate a temporary UUID to derive room code from, then insert with that code
@@ -62,12 +66,12 @@ export async function POST(req: NextRequest) {
       INSERT INTO game_sessions (room_code, game_type, player_x, player_x_name, subject, status, board_state, current_turn)
       VALUES (
         ${roomCode},
-        'tic-tac-toe',
+        ${gt},
         ${playerId},
         ${hostName},
         ${subject},
         'waiting',
-        ${JSON.stringify(['', '', '', '', '', '', '', '', ''])}::jsonb,
+        ${initBoard}::jsonb,
         'X'
       )
       RETURNING id, room_code
@@ -129,26 +133,39 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
-  let body: { gameId?: string; boardState?: string[]; currentTurn?: string; winner?: string | null; status?: string };
+  let body: { gameId?: string; boardState?: unknown; currentTurn?: string; winner?: string | null; status?: string; merge?: boolean };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { gameId, boardState, currentTurn, winner, status } = body;
+  const { gameId, boardState, currentTurn, winner, status, merge } = body;
   if (!gameId) return NextResponse.json({ error: 'gameId required' }, { status: 400 });
 
   try {
-    await sql`
-      UPDATE game_sessions
-      SET board_state   = ${JSON.stringify(boardState)}::jsonb,
-          current_turn  = ${currentTurn ?? 'X'},
-          winner        = ${winner ?? null},
-          status        = ${status ?? 'active'},
-          updated_at    = now()
-      WHERE id = ${gameId}
-    `;
+    if (merge) {
+      // Merge-patch: update only the provided keys in board_state jsonb
+      await sql`
+        UPDATE game_sessions
+        SET board_state = board_state || ${JSON.stringify(boardState)}::jsonb,
+            updated_at  = now()
+        WHERE id = ${gameId}
+      `;
+      if (status) {
+        await sql`UPDATE game_sessions SET status = ${status}, updated_at = now() WHERE id = ${gameId}`;
+      }
+    } else {
+      await sql`
+        UPDATE game_sessions
+        SET board_state   = ${JSON.stringify(boardState)}::jsonb,
+            current_turn  = ${currentTurn ?? 'X'},
+            winner        = ${winner ?? null},
+            status        = ${status ?? 'active'},
+            updated_at    = now()
+        WHERE id = ${gameId}
+      `;
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';

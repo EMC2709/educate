@@ -59,8 +59,11 @@ export function getBankQuestionsForSelection(
       }
     });
   });
-  // Only fall back to whole-subject bank if user did NOT narrow to a subtopic
-  if (!hasSpecificSelection) {
+  // Fall back to whole-subject bank if:
+  // 1. No subtopic was selected (browse all), OR
+  // 2. A subtopic WAS selected but had no entries in the subtopic bank
+  //    (avoids returning null when subject-level questions exist)
+  if (!hasSpecificSelection || results.length === 0) {
     const subjectBank = questionBank?.[selectedSubject]?.[type];
     if (subjectBank) results.push(...subjectBank);
   }

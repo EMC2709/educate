@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
@@ -34,11 +34,99 @@ const SUBJECT_COLORS: Record<string, string> = {
   'Religious Studies': '#c084fc', 'Sociology': '#60a5fa', 'Economics': '#fbbf24',
 };
 
+// ── Forgetting Curve component (SRS review forecast) ─────────────────────────
+function ForgettingCurve() {
+  const [forecast, setForecast] = useState<{ date: string; label: string; count: number; isToday: boolean }[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('educate-sr-data');
+      if (!raw) return;
+      const store: { cards: Record<string, { nextReview: string }> } = JSON.parse(raw);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const days: { date: string; label: string; count: number; isToday: boolean }[] = [];
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        const isToday = i === 0;
+        const label = isToday ? 'Today' : i === 1 ? 'Tmrw' : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
+        days.push({ date: dateStr, label, count: 0, isToday });
+      }
+
+      Object.values(store.cards).forEach(card => {
+        const idx = days.findIndex(d => d.date === card.nextReview);
+        if (idx !== -1) days[idx].count++;
+      });
+
+      setForecast(days);
+    } catch {}
+  }, []);
+
+  const totalCards = forecast.reduce((s, d) => s + d.count, 0);
+  if (totalCards === 0) return null;
+
+  const maxCount = Math.max(...forecast.map(d => d.count), 1);
+  const todayCount = forecast[0]?.count ?? 0;
+
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 mb-6">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-white font-bold text-sm">🧠 Flashcard Review Forecast</h3>
+        {todayCount > 0 && (
+          <span className="text-xs font-semibold text-rose-400 bg-rose-400/10 px-2.5 py-1 rounded-lg">
+            {todayCount} due today
+          </span>
+        )}
+      </div>
+      <p className="text-neutral-500 text-xs mb-4">Upcoming SRS reviews — {totalCards} cards scheduled over 14 days</p>
+      <div className="flex items-end gap-1 h-20">
+        {forecast.map((d, i) => {
+          const h = d.count > 0 ? Math.max((d.count / maxCount) * 100, 10) : 3;
+          const color = d.isToday
+            ? '#f87171'
+            : d.count > maxCount * 0.6
+            ? '#fb923c'
+            : '#6366f1';
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+              {d.count > 0 && (
+                <span className="text-[9px] text-neutral-500 leading-none">{d.count}</span>
+              )}
+              <div
+                className="w-full rounded-t-sm transition-all"
+                style={{ height: `${h}%`, backgroundColor: d.count > 0 ? color : '#1f1f1f' }}
+                title={`${d.label}: ${d.count} cards`}
+              />
+              <span
+                className="text-[8px] leading-none truncate w-full text-center"
+                style={{ color: d.isToday ? '#f87171' : '#525252' }}
+              >
+                {d.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex gap-3 mt-3 text-[10px]">
+        <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-rose-400" />Today</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-orange-400" />Heavy day</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-indigo-500" />Upcoming</span>
+      </div>
+    </div>
+  );
+}
+
 export default function ProgressPage() {
   const { isSignedIn } = useUser();
   const [results, setResults] = useState<QuizResult[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tab, setTab] = useState<'overview' | 'history'>('overview');
+  const [parentLink, setParentLink] = useState<string | null>(null);
+  const [parentLinkLoading, setParentLinkLoading] = useState(false);
+  const [parentLinkCopied, setParentLinkCopied] = useState(false);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -94,6 +182,35 @@ export default function ProgressPage() {
 
   const subjectEntries = Object.entries(stats.bySubject).sort((a, b) => b[1].sessions - a[1].sessions);
 
+  const generateParentLink = useCallback(async () => {
+    setParentLinkLoading(true);
+    try {
+      const r = await fetch('/api/parent-link');
+      const d = await r.json();
+      if (d.token) {
+        const url = `${window.location.origin}/parent/${d.token}`;
+        setParentLink(url);
+      }
+    } catch {}
+    setParentLinkLoading(false);
+  }, []);
+
+  const copyParentLink = useCallback(async () => {
+    if (!parentLink) return;
+    await navigator.clipboard.writeText(parentLink).catch(() => {});
+    setParentLinkCopied(true);
+    setTimeout(() => setParentLinkCopied(false), 2000);
+  }, [parentLink]);
+
+  const revokeParentLink = useCallback(async () => {
+    const r = await fetch('/api/parent-link', { method: 'DELETE' });
+    const d = await r.json();
+    if (d.token) {
+      const url = `${window.location.origin}/parent/${d.token}`;
+      setParentLink(url);
+    }
+  }, []);
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -138,12 +255,58 @@ export default function ProgressPage() {
                   <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all"
-                      style={{ width: `${Math.round(profile.progress * 100)}%` }}
+                      style={{
+                        width: `${Math.max(0, Math.min(100,
+                          profile.nextLevelXP > profile.currentLevelXP
+                            ? Math.round(((profile.xp - profile.currentLevelXP) / (profile.nextLevelXP - profile.currentLevelXP)) * 100)
+                            : 100
+                        ))}%`,
+                      }}
                     />
                   </div>
                   <p className="text-neutral-500 text-xs mt-1.5 text-right">
                     {profile.xp - profile.currentLevelXP} / {profile.nextLevelXP - profile.currentLevelXP} XP to Level {profile.level + 1}
                   </p>
+                </div>
+              )}
+
+              {/* Share with parent */}
+              {isSignedIn && (
+                <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-white m-0">Share with a parent</h3>
+                      <p className="text-xs text-neutral-500 m-0 mt-0.5">Send a read-only link — no account needed</p>
+                    </div>
+                    <span className="text-xl">{'\u{1F464}'}</span>
+                  </div>
+                  {!parentLink ? (
+                    <button
+                      onClick={generateParentLink}
+                      disabled={parentLinkLoading}
+                      className="bg-indigo-500/15 border border-indigo-500/40 text-indigo-400 text-sm font-semibold px-4 py-2 rounded-xl border-none cursor-pointer hover:bg-indigo-500/25 transition-colors disabled:opacity-50"
+                    >
+                      {parentLinkLoading ? 'Generating…' : 'Generate parent link'}
+                    </button>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 bg-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-300 overflow-hidden">
+                        <span className="flex-1 truncate">{parentLink}</span>
+                        <button
+                          onClick={copyParentLink}
+                          className="shrink-0 text-indigo-400 font-bold bg-transparent border-none cursor-pointer hover:text-indigo-300 transition-colors"
+                        >
+                          {parentLinkCopied ? '✓ Copied' : 'Copy'}
+                        </button>
+                      </div>
+                      <button
+                        onClick={revokeParentLink}
+                        className="text-xs text-neutral-600 bg-transparent border-none cursor-pointer hover:text-rose-400 transition-colors text-left"
+                      >
+                        Revoke &amp; regenerate link
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -186,6 +349,9 @@ export default function ProgressPage() {
                   })}
                 </div>
               </div>
+
+              {/* Forgetting Curve / SRS forecast */}
+              <ForgettingCurve />
 
               {/* Subject breakdown */}
               {subjectEntries.length > 0 && (

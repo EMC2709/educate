@@ -18,6 +18,7 @@ export default function QuestionTypePage({ params }: { params: Promise<{ board: 
   if (!board || !board.subjects.includes(subject)) notFound();
 
   const hasPastPapers = !!PAST_PAPERS_INDEX[subject]?.[boardName];
+  const isEnglishLit = subject === 'English Literature';
 
   return (
     <div className="min-h-screen">
@@ -35,6 +36,7 @@ export default function QuestionTypePage({ params }: { params: Promise<{ board: 
               <span className="text-neutral-500 text-sm">{boardName}</span>
             </div>
 
+            {/* Question type cards + Quotes Bank (English Lit only) in 2-col grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {Q_TYPES.map(opt => (
                 <Link
@@ -66,35 +68,62 @@ export default function QuestionTypePage({ params }: { params: Promise<{ board: 
                 </Link>
               ))}
 
-              {hasPastPapers && (
-                <Link
-                  href={`/${boardName}/${encodeURIComponent(subject)}/papers`}
-                  className="no-underline sm:col-span-2"
-                >
+              {isEnglishLit && (
+                <Link href="/quotes" className="no-underline">
                   <div
-                    className="bg-neutral-900 border-2 border-neutral-800 rounded-2xl p-5 sm:p-6 cursor-pointer transition-all duration-200 text-center hover:scale-[1.02] flex flex-col items-center justify-center"
+                    className="bg-neutral-900 border-2 border-neutral-800 rounded-2xl p-5 sm:p-6 cursor-pointer transition-all duration-200 text-center hover:scale-[1.02] min-h-[140px] flex flex-col items-center justify-center"
                     onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = '#8b5cf6';
-                      e.currentTarget.style.backgroundColor = '#8b5cf618';
+                      e.currentTarget.style.borderColor = '#34d399';
+                      e.currentTarget.style.backgroundColor = '#34d39918';
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.borderColor = '#2a2a2a';
                       e.currentTarget.style.backgroundColor = '';
                     }}
                   >
-                    <div className="text-3xl sm:text-4xl mb-2.5">&#128196;</div>
-                    <div className="font-bold text-base sm:text-lg mb-1.5 text-white">Official Past Papers</div>
+                    <div className="text-3xl sm:text-4xl mb-2.5">💬</div>
+                    <div className="font-bold text-base sm:text-lg mb-1.5 text-white">Quotes Bank</div>
                     <div
                       className="text-[11px] px-2.5 py-0.5 rounded-lg inline-block mb-2.5"
-                      style={{ color: '#8b5cf6', backgroundColor: '#8b5cf622' }}
+                      style={{ color: '#34d399', backgroundColor: '#34d39922' }}
                     >
-                      Real exam papers
+                      75 key quotes
                     </div>
-                    <p className="text-neutral-500 text-xs leading-relaxed m-0">Download Paper 1, 2 &amp; 3 from the official exam board</p>
+                    <p className="text-neutral-500 text-xs leading-relaxed m-0">Macbeth, A Christmas Carol, An Inspector Calls &amp; Poetry — with analysis</p>
                   </div>
                 </Link>
               )}
             </div>
+
+            {/* Past Papers — full width below the grid */}
+            {hasPastPapers && (
+              <Link
+                href={`/${boardName}/${encodeURIComponent(subject)}/papers`}
+                className="no-underline block mt-3 sm:mt-4"
+              >
+                <div
+                  className="bg-neutral-900 border-2 border-neutral-800 rounded-2xl p-5 sm:p-6 cursor-pointer transition-all duration-200 text-center hover:scale-[1.02] flex flex-col items-center justify-center"
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = '#8b5cf6';
+                    e.currentTarget.style.backgroundColor = '#8b5cf618';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = '#2a2a2a';
+                    e.currentTarget.style.backgroundColor = '';
+                  }}
+                >
+                  <div className="text-3xl sm:text-4xl mb-2.5">&#128196;</div>
+                  <div className="font-bold text-base sm:text-lg mb-1.5 text-white">Official Past Papers</div>
+                  <div
+                    className="text-[11px] px-2.5 py-0.5 rounded-lg inline-block mb-2.5"
+                    style={{ color: '#8b5cf6', backgroundColor: '#8b5cf622' }}
+                  >
+                    Real exam papers
+                  </div>
+                  <p className="text-neutral-500 text-xs leading-relaxed m-0">Download Paper 1, 2 &amp; 3 from the official exam board</p>
+                </div>
+              </Link>
+            )}
           </div>
         </div>
       </div>

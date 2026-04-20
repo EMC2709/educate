@@ -7,6 +7,7 @@ import { CommandPalette } from '@/components/layout/CommandPalette';
 import { ToastProvider } from '@/components/ui/Toast';
 import { FocusModeProvider } from '@/components/layout/FocusMode';
 import { CookieBanner } from '@/components/layout/CookieBanner';
+import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegistration';
 
 export const metadata: Metadata = {
   title: 'Educate — GCSE Revision',
@@ -22,7 +23,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider appearance={{ variables: { colorBackground: '#0f0f0f', colorText: '#ffffff', colorPrimary: '#6366f1' } }}>
+    <ClerkProvider signInUrl="/login" signUpUrl="/login" appearance={{ variables: { colorBackground: '#0f0f0f', colorText: '#ffffff', colorPrimary: '#6366f1' } }}>
       <html lang="en" className="h-full antialiased">
         <body className="min-h-full">
           <ToastProvider>
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <FloatingChat />
                 <CommandPalette />
                 <CookieBanner />
+                <ServiceWorkerRegistration />
               </ChatProvider>
             </FocusModeProvider>
           </ToastProvider>

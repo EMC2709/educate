@@ -5,7 +5,30 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { SUBJECT_TOPICS, TopicNode } from '@/data/topic-map';
-import { SUBJECT_TOPICS_MAP } from '@/data/subject-topics';
+
+// ── Topic confidence helpers ──────────────────────────────────────────────────
+
+const CONFIDENCE_KEY = 'educate-topic-confidence';
+
+function getTopicConfidence(subject: string, topicId: string): number {
+  try {
+    const raw = localStorage.getItem(CONFIDENCE_KEY);
+    if (raw) {
+      const data: Record<string, number> = JSON.parse(raw);
+      return data[`${subject}:${topicId}`] ?? 0;
+    }
+  } catch {}
+  return 0;
+}
+
+function setTopicConfidence(subject: string, topicId: string, rating: number): void {
+  try {
+    const raw = localStorage.getItem(CONFIDENCE_KEY);
+    const data: Record<string, number> = raw ? JSON.parse(raw) : {};
+    data[`${subject}:${topicId}`] = rating;
+    localStorage.setItem(CONFIDENCE_KEY, JSON.stringify(data));
+  } catch {}
+}
 
 const SUBJECT_COLORS: Record<string, string> = {
   'Mathematics': '#a78bfa', 'English Language': '#f472b6', 'English Literature': '#ec4899',
@@ -139,8 +162,8 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
 
   const router = useRouter();
   const [board, setBoard] = useState('');
-  const [selected, setSelected] = useState<FlatTopic | null>(null);
   const [tick, setTick] = useState(0);
+  const [confidenceTick, setConfidenceTick] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasW, setCanvasW] = useState(480);
 
@@ -153,34 +176,14 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
     return () => obs.disconnect();
   }, []);
 
-  const resolveQuizSelection = (topicName: string) => {
-    const map = SUBJECT_TOPICS_MAP[subject];
-    if (!map) return null;
-    const lower = topicName.toLowerCase();
-    for (const [topic, subs] of Object.entries(map)) {
-      const hit = subs.find(s => s.toLowerCase() === lower);
-      if (hit) return { topic, sub: hit };
-    }
-    for (const [topic, subs] of Object.entries(map)) {
-      const hit = subs.find(s => s.toLowerCase().includes(lower) || lower.includes(s.toLowerCase()));
-      if (hit) return { topic, sub: hit };
-    }
-    return null;
+  const openTopic = (topicId: string) => {
+    router.push(`/mastery/${encodeURIComponent(subject)}/${topicId}`);
   };
 
-  const launchQuiz = (type: 'flashcard' | 'short') => {
-    if (!selected || !board) return;
-    const match = resolveQuizSelection(selected.name);
-    try {
-      if (match) {
-        sessionStorage.setItem('educate-selected-subtopics', JSON.stringify({ [`${match.topic}||${match.sub}`]: true }));
-        sessionStorage.setItem('educate-selected-topics', JSON.stringify({}));
-      } else {
-        sessionStorage.removeItem('educate-selected-subtopics');
-        sessionStorage.removeItem('educate-selected-topics');
-      }
-    } catch {}
-    router.push(`/${board}/${encodeURIComponent(subject)}/quiz?type=${type}`);
+  const handleConfidence = (topicId: string, rating: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTopicConfidence(subject, topicId, rating);
+    setConfidenceTick(t => t + 1);
   };
 
   useEffect(() => {
@@ -399,16 +402,18 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
                 {/* ── Topic nodes ── */}
                 {positioned.map(({ topic, x, y, seq }) => {
                   const meta = MASTERY_META[topic.mastery];
-                  const isSelected = selected?.id === topic.id;
                   const isFirst = seq === 1;
+                  // confidenceTick forces re-read from localStorage when confidence changes
+                  void confidenceTick;
+                  const confidence = getTopicConfidence(subject, topic.id);
                   return (
                     <button
                       key={topic.id}
-                      onClick={() => setSelected(isSelected ? null : topic)}
+                      onClick={() => openTopic(topic.id)}
                       className="absolute flex flex-col items-center cursor-pointer group border-none bg-transparent p-0"
                       style={{ left: x, top: y, transform: 'translate(-50%, -50%)', zIndex: 10 }}
                     >
-                      {/* "Start here" label for first unlocked node */}
+                      {/* "Start here" label for first node */}
                       {isFirst && (
                         <div
                           className="absolute -top-8 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-widest whitespace-nowrap px-2 py-0.5 rounded-full"
@@ -427,11 +432,9 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
                             ? 'radial-gradient(circle, #1c1c1c, #111)'
                             : `radial-gradient(circle, ${meta.color}30, ${meta.color}10)`,
                           border: `3px solid ${meta.color}`,
-                          boxShadow: isSelected
-                            ? `0 0 0 4px ${meta.color}50, 0 0 20px ${meta.color}60`
-                            : isFirst
-                              ? `0 0 18px ${meta.color}60, 0 0 36px ${meta.color}30`
-                              : `0 0 12px ${meta.color}30`,
+                          boxShadow: isFirst
+                            ? `0 0 18px ${meta.color}60, 0 0 36px ${meta.color}30`
+                            : `0 0 12px ${meta.color}30`,
                         }}
                       >
                         <span className="text-lg leading-none select-none">{meta.emoji}</span>
@@ -445,10 +448,9 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
                       </div>
                       {/* Label */}
                       <span
-                        className="mt-2 text-[10px] font-semibold text-center leading-tight select-none"
+                        className="mt-2 text-[10px] font-semibold text-center leading-tight select-none text-neutral-400 group-hover:text-white transition-colors"
                         style={{
                           maxWidth: nodeR * 2 + 20,
-                          color: isSelected ? '#fff' : '#a3a3a3',
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical' as const,
@@ -457,6 +459,38 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
                       >
                         {topic.name}
                       </span>
+                      {/* Self-confidence star rating */}
+                      <div
+                        className="mt-1 flex gap-0.5"
+                        title={`Confidence: ${confidence}/5`}
+                      >
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <span
+                            key={star}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Rate confidence ${star}`}
+                            onClick={(e) => handleConfidence(topic.id, star, e)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setTopicConfidence(subject, topic.id, star);
+                                setConfidenceTick(t => t + 1);
+                              }
+                            }}
+                            className="text-[9px] leading-none cursor-pointer select-none transition-colors"
+                            style={{ color: star <= confidence ? '#fbbf24' : '#404040' }}
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      {/* Confidence label */}
+                      {confidence > 0 && (
+                        <span className="text-[8px] text-amber-400/70 leading-none mt-0.5 select-none">
+                          {'★'.repeat(confidence)}{'☆'.repeat(5 - confidence)}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -503,50 +537,6 @@ export default function MasteryPathwayPage({ params }: { params: Promise<{ subje
 
             </div>{/* end three-column flex */}
 
-            {/* ── Detail drawer ── */}
-            {selected && (
-              <div
-                className="sticky bottom-4 mt-6 mx-auto max-w-md rounded-2xl p-5 shadow-2xl border"
-                style={{
-                  backgroundColor: '#111',
-                  borderColor: `${color}50`,
-                  boxShadow: `0 8px 40px ${color}25`,
-                }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-neutral-500 uppercase tracking-wide m-0 mb-0.5">{selected.group}</p>
-                    <h3 className="text-base font-bold text-white m-0 truncate">{selected.name}</h3>
-                  </div>
-                  <button
-                    onClick={() => setSelected(null)}
-                    className="text-neutral-500 hover:text-white text-xl leading-none cursor-pointer bg-transparent border-0 ml-3 shrink-0"
-                  >×</button>
-                </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <span
-                    className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: `${MASTERY_META[selected.mastery].color}20`, color: MASTERY_META[selected.mastery].color }}
-                  >
-                    {MASTERY_META[selected.mastery].emoji} {MASTERY_META[selected.mastery].label}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => launchQuiz('short')}
-                    className="text-center text-xs font-bold py-2.5 rounded-xl text-white cursor-pointer border-0 transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: color }}
-                  >🎯 Quiz</button>
-                  <button
-                    onClick={() => launchQuiz('flashcard')}
-                    className="text-center text-xs font-bold py-2.5 rounded-xl text-white bg-neutral-800 border border-neutral-700 cursor-pointer hover:bg-neutral-700 transition-colors"
-                  >📚 Flashcards</button>
-                </div>
-                {!resolveQuizSelection(selected.name) && (
-                  <p className="text-[9px] text-neutral-600 text-center mt-2 mb-0">Will study the whole subject.</p>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>

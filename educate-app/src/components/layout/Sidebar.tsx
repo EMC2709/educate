@@ -11,10 +11,13 @@ import { useChat } from '@/context/ChatContext';
 const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: '\u{1F3E0}' },
   { href: '/practice', label: 'Practice Hub', icon: '\u{1F4DD}' },
+  { href: '/practice/diagnosis', label: 'Diagnosis Test', icon: '\u{1F50D}' },
   { href: '/timetable', label: 'Timetable', icon: '\u{1F4C5}' },
   { href: '/exams', label: 'Exam Countdown', icon: '\u{23F3}' },
   { href: '/timer', label: 'Study Timer', icon: '\u{23F0}' },
   { href: '/notes', label: 'Notes', icon: '\u{1F5C2}\uFE0F' },
+  { href: '/revision-notes', label: 'Revision Notes', icon: '\u{1F4D6}' },
+  { href: '/checklist', label: 'Spec Checklist', icon: '\u2705' },
   { href: '/mastery', label: 'Topic Mastery', icon: '\u{1F5FA}\uFE0F' },
   { href: '/progress', label: 'Progress', icon: '\u{1F4CA}' },
   { href: '/achievements', label: 'Achievements', icon: '\u{1F3C6}' },
@@ -50,31 +53,37 @@ export function Sidebar() {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [unreadAssignments, setUnreadAssignments] = useState(0);
 
+  const refreshProfile = () => {
+    fetch('/api/profile').then(r => r.json()).then(d => {
+      if (d.xp != null) setXp(d.xp);
+      if (d.role) setRole(d.role);
+      setOrgId(d.org_id ?? null);
+      if (d.role === 'student' && d.org_id) {
+        fetch('/api/assignments/unread')
+          .then(r2 => r2.json())
+          .then((u: { count?: number }) => setUnreadAssignments(u.count ?? 0))
+          .catch(() => {});
+      }
+    }).catch(() => {});
+  };
+
   useEffect(() => {
-    if (isSignedIn) {
-      fetch('/api/profile').then(r => r.json()).then(d => {
-        if (d.xp != null) setXp(d.xp);
-        if (d.role) setRole(d.role);
-        setOrgId(d.org_id ?? null);
-        // Fetch unread assignments for school students
-        if (d.role === 'student' && d.org_id) {
-          fetch('/api/assignments/unread')
-            .then(r2 => r2.json())
-            .then((u: { count?: number }) => setUnreadAssignments(u.count ?? 0))
-            .catch(() => {});
-        }
-      }).catch(() => {});
-      // Load subjects from localStorage
-      try {
-        const cached = localStorage.getItem('educate-user-subjects');
-        if (cached) setSubjects(JSON.parse(cached));
-      } catch {}
-      // Load streak
-      try {
-        const sd = getStreakData();
-        setStreak(sd.currentStreak);
-      } catch {}
-    }
+    if (!isSignedIn) return;
+    refreshProfile();
+    try {
+      const cached = localStorage.getItem('educate-user-subjects');
+      if (cached) setSubjects(JSON.parse(cached));
+    } catch {}
+    try {
+      const sd = getStreakData();
+      setStreak(sd.currentStreak);
+    } catch {}
+
+    // Re-fetch XP whenever a question is answered anywhere in the app
+    const onXpUpdate = () => refreshProfile();
+    window.addEventListener('educate-xp-updated', onXpUpdate);
+    return () => window.removeEventListener('educate-xp-updated', onXpUpdate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn]);
 
   const isTeacher = ['teacher', 'school_admin', 'super_admin'].includes(role);

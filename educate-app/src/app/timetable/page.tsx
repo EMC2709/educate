@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { ChatPanel } from '@/components/layout/ChatPanel';
+import { getExamDates } from '@/lib/exam-dates';
+import { SUBJECT_TOPICS_MAP } from '@/data/subject-topics';
 
 // ── Subject colour palette ──────────────────────────────────────────────────
 const SUBJECT_COLORS: Record<string, string> = {
@@ -67,7 +69,8 @@ function getDefaultTimetable(): TimetableData {
   }
 
   const today = new Date();
-  const startDate = today.toISOString().split('T')[0];
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const startDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
   return {
     startDate,
@@ -80,14 +83,15 @@ function getDefaultTimetable(): TimetableData {
 }
 
 function getDateForWeekDay(startDate: string, weekIndex: number, dayName: string): Date {
-  const start = new Date(startDate);
-  const dayMap: Record<string, number> = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 0 };
-  const targetDay = dayMap[dayName];
-  const startDay = start.getDay();
-  let diff = targetDay - startDay;
-  if (diff < 0) diff += 7;
+  const [y, m, d] = startDate.split('-').map(Number);
+  const start = new Date(y, m - 1, d);
+  // Step 1: rewind to the Monday of the week that contains startDate
+  const dow = start.getDay(); // 0=Sun, 1=Mon … 6=Sat
+  const toMonday = dow === 0 ? -6 : 1 - dow;   // days to add to reach Monday
+  // Step 2: each day column is a fixed offset from Monday (0–6)
+  const dayOffset: Record<string, number> = { Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4, Saturday: 5, Sunday: 6 };
   const date = new Date(start);
-  date.setDate(start.getDate() + diff + weekIndex * 7);
+  date.setDate(start.getDate() + toMonday + dayOffset[dayName] + weekIndex * 7);
   return date;
 }
 
@@ -95,10 +99,138 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+interface AutoGenOptions {
+  startDate: string;
+  hoursPerDay: number;
+  includeWeekends: boolean;
+}
+
+function getAutoGenDefaults(): AutoGenOptions {
+  const today = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    startDate: `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`,
+    hoursPerDay: 2,
+    includeWeekends: false,
+  };
+}
+
+function buildAutoSchedule(
+  opts: AutoGenOptions,
+  subjects: string[],
+  weeks: number,
+  slotTimes: string[],
+): Record<string, Slot[]> {
+  if (subjects.length === 0) return {};
+
+  // Read exam dates and compute priority per subject
+  const examDates = getExamDates();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  function examPriority(subject: string): number {
+    const exams = examDates.filter(e => e.subject === subject);
+    if (exams.length === 0) return 0;
+    const soonest = exams.map(e => {
+      const d = new Date(e.date + 'T00:00:00');
+      return Math.ceil((d.getTime() - today.getTime()) / 86400000);
+    }).sort((a, b) => a - b)[0];
+    if (soonest < 7) return 4;
+    if (soonest < 14) return 3;
+    if (soonest < 30) return 2;
+    return 1;
+  }
+
+  // Read mastery data
+  let quizScores: Record<string, { correct: number; total: number }> = {};
+  try {
+    const raw = localStorage.getItem('educate-quiz-scores');
+    if (raw) quizScores = JSON.parse(raw);
+  } catch {}
+
+  // Read checklist
+  let checklist: Record<string, boolean> = {};
+  try {
+    const raw = localStorage.getItem('educate-spec-checklist');
+    if (raw) checklist = JSON.parse(raw);
+  } catch {}
+
+  // For each subject, pick the weakest / least-covered topic group
+  function getBestTopicForSubject(subject: string): string {
+    const groups = SUBJECT_TOPICS_MAP[subject];
+    if (!groups) return '';
+    // score each group: lower = more needed
+    let bestGroup = Object.keys(groups)[0];
+    let bestScore = Infinity;
+    for (const [group, subtopics] of Object.entries(groups)) {
+      let masterySum = 0;
+      let masteryCount = 0;
+      let checkedCount = 0;
+      for (const st of subtopics) {
+        const scoreKey = `${subject}:${group}`;
+        const score = quizScores[scoreKey];
+        if (score && score.total > 0) {
+          masterySum += score.correct / score.total;
+          masteryCount++;
+        }
+        if (checklist[`${subject}:${group}:${st}`]) checkedCount++;
+      }
+      const masteryAvg = masteryCount > 0 ? masterySum / masteryCount : 0.5;
+      const checkPct = subtopics.length > 0 ? checkedCount / subtopics.length : 0.5;
+      const score = masteryAvg * 0.6 + checkPct * 0.4; // lower = more needed
+      if (score < bestScore) { bestScore = score; bestGroup = group; }
+    }
+    return bestGroup;
+  }
+
+  // Sort subjects by priority (descending)
+  const sortedSubjects = [...subjects].sort((a, b) => examPriority(b) - examPriority(a));
+
+  // Determine which days to include
+  const activeDays = opts.includeWeekends
+    ? DAYS
+    : DAYS.filter(d => !['Saturday', 'Sunday'].includes(d));
+
+  const sessionsPerDay = slotTimes.length;
+  const newSchedule: Record<string, Slot[]> = {};
+
+  // Round-robin subjects weighted by priority
+  const weightedPool: string[] = [];
+  for (const s of sortedSubjects) {
+    const w = examPriority(s) || 1;
+    for (let i = 0; i < w; i++) weightedPool.push(s);
+  }
+
+  let poolIdx = 0;
+
+  for (let w = 0; w < weeks; w++) {
+    for (const day of DAYS) {
+      const key = `${w}-${day}`;
+      if (!activeDays.includes(day)) {
+        // Leave weekend slots empty if weekends excluded
+        newSchedule[key] = slotTimes.map(t => ({ subject: '', time: t }));
+        continue;
+      }
+      const slots: Slot[] = slotTimes.map(time => {
+        const subject = weightedPool[poolIdx % weightedPool.length];
+        poolIdx++;
+        const topicGroup = getBestTopicForSubject(subject);
+        const label = topicGroup ? `${subject} — ${topicGroup}` : subject;
+        return { subject: label, time };
+      });
+      newSchedule[key] = slots;
+    }
+  }
+
+  return newSchedule;
+}
+
 export default function TimetablePage() {
   const [data, setData] = useState<TimetableData>(getDefaultTimetable);
   const [editing, setEditing] = useState(false);
   const [editSubject, setEditSubject] = useState('');
+  const [showAutoGen, setShowAutoGen] = useState(false);
+  const [autoGenOpts, setAutoGenOpts] = useState<AutoGenOptions>(getAutoGenDefaults);
 
   // Save to localStorage on change
   useEffect(() => {
@@ -154,14 +286,91 @@ export default function TimetablePage() {
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">
           <div className="max-w-6xl mx-auto">
             {/* Header */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                 Revision <span className="text-amber-400">Timetable</span>
               </h1>
               <p className="text-neutral-500 mt-1 text-sm">
                 Customise your revision schedule
               </p>
+              <button
+                onClick={() => setShowAutoGen(true)}
+                className="mt-4 inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-bold text-sm px-5 py-2.5 rounded-xl border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20"
+              >
+                <span>✨</span> Auto-Generate Plan
+              </button>
             </div>
+
+            {/* Auto-Generate Modal */}
+            {showAutoGen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAutoGen(false)} />
+                <div className="relative bg-neutral-900 border border-neutral-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                  <h2 className="text-white font-bold text-lg mb-1">Auto-Generate Revision Plan</h2>
+                  <p className="text-neutral-500 text-xs mb-5">Generates a smart 2-week plan based on your exam dates, mastery scores and spec checklist.</p>
+
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-neutral-400 text-xs font-semibold block mb-1.5">Start Date</label>
+                      <input
+                        type="date"
+                        value={autoGenOpts.startDate}
+                        onChange={e => setAutoGenOpts(prev => ({ ...prev, startDate: e.target.value }))}
+                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-neutral-400 text-xs font-semibold block mb-1.5">
+                        Hours per day: <span className="text-indigo-400">{autoGenOpts.hoursPerDay}h</span>
+                      </label>
+                      <input
+                        type="range"
+                        min={1}
+                        max={4}
+                        value={autoGenOpts.hoursPerDay}
+                        onChange={e => setAutoGenOpts(prev => ({ ...prev, hoursPerDay: Number(e.target.value) }))}
+                        className="w-full accent-indigo-500"
+                      />
+                      <div className="flex justify-between text-[10px] text-neutral-600 mt-0.5">
+                        <span>1h</span><span>2h</span><span>3h</span><span>4h</span>
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <div
+                        onClick={() => setAutoGenOpts(prev => ({ ...prev, includeWeekends: !prev.includeWeekends }))}
+                        className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${autoGenOpts.includeWeekends ? 'bg-indigo-500' : 'bg-neutral-700'}`}
+                      >
+                        <div
+                          className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${autoGenOpts.includeWeekends ? 'translate-x-5' : 'translate-x-1'}`}
+                        />
+                      </div>
+                      <span className="text-sm text-neutral-300 font-medium">Include weekends</span>
+                    </label>
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={() => setShowAutoGen(false)}
+                      className="flex-1 bg-neutral-800 text-neutral-300 font-semibold text-sm py-2.5 rounded-xl border border-neutral-700 cursor-pointer hover:bg-neutral-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        const schedule = buildAutoSchedule(autoGenOpts, data.subjects, data.weeks, data.slotTimes);
+                        setData(prev => ({ ...prev, startDate: autoGenOpts.startDate, schedule }));
+                        setShowAutoGen(false);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-bold text-sm py-2.5 rounded-xl border-none cursor-pointer hover:opacity-90 transition-opacity"
+                    >
+                      Generate
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Settings bar */}
             <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 sm:p-5 mb-6">
