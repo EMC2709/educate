@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
+import { FileImportModal } from '@/components/flashcards/FileImportModal';
 
 interface Deck {
   id: string;
@@ -22,6 +23,7 @@ export default function MyFlashcardsPage() {
   const [newName, setNewName]     = useState('');
   const [newSubject, setNewSubject] = useState('');
   const [saving, setSaving]       = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -76,12 +78,20 @@ export default function MyFlashcardsPage() {
               <p className="text-neutral-500 text-sm mt-0.5">Create and study your own flashcard decks</p>
             </div>
             {isSignedIn && (
-              <button
-                onClick={() => setCreating(true)}
-                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer border-none"
-              >
-                + New Deck
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setImportOpen(true)}
+                  className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-sm font-semibold rounded-xl transition-colors cursor-pointer border border-neutral-700"
+                >
+                  📂 Import
+                </button>
+                <button
+                  onClick={() => setCreating(true)}
+                  className="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer border-none"
+                >
+                  + New Deck
+                </button>
+              </div>
             )}
           </div>
 
@@ -214,6 +224,24 @@ export default function MyFlashcardsPage() {
       </main>
 
       <MobileNav />
+
+      {importOpen && (
+        <FileImportModal
+          onClose={() => setImportOpen(false)}
+          onSaved={(deckId, deckName, cardCount) => {
+            // Add the new deck to the top of the list
+            setDecks(prev => [{
+              id:         deckId,
+              name:       deckName,
+              subject:    null,
+              card_count: cardCount,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }, ...prev]);
+            setImportOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
