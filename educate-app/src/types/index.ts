@@ -5,12 +5,24 @@ export interface Question {
   marks: number;
   hint: string;
   topic?: string;
+  /** Boards this question is specific to. Absent = shared across all boards. */
+  boards?: ('AQA' | 'Edexcel' | 'OCR' | 'WJEC')[];
+  /** Tier restriction. Absent = both tiers. */
+  tier?: 'foundation' | 'higher';
+  /** True if a calculator is permitted/required. Maths / science only. */
+  calculator?: boolean;
+  /** True if this question relates to a required practical. */
+  required_practical?: boolean;
 }
 
 export interface Flashcard {
   term: string;
   definition: string;
   example: string | null;
+  /** Optional topic tag for filtering flashcards by topic */
+  topic?: string;
+  /** Boards this flashcard is specific to. Absent = all boards. */
+  boards?: ('AQA' | 'Edexcel' | 'OCR' | 'WJEC')[];
 }
 
 export interface SubjectBank {

@@ -9,6 +9,7 @@ import { Q_TYPES } from '@/data/question-types';
 import { PAST_PAPERS_INDEX } from '@/data/past-papers-index';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/Button';
+import { CombinedScienceHub } from '@/components/combined-science/CombinedScienceHub';
 
 export default function QuestionTypePage({ params }: { params: Promise<{ board: string; subject: string }> }) {
   const { board: boardName, subject: rawSubject } = use(params);
@@ -16,6 +17,16 @@ export default function QuestionTypePage({ params }: { params: Promise<{ board: 
   const board = EXAM_BOARDS[boardName];
 
   if (!board || !board.subjects.includes(subject)) notFound();
+
+  // ── Combined Science: render the three-panel hub instead of standard UI ──
+  if (subject === 'Combined Science') {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar board={boardName} subject={subject} />
+        <CombinedScienceHub board={boardName} />
+      </div>
+    );
+  }
 
   const hasPastPapers = !!PAST_PAPERS_INDEX[subject]?.[boardName];
   const isEnglishLit = subject === 'English Literature';

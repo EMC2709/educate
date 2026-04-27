@@ -2,6 +2,7 @@ import type { SubjectBank } from '@/types';
 
 export const historyBank: SubjectBank = {
   short: [
+    // --- EXISTING QUESTIONS (preserved) ---
     {
       question: "What was the name of the treaty that ended World War One?",
       answer: "The Treaty of Versailles, signed on 28 June 1919.",
@@ -13,6 +14,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 1,
       hint: "It was signed in a famous palace near Paris",
+      topic: "WWI & WWII Context",
     },
     {
       question: "What were the 'Fourteen Points'?",
@@ -25,6 +27,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "These were Wilson's ideas for peace after WWI",
+      topic: "WWI & WWII Context",
     },
     {
       question: "What was the Wall Street Crash?",
@@ -37,6 +40,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It happened in 1929 and began a global economic depression",
+      topic: "WWI & WWII Context",
     },
     {
       question: "What was Kristallnacht?",
@@ -49,6 +53,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It took place in Germany in November 1938 and targeted Jewish people",
+      topic: "Nazi Germany",
     },
     {
       question: "What was the policy of Appeasement?",
@@ -61,6 +66,8 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Neville Chamberlain's policy towards Hitler",
+      topic: "AQA — Conflict & Tension 1918-1939",
+      boards: ["AQA"],
     },
     {
       question: "Name two causes of World War One.",
@@ -73,6 +80,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Think MAIN: Militarism, Alliance, Imperialism, Nationalism",
+      topic: "WWI & WWII Context",
     },
     {
       question: "What was the Enabling Act (1933)?",
@@ -85,6 +93,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It was passed after the Reichstag Fire and ended German democracy",
+      topic: "Nazi Germany",
     },
     {
       question: "What were the Nuremberg Laws (1935)?",
@@ -97,6 +106,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "They removed citizenship rights from Jewish people in Germany",
+      topic: "Nazi Germany",
     },
     {
       question: "What was the Berlin Blockade (1948–49)?",
@@ -109,6 +119,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "The Soviet response to Western currency reform in Germany",
+      topic: "Cold War",
     },
     {
       question: "What was the Cuban Missile Crisis (1962)?",
@@ -121,6 +132,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It lasted 13 days in October 1962 and involved nuclear weapons",
+      topic: "Cold War",
     },
     {
       question: "What was the Truman Doctrine (1947)?",
@@ -133,6 +145,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It committed the USA to stopping the spread of communism",
+      topic: "Cold War",
     },
     {
       question: "Name two features of life on the American Plains before European settlement.",
@@ -145,6 +158,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Focus on the way of life of the Plains Indians (Sioux, Cheyenne, etc.)",
+      topic: "WWI & WWII Context",
     },
     {
       question: "What was the Homestead Act (1862)?",
@@ -157,6 +171,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It encouraged farming families to move to the American West",
+      topic: "WWI & WWII Context",
     },
     {
       question: "What was the significance of the Battle of the Somme (1916)?",
@@ -169,6 +184,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It was notable for the enormous casualties on the first day",
+      topic: "WWI & WWII Context",
     },
     {
       question: "What was the Weimar Republic?",
@@ -181,6 +197,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It was Germany's democratic government between the wars",
+      topic: "Nazi Germany",
     },
     {
       question: "Name one cause of the Korean War (1950–53).",
@@ -193,6 +210,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 1,
       hint: "Think about Cold War tensions and the division of Korea",
+      topic: "Cold War",
     },
     {
       question: "What was detente?",
@@ -205,6 +223,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It was a relaxation of Cold War tensions in the 1970s",
+      topic: "Cold War",
     },
     {
       question: "Who was Rosa Parks and what did she do in 1955?",
@@ -217,6 +236,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "She sparked a famous boycott in Montgomery, Alabama",
+      topic: "Cold War",
     },
     {
       question: "What were the main provisions of the Civil Rights Act (1964)?",
@@ -229,6 +249,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It was signed by President Johnson and outlawed racial segregation",
+      topic: "Cold War",
     },
     {
       question: "What was 'No Man's Land' in World War One?",
@@ -241,9 +262,338 @@ export const historyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It was the ground between the two sets of trenches",
+      topic: "WWI & WWII Context",
+    },
+
+    // --- NEW SHORT QUESTIONS ---
+
+    // Nazi Germany
+    {
+      question: "In what year did Adolf Hitler become Chancellor of Germany?",
+      answer: "January 1933. Hitler was appointed Chancellor by President Hindenburg on 30 January 1933.",
+      acceptedAnswers: [
+        "1933",
+        "30 January 1933",
+        "January 1933",
+        "Hitler became Chancellor in 1933 when Hindenburg appointed him",
+      ],
+      marks: 1,
+      hint: "It was the same year the Reichstag Fire occurred",
+      topic: "Nazi Germany",
+    },
+    {
+      question: "What was the Gestapo?",
+      answer: "The Gestapo (Geheime Staatspolizei) was the Nazi secret police, established in 1933 under Hermann Goering and later run by Heinrich Himmler. It was responsible for enforcing Nazi ideology, arresting political opponents, and persecuting Jews.",
+      acceptedAnswers: [
+        "The Nazi secret police responsible for arresting political opponents and enforcing Nazi rule",
+        "Hitler's secret police force that investigated and persecuted enemies of the Nazi regime",
+        "Geheime Staatspolizei — the secret state police that enforced Nazi terror",
+        "The secret police force used to crush opposition and enforce Nazi ideology in Germany",
+      ],
+      marks: 2,
+      hint: "Its name means 'Secret State Police' in German",
+      topic: "Nazi Germany",
+    },
+    {
+      question: "What was the Hitler Youth?",
+      answer: "The Hitler Youth (Hitlerjugend) was the Nazi Party's youth organisation for boys aged 14–18. Membership became compulsory in 1936. It indoctrinated young Germans with Nazi ideology, prepared boys for military service, and emphasised loyalty to Hitler above family and church.",
+      acceptedAnswers: [
+        "A compulsory Nazi youth organisation for boys that indoctrinated them with Nazi ideology and prepared them for military service",
+        "The Hitlerjugend — Nazi organisation that indoctrinated boys aged 14–18 with Nazi beliefs and prepared them for war",
+        "A Nazi youth movement, compulsory from 1936, that taught boys loyalty to Hitler and Nazi racial ideology",
+        "Nazi youth movement for boys aged 14–18 that became compulsory in 1936 and focused on military training and Nazi indoctrination",
+      ],
+      marks: 2,
+      hint: "Membership became compulsory in 1936 for boys aged 14–18",
+      topic: "Nazi Germany",
+    },
+    {
+      question: "What was the Night of the Long Knives?",
+      answer: "A purge carried out by Hitler on 29–30 June 1934, in which the leadership of the SA (Stormtroopers) including Ernst Röhm was murdered, along with other perceived opponents. It eliminated a rival power base and showed Hitler's ruthlessness.",
+      acceptedAnswers: [
+        "Hitler's purge of the SA leadership on 29–30 June 1934, killing Ernst Röhm and around 200 others",
+        "A violent purge in June 1934 when Hitler had SA leaders and other opponents murdered to consolidate power",
+        "The elimination of the SA leadership including Ernst Röhm in June 1934, strengthening Hitler's control",
+        "A June 1934 purge where Hitler ordered the murder of SA leaders and political rivals",
+      ],
+      marks: 2,
+      hint: "It took place in June 1934 and targeted the SA leadership",
+      topic: "Nazi Germany",
+    },
+    {
+      question: "What were the SS (Schutzstaffel)?",
+      answer: "The SS was Hitler's elite personal guard, originally his bodyguard unit, which grew under Himmler into a vast organisation controlling the concentration camps, the Gestapo, and the Einsatzgruppen death squads responsible for mass shootings of Jews during the Holocaust.",
+      acceptedAnswers: [
+        "Hitler's elite guard that grew to control concentration camps, the Gestapo, and death squads during the Holocaust",
+        "The Schutzstaffel — elite Nazi force under Himmler that ran the concentration camps and carried out the Holocaust",
+        "Nazi elite organisation that administered concentration camps and led mass killings of Jews",
+        "Hitler's personal bodyguard force that expanded to enforce the Holocaust, run by Heinrich Himmler",
+      ],
+      marks: 2,
+      hint: "Its leader was Heinrich Himmler and it ran the concentration camps",
+      topic: "Nazi Germany",
+    },
+
+    // Medicine Through Time
+    {
+      question: "Who was Hippocrates and why is he significant in the history of medicine?",
+      answer: "Hippocrates (c.460–370 BC) was an ancient Greek physician known as the 'father of medicine'. He rejected supernatural explanations of disease and promoted the idea that illness had natural causes. He developed the Theory of the Four Humours and the importance of clinical observation.",
+      acceptedAnswers: [
+        "Ancient Greek doctor known as the 'father of medicine' who believed illness had natural rather than supernatural causes",
+        "A Greek physician who rejected supernatural causes of disease, developed the Four Humours theory and emphasised observation",
+        "The ancient Greek doctor who proposed natural causes for disease and clinical observation, foundational to Western medicine",
+        "Hippocrates was a Greek physician who moved medicine away from supernatural explanations towards natural causes, developing the Four Humours theory",
+      ],
+      marks: 2,
+      hint: "He is called the 'father of medicine' and was from ancient Greece",
+      topic: "Medicine Through Time",
+    },
+    {
+      question: "What was the Theory of the Four Humours?",
+      answer: "An ancient Greek theory, associated with Hippocrates and later Galen, that the human body contained four humours: blood, phlegm, yellow bile and black bile. Health meant these were balanced; illness resulted from an imbalance. Treatments like bloodletting aimed to restore balance.",
+      acceptedAnswers: [
+        "The idea that the body contains four humours (blood, phlegm, yellow bile, black bile) and that disease results from imbalance between them",
+        "Ancient theory that health depended on balance between blood, phlegm, yellow bile and black bile; imbalance caused illness",
+        "A theory by Hippocrates/Galen that four bodily fluids (humours) must be in balance for good health, with illness caused by imbalance",
+        "The belief that four fluids — blood, phlegm, yellow bile, black bile — governed health and disease through their balance",
+      ],
+      marks: 2,
+      hint: "It involves four bodily fluids and the idea of balance",
+      topic: "Medicine Through Time",
+    },
+    {
+      question: "What was penicillin and who discovered it?",
+      answer: "Penicillin is the world's first antibiotic, discovered by Alexander Fleming in 1928 when he noticed that the mould Penicillium notatum was killing bacteria on a petri dish. It was developed into a usable drug by Florey and Chain in 1940–41 and mass-produced during WWII, saving hundreds of thousands of lives.",
+      acceptedAnswers: [
+        "The first antibiotic, discovered by Alexander Fleming in 1928 when mould killed bacteria on a petri dish; mass-produced in WWII",
+        "Fleming discovered penicillin in 1928 — the first antibiotic, later developed by Florey and Chain and mass-produced in WWII",
+        "An antibiotic discovered by Fleming in 1928 and mass-produced during WWII that revolutionised the treatment of bacterial infections",
+        "World's first antibiotic discovered accidentally by Fleming in 1928, developed by Florey and Chain by 1941 and used widely in WWII",
+      ],
+      marks: 2,
+      hint: "It was discovered by Alexander Fleming in 1928 in his laboratory",
+      topic: "Medicine Through Time",
+    },
+    {
+      question: "When was the National Health Service (NHS) established and why?",
+      answer: "The NHS was established on 5 July 1948 by the post-war Labour government under Health Minister Aneurin Bevan. It provided free healthcare at the point of use for all British citizens, ending the era when people could not afford medical treatment. It was funded through taxation and National Insurance.",
+      acceptedAnswers: [
+        "The NHS was founded on 5 July 1948 by Aneurin Bevan to provide free healthcare for all British people",
+        "Established in 1948 under Aneurin Bevan, the NHS made healthcare free at the point of use for everyone in Britain",
+        "1948 — the Labour government created the NHS to give everyone access to free medical care regardless of ability to pay",
+        "Founded 5 July 1948 by Bevan to ensure all Britons received free healthcare funded by taxation",
+      ],
+      marks: 2,
+      hint: "It was set up by a Labour government minister with a Welsh name",
+      topic: "Medicine Through Time",
+    },
+    {
+      question: "What did Andreas Vesalius contribute to medicine?",
+      answer: "Vesalius (1514–1564) was a Flemish physician who challenged Galen by conducting his own dissections of human corpses. In his 1543 book 'On the Fabric of the Human Body', he identified over 200 errors in Galen's work, showing the importance of direct observation over ancient authority.",
+      acceptedAnswers: [
+        "Vesalius challenged Galen's authority in 1543 by dissecting human bodies and identifying over 200 errors in Galen's work",
+        "He produced the first accurate anatomical textbook in 1543 based on human dissection, correcting over 200 of Galen's mistakes",
+        "A Flemish physician who used direct observation and human dissection to correct Galen's errors, published in 'On the Fabric of the Human Body' (1543)",
+        "Vesalius showed through dissection that Galen had made over 200 mistakes, breaking with the tradition of accepting ancient authority without question",
+      ],
+      marks: 2,
+      hint: "He produced a famous anatomy textbook in 1543 that corrected Galen",
+      topic: "Medicine Through Time",
+    },
+
+    // AQA — Russia/Soviet Union
+    {
+      question: "What happened in the February Revolution of 1917?",
+      answer: "In February 1917 (March in the Western calendar), mass protests over food shortages and WWI casualties in Petrograd led to soldiers refusing orders to fire on crowds. Tsar Nicholas II abdicated on 2 March 1917. A Provisional Government was established to run Russia.",
+      acceptedAnswers: [
+        "Protests over food shortages and WWI in Petrograd led to Nicholas II abdicating in March 1917",
+        "Tsar Nicholas II abdicated after widespread protests and mutinies in Petrograd over food shortages and war losses",
+        "The Tsar abdicated in February/March 1917 after mutinous soldiers refused to fire on protesters demonstrating over food and the war",
+        "Mass protests in Petrograd and army mutinies led Nicholas II to abdicate, ending tsarist rule in Russia in February 1917",
+      ],
+      marks: 2,
+      hint: "It led to the abdication of Tsar Nicholas II",
+      topic: "AQA — Russia/Soviet Union 1917-1941",
+      boards: ["AQA"],
+    },
+    {
+      question: "What was the Bolshevik October Revolution (1917)?",
+      answer: "In October 1917 (November in the Western calendar), the Bolsheviks under Lenin seized power from the Provisional Government in Petrograd. They stormed the Winter Palace on 25 October. Lenin then issued decrees on peace, land redistribution, and workers' control of factories.",
+      acceptedAnswers: [
+        "Lenin's Bolsheviks seized power from the Provisional Government in October 1917, storming the Winter Palace",
+        "The Bolshevik seizure of power in October/November 1917, replacing the Provisional Government and issuing decrees on peace and land",
+        "The October 1917 coup by Lenin's Bolsheviks against the Provisional Government, beginning communist rule in Russia",
+        "Bolsheviks stormed the Winter Palace in October 1917, overthrowing the Provisional Government and beginning the Soviet state",
+      ],
+      marks: 2,
+      hint: "Lenin's Bolsheviks took power from the Provisional Government",
+      topic: "AQA — Russia/Soviet Union 1917-1941",
+      boards: ["AQA"],
+    },
+    {
+      question: "What was Stalin's policy of collectivisation?",
+      answer: "Stalin forced peasants off their individual farms and into large state-run collective farms (kolkhozy) from 1929 onwards. Wealthy peasants (kulaks) were 'liquidated as a class' — killed, imprisoned or deported. Collectivisation caused a famine in 1932–33 in which millions died, especially in Ukraine.",
+      acceptedAnswers: [
+        "Stalin forced peasants into state collective farms from 1929, eliminating kulaks and causing a famine that killed millions",
+        "The forced merging of private farms into collective farms under state control, destroying the kulaks and causing the 1932–33 famine",
+        "Stalin's policy of merging individual farms into kolkhozy, persecuting kulaks and causing the Ukrainian famine of 1932–33",
+        "Forcing peasants into collective farms from 1929, killing kulaks and causing a famine that killed millions, especially in Ukraine",
+      ],
+      marks: 2,
+      hint: "It involved state-run collective farms and the persecution of kulaks",
+      topic: "AQA — Russia/Soviet Union 1917-1941",
+      boards: ["AQA"],
+    },
+    {
+      question: "What were the Stalinist purges of the 1930s?",
+      answer: "Stalin's Great Purge (1936–38) was a campaign of political repression in which millions of Soviet citizens were arrested, executed or sent to the Gulag labour camps. Show trials were used against 'Old Bolsheviks' like Zinoviev and Bukharin. The Red Army lost 3 of its 5 Marshals.",
+      acceptedAnswers: [
+        "A mass campaign of repression in 1936–38 where millions were arrested, executed or sent to Gulag camps; show trials targeted Old Bolsheviks",
+        "Stalin's Great Purge removed potential rivals through show trials, executions and Gulag sentences, devastating the Soviet military and Communist Party",
+        "The terror of 1936–38 in which Stalin eliminated rivals through show trials, executing Old Bolsheviks and sending millions to the Gulag",
+        "Mass arrests, show trials and executions in 1936–38 that killed millions including most of the Red Army's senior officers",
+      ],
+      marks: 2,
+      hint: "They involved show trials of Old Bolsheviks and millions sent to the Gulag",
+      topic: "AQA — Russia/Soviet Union 1917-1941",
+      boards: ["AQA"],
+    },
+
+    // AQA — Elizabethan England
+    {
+      question: "What was the Elizabethan Religious Settlement (1559)?",
+      answer: "Elizabeth I's Religious Settlement of 1559 made England a Protestant country through the Act of Supremacy (making Elizabeth Supreme Governor of the Church of England) and the Act of Uniformity (requiring church services to follow the Protestant Prayer Book). It aimed to be a moderate 'middle way' between Catholicism and extreme Protestantism.",
+      acceptedAnswers: [
+        "Two Acts of 1559 that made England Protestant — Act of Supremacy made Elizabeth head of the Church; Act of Uniformity imposed Protestant worship",
+        "Elizabeth's 1559 settlement that restored Protestantism through the Act of Supremacy and Act of Uniformity, aiming for a moderate middle way",
+        "The Acts of Supremacy and Uniformity that established Elizabeth as head of a Protestant Church of England with a moderate Prayer Book",
+        "A middle-way Protestant settlement in 1559 making Elizabeth Supreme Governor of the Church and enforcing Protestant services",
+      ],
+      marks: 2,
+      hint: "It involved two Acts — Supremacy and Uniformity — and aimed for a 'middle way'",
+      topic: "AQA — Elizabethan England",
+      boards: ["AQA"],
+    },
+    {
+      question: "Name two threats that Elizabeth I faced during her reign.",
+      answer: "Any two from: Mary Queen of Scots (Catholic rival claimant); the Northern Earls' Rebellion (1569); the Ridolfi Plot (1571); the Throckmorton Plot (1583); the Babington Plot (1586); the Spanish Armada (1588); Catholic missionary priests.",
+      acceptedAnswers: [
+        "Mary Queen of Scots and the Spanish Armada",
+        "The Babington Plot and the Northern Earls' Rebellion",
+        "Catholic missionary priests and the threat from Philip II of Spain",
+        "The Spanish Armada (1588) and Mary Queen of Scots as a Catholic rival claimant",
+      ],
+      marks: 2,
+      hint: "Think about threats from Catholics — at home and abroad",
+      topic: "AQA — Elizabethan England",
+      boards: ["AQA"],
+    },
+
+    // Edexcel — Anglo-Saxon England
+    {
+      question: "Who won the Battle of Hastings and in what year?",
+      answer: "William, Duke of Normandy (William the Conqueror) defeated Harold Godwinson at the Battle of Hastings on 14 October 1066. Harold was killed — traditionally said to have been shot in the eye with an arrow.",
+      acceptedAnswers: [
+        "William of Normandy (William the Conqueror) won the Battle of Hastings in 1066",
+        "William the Conqueror defeated Harold Godwinson on 14 October 1066",
+        "William, Duke of Normandy, won in 1066, killing King Harold Godwinson",
+        "William the Conqueror defeated Harold at Hastings on 14 October 1066 to become King of England",
+      ],
+      marks: 2,
+      hint: "The battle took place in 1066 between a Norman duke and the Anglo-Saxon king",
+      topic: "Edexcel — Anglo-Saxon England 1060-1088",
+      boards: ["Edexcel"],
+    },
+    {
+      question: "What was the Domesday Book?",
+      answer: "A survey of England ordered by William I in 1085 and completed in 1086. It recorded who owned each piece of land and its value before and after the Norman Conquest, allowing William to assess taxation and understand his kingdom. It is one of the oldest surviving public records in England.",
+      acceptedAnswers: [
+        "A survey of England ordered by William I in 1086 recording land ownership and value for taxation purposes",
+        "William the Conqueror's 1086 survey of all land and landholders in England, used to assess wealth and taxation",
+        "A detailed land survey commissioned by William I in 1085–86 to record ownership and value of every estate in England",
+        "England's first national survey, ordered by William I in 1085 and completed 1086, recording all land and its value for tax purposes",
+      ],
+      marks: 2,
+      hint: "It was a survey ordered by William I to record land and wealth across England",
+      topic: "Edexcel — Anglo-Saxon England 1060-1088",
+      boards: ["Edexcel"],
+    },
+    {
+      question: "Who were the claimants to the English throne in 1066?",
+      answer: "There were three main claimants: Harold Godwinson (the most powerful English earl, chosen by the Witan); Harald Hardrada of Norway (claimed through descent from Cnut); and William, Duke of Normandy (claimed Edward the Confessor had promised him the throne and Harold had sworn an oath to support him).",
+      acceptedAnswers: [
+        "Harold Godwinson, Harald Hardrada of Norway, and William Duke of Normandy",
+        "Three claimants: Harold Godwinson (chosen by Witan), Harald Hardrada (Norwegian), and William of Normandy",
+        "Harold Godwinson, William of Normandy, and Harald Hardrada all claimed the English throne in 1066",
+        "William of Normandy, Harold Godwinson, and Harald Hardrada of Norway",
+      ],
+      marks: 2,
+      hint: "One was the English earl, one Norwegian, one Norman",
+      topic: "Edexcel — Anglo-Saxon England 1060-1088",
+      boards: ["Edexcel"],
+    },
+
+    // AQA — Conflict & Tension 1918-1939
+    {
+      question: "What was the League of Nations?",
+      answer: "An international organisation established after WWI in 1920, proposed by Woodrow Wilson in his Fourteen Points. Its aim was to maintain peace through collective security, arbitration of disputes, and disarmament. It was fatally weakened because the USA never joined, and it lacked a permanent military force.",
+      acceptedAnswers: [
+        "An international peacekeeping body set up in 1920, proposed by Wilson, but weakened because the USA never joined",
+        "The international organisation established after WWI to maintain peace through collective security, undermined by US absence",
+        "Wilson's proposed international organisation set up in 1920 to prevent war, but never joined by the USA and lacking real power",
+        "A peacekeeping organisation founded in 1920 that was weakened by American non-membership and inability to enforce decisions",
+      ],
+      marks: 2,
+      hint: "It was set up after WWI but the USA refused to join",
+      topic: "AQA — Conflict & Tension 1918-1939",
+      boards: ["AQA"],
+    },
+    {
+      question: "What was the Munich Agreement (1938)?",
+      answer: "An agreement signed in September 1938 by Chamberlain (Britain), Daladier (France), Hitler (Germany) and Mussolini (Italy), without Czech representation, that gave Hitler the Sudetenland region of Czechoslovakia. Chamberlain returned claiming it meant 'peace for our time'.",
+      acceptedAnswers: [
+        "A 1938 agreement giving Hitler the Sudetenland of Czechoslovakia, signed by Britain, France, Germany and Italy without Czech input",
+        "Chamberlain's appeasement deal with Hitler in September 1938 that handed the Sudetenland to Germany",
+        "The agreement signed by Chamberlain, Daladier, Hitler and Mussolini in 1938 giving Hitler the Sudetenland, symbolising appeasement",
+        "Hitler gained the Sudetenland from Czechoslovakia in September 1938 through a deal with Chamberlain, Daladier and Mussolini",
+      ],
+      marks: 2,
+      hint: "Chamberlain returned from this meeting claiming 'peace for our time'",
+      topic: "AQA — Conflict & Tension 1918-1939",
+      boards: ["AQA"],
+    },
+
+    // Cold War — additional
+    {
+      question: "What was the Iron Curtain?",
+      answer: "A phrase used by Winston Churchill in a speech in Fulton, Missouri in March 1946 to describe the division of Europe between Soviet-controlled Eastern Europe and the democratic West. The Iron Curtain was both a metaphorical and, later, a physical border — most literally represented by the Berlin Wall (1961).",
+      acceptedAnswers: [
+        "Churchill's term for the dividing line between Soviet-controlled Eastern Europe and the democratic West, used from 1946",
+        "The division of Europe between communist East and democratic West, described by Churchill as an 'iron curtain' in 1946",
+        "A phrase from Churchill's 1946 speech describing Soviet domination of Eastern Europe, later made physical by the Berlin Wall",
+        "The metaphorical (and partly physical) barrier separating communist Eastern Europe from the West, coined by Churchill in 1946",
+      ],
+      marks: 2,
+      hint: "Churchill used this phrase in a 1946 speech in the USA",
+      topic: "Cold War",
+    },
+    {
+      question: "What was the Marshall Plan (1948)?",
+      answer: "The Marshall Plan was a US programme of economic aid worth $13 billion provided to rebuild Western European economies after WWII, named after US Secretary of State George Marshall. It aimed to prevent poverty creating conditions for communist takeover. Stalin refused to let Eastern European countries accept it.",
+      acceptedAnswers: [
+        "A US aid programme of $13 billion to rebuild Western Europe after WWII, designed to prevent the spread of communism",
+        "George Marshall's 1948 plan giving $13 billion to Western Europe to rebuild economies and resist communist influence",
+        "American economic aid programme named after Secretary of State Marshall, giving $13bn to Western Europe and blocked from Eastern Europe by Stalin",
+        "$13 billion of US aid to rebuild Western European economies and reduce poverty that might lead to communist takeover",
+      ],
+      marks: 2,
+      hint: "It was a massive US economic aid programme named after a Secretary of State",
+      topic: "Cold War",
     },
   ],
+
   mid: [
+    // --- EXISTING QUESTIONS (preserved) ---
     {
       question: "Explain why the Treaty of Versailles caused resentment in Germany.",
       answer: "Germany was forced to accept sole blame for WWI under the 'War Guilt Clause' (Article 231). They had to pay £6.6 billion in reparations, causing economic hardship. Germany lost 13% of its territory including the Polish Corridor, separating Germany from East Prussia. The army was limited to 100,000 men. German people felt humiliated — many believed they had not truly lost the war ('stab in the back' myth). This resentment contributed to the rise of extremist parties including the Nazis.",
@@ -255,6 +605,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover: war guilt, reparations, land losses, military restrictions, and the emotional impact",
+      topic: "WWI & WWII Context",
     },
     {
       question: "Explain how Hitler consolidated power between 1933 and 1934.",
@@ -267,6 +618,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 5,
       hint: "Cover: Reichstag Fire, Enabling Act, banning parties, Night of Long Knives, death of Hindenburg",
+      topic: "Nazi Germany",
     },
     {
       question: "Describe the conditions faced by soldiers in the trenches during World War One.",
@@ -279,6 +631,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover at least 3 different challenges — physical conditions, disease, psychological effects, danger",
+      topic: "WWI & WWII Context",
     },
     {
       question: "Explain the causes of the Cuban Missile Crisis in 1962.",
@@ -291,6 +644,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover the long-term (Cold War, arms race), medium-term (Castro's Cuba) and immediate (U-2 discovery) causes",
+      topic: "Cold War",
     },
     {
       question: "Explain the impact of the Black Death on medieval medicine.",
@@ -303,6 +657,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Consider both what the Black Death revealed about weaknesses in medicine AND whether it actually changed things immediately",
+      topic: "Medicine Through Time",
     },
     {
       question: "Describe how the lives of African Americans changed during the Civil Rights Movement between 1954 and 1965.",
@@ -315,6 +670,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover legal changes, direct action successes, but also the limits and continuing inequality",
+      topic: "Cold War",
     },
     {
       question: "Explain why the USA became involved in the Vietnam War.",
@@ -327,6 +683,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Use the domino theory, Truman Doctrine, and Gulf of Tonkin incident. Explain the Cold War context.",
+      topic: "Cold War",
     },
     {
       question: "Explain the significance of Edward Jenner's discovery of vaccination.",
@@ -339,6 +696,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Explain the discovery, why it was significant at the time, and its long-term impact",
+      topic: "Medicine Through Time",
     },
     {
       question: "Explain why there was a policy of appeasement towards Germany in the 1930s.",
@@ -351,6 +709,8 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover: memory of WWI, military unreadiness, sympathy with some German grievances, fear of communism, public opinion",
+      topic: "AQA — Conflict & Tension 1918-1939",
+      boards: ["AQA"],
     },
     {
       question: "Describe the key features of the Nazi economic recovery between 1933 and 1939.",
@@ -363,9 +723,149 @@ export const historyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover public works, rearmament, the Four Year Plan. Note the limits — debt, loss of workers' rights, preparation for war",
+      topic: "Nazi Germany",
+    },
+
+    // --- NEW MID QUESTIONS ---
+    {
+      question: "Explain the significance of the Battle of Hastings (1066) for the future of England.",
+      answer: "The Battle of Hastings on 14 October 1066 was one of the most significant events in English history. William of Normandy's victory led to a wholesale change of the ruling class — within 20 years almost all Anglo-Saxon lords had been replaced by Normans. The feudal system was imposed more rigidly than before. The English language was transformed by Norman French influence. The Domesday Book (1086) gave the king unprecedented knowledge of his kingdom's wealth. The Norman church was reformed and brought closer to Rome. However, some Anglo-Saxon institutions such as the shire system and common law survived and were incorporated into the new order.",
+      acceptedAnswers: [
+        "It led to Norman rule replacing Anglo-Saxon lords, a more rigid feudal system, French influence on English language, and the Domesday Book",
+        "The Norman Conquest transformed England: Anglo-Saxon lords replaced by Normans, feudalism strengthened, English language changed, Domesday Book compiled",
+        "Hugely significant: it replaced the entire English ruling class with Normans, imposed feudalism, transformed language, and produced the Domesday Book",
+        "William's victory led to replacement of Anglo-Saxon elites, Norman feudalism, language change, and gave the king new control through the Domesday Book",
+      ],
+      marks: 4,
+      hint: "Cover ruling class changes, feudalism, language, Domesday Book, and how some Anglo-Saxon traditions survived",
+      topic: "Edexcel — Anglo-Saxon England 1060-1088",
+      boards: ["Edexcel"],
+    },
+    {
+      question: "Describe how Stalin used terror to maintain control in the Soviet Union in the 1930s.",
+      answer: "Stalin used multiple forms of terror. The secret police (NKVD under Yezhov) arrested millions — around 750,000 were executed during 1936–38 alone. Show trials were staged against Old Bolsheviks such as Zinoviev, Kamenev and Bukharin, who were forced to confess to impossible crimes before execution. The Gulag network of labour camps imprisoned millions — estimates suggest 18 million passed through the Gulag system. Purges extended to the Red Army, removing 3 of 5 Marshals and thousands of officers. Stalin also used propaganda, the cult of personality, and fear of denouncement by neighbours to maintain control.",
+      acceptedAnswers: [
+        "Stalin used the NKVD, show trials of Old Bolsheviks, Gulag camps, army purges, and the cult of personality to maintain terror and control",
+        "The NKVD carried out mass arrests and executions; show trials removed Old Bolsheviks; Gulags held millions; army purges weakened the military but removed rivals",
+        "Terror through NKVD arrests, public show trials, Gulag imprisonment of millions, and army purges, alongside propaganda and the cult of personality",
+        "Stalin's terror included NKVD mass arrests, show trials of Old Bolsheviks, execution of 750,000 in 1936–38, and the Gulag system holding millions",
+      ],
+      marks: 5,
+      hint: "Cover NKVD, show trials, Gulag, army purges, and the cult of personality",
+      topic: "AQA — Russia/Soviet Union 1917-1941",
+      boards: ["AQA"],
+    },
+    {
+      question: "Explain the causes of the Cold War between 1945 and 1949.",
+      answer: "The Cold War emerged from several factors. Ideological conflict between US capitalism and Soviet communism predated 1945 but was intensified by wartime alliance becoming postwar rivalry. The USSR set up Soviet-dominated governments across Eastern Europe (Poland, Czechoslovakia, Romania, Bulgaria, Hungary) which the USA saw as a violation of the Yalta Agreement. The Truman Doctrine (1947) committed the USA to containment; the Marshall Plan (1948) was seen by Stalin as economic imperialism. The Berlin Blockade (1948–49) hardened divisions. The Soviet atomic bomb test (1949) and Chinese communist victory (1949) further alarmed the USA.",
+      acceptedAnswers: [
+        "Ideological conflict, Soviet domination of Eastern Europe (breaking Yalta), Truman Doctrine, Marshall Plan, Berlin Blockade, and Soviet atomic bomb all drove the Cold War",
+        "US–Soviet ideological rivalry, USSR's Eastern European satellite states breaking Yalta promises, Truman Doctrine, Marshall Plan, and Berlin Blockade created the Cold War",
+        "Cold War caused by ideological differences, Soviet domination of Eastern Europe, Truman Doctrine and Marshall Plan as containment, and Berlin Blockade hardening divisions",
+        "The shift from wartime alliance to rivalry was driven by Soviet expansion in Eastern Europe, US containment policy (Truman Doctrine/Marshall Plan), and the Berlin Blockade",
+      ],
+      marks: 5,
+      hint: "Cover ideology, Eastern Europe satellites, Yalta breakdown, Truman Doctrine, Marshall Plan, Berlin Blockade",
+      topic: "Cold War",
+    },
+    {
+      question: "Explain how surgery changed between 1845 and 1900.",
+      answer: "Before 1845, surgery was extremely dangerous — patients were conscious and in agony, and post-operative infection killed most. Three key changes transformed surgery. First, anaesthetics: ether (1842, Morton) and chloroform (1847, Simpson) eliminated pain and allowed longer operations. Second, antiseptics: Lister applied Pasteur's germ theory by using carbolic acid spray (1867), cutting post-operative deaths in his wards from 46% to 15%. Third, aseptic technique: by the 1890s, surgeons used sterilised instruments, gowns and rubber gloves, killing bacteria before they could infect. The result was that surgery became far safer — though it still carried significant risks.",
+      acceptedAnswers: [
+        "Anaesthetics (ether 1842, chloroform 1847) eliminated pain; Lister's antiseptic carbolic spray (1867) cut infection deaths; aseptic techniques made surgery far safer by the 1890s",
+        "Three changes: anaesthetics allowing painless surgery, Lister's antiseptic carbolic acid reducing infection, and aseptic sterilisation of instruments — transforming surgery from a death sentence to a survivable procedure",
+        "Surgery was transformed by chloroform (1847) ending pain, Lister's carbolic spray (1867) cutting infection, and aseptic techniques — mortality in Lister's wards fell from 46% to 15%",
+        "Anaesthetics (1842–47), Lister's antiseptics (1867) reducing deaths from 46% to 15%, and aseptic sterilisation in the 1890s made surgery dramatically safer",
+      ],
+      marks: 5,
+      hint: "Three key changes: anaesthetics, antiseptics (Lister), aseptic technique. Cover dates and named individuals.",
+      topic: "Medicine Through Time",
+    },
+    {
+      question: "Describe the key features of Elizabeth I's government and how she managed her court.",
+      answer: "Elizabeth governed through her Privy Council — a group of trusted advisors including William Cecil (Lord Burghley) and Robert Dudley. She used Parliaments to pass laws and raise taxes but kept MPs' powers limited and avoided summoning Parliament unnecessarily. Elizabeth used the royal 'progresses' — tours of the country — to display royal power and reduce court costs. She managed powerful nobles through patronage — granting titles, lands and positions to maintain loyalty. She also maintained a cult of the Virgin Queen, never marrying, which preserved her political freedom but created a succession problem.",
+      acceptedAnswers: [
+        "Elizabeth governed through the Privy Council, used patronage to control nobles, made limited use of Parliament, and promoted the cult of the Virgin Queen through progresses and imagery",
+        "She relied on trusted advisors in the Privy Council (Cecil, Dudley), controlled nobles through patronage, limited Parliament's role, and used royal progresses and the Virgin Queen image",
+        "Key features: Privy Council with trusted advisors, Parliament used sparingly, patronage to manage nobles, royal progresses to project power, and the Virgin Queen cult",
+        "Elizabeth's government used the Privy Council, patronage networks, limited Parliaments, progresses to project power, and the Virgin Queen image to maintain control",
+      ],
+      marks: 4,
+      hint: "Cover Privy Council, Parliament, patronage, progresses, and the Virgin Queen image",
+      topic: "AQA — Elizabethan England",
+      boards: ["AQA"],
+    },
+    {
+      question: "Explain why the League of Nations failed to maintain peace in the 1930s.",
+      answer: "The League failed for several reasons. Structurally, the USA never joined — without the world's leading economic power, the League lacked credibility. The requirement for unanimous decisions made it slow and ineffective. It had no permanent army so could not enforce decisions. In practice, the League's failures were damning: it failed to stop Japan's invasion of Manchuria (1931) — the Lytton Commission condemned Japan but Japan simply left the League; it failed to stop Italy's invasion of Abyssinia (1935–36) — sanctions were half-hearted and the Hoare-Laval Pact secretly offered Italy most of Abyssinia anyway. These failures convinced Hitler that the League was toothless, emboldening him.",
+      acceptedAnswers: [
+        "Structural weaknesses (no USA, no army, unanimous decisions) and practical failures (Manchuria 1931, Abyssinia 1935) convinced Hitler the League was powerless",
+        "The League failed because the USA never joined, it lacked an army, needed unanimous decisions, and failed against Japan in Manchuria and Italy in Abyssinia",
+        "No US membership, no permanent army, and unanimous vote requirement combined with failures over Manchuria and Abyssinia showed the League could not stop aggression",
+        "The League's structural flaws (absent USA, no army, veto system) and failed responses to Manchuria (1931) and Abyssinia (1935–36) destroyed its credibility",
+      ],
+      marks: 5,
+      hint: "Cover structural weaknesses (USA, no army, unanimous decisions) and specific case studies (Manchuria, Abyssinia)",
+      topic: "AQA — Conflict & Tension 1918-1939",
+      boards: ["AQA"],
+    },
+    {
+      question: "Explain the significance of William Harvey's discovery of blood circulation.",
+      answer: "William Harvey (1578–1657) discovered that blood circulates around the body continuously, pumped by the heart. Published in 1628 in 'On the Motion of the Heart and Blood', his work disproved Galen's claim that blood was produced in the liver and consumed by the body. Harvey used direct observation and experiments — including calculating that the heart pumps more blood per hour than the body could produce — to prove his case. This was hugely significant: it showed that ancient authorities like Galen could be wrong; it used scientific method; and it eventually (though not immediately) improved understanding of how medicines travel around the body.",
+      acceptedAnswers: [
+        "Harvey proved in 1628 that blood circulates continuously, disproving Galen's theory and showing ancient authorities could be wrong — a key step in the scientific method",
+        "Harvey's 1628 discovery that the heart pumps blood in a continuous circuit disproved Galen, applied scientific method, and advanced understanding of the body",
+        "Huge significance: it overturned Galen (blood circulates rather than being consumed), established scientific method in medicine, and improved understanding of how the body works",
+        "Harvey proved blood circulates rather than being consumed, disproved Galen's theory, and showed the power of direct observation and experiment — published 1628",
+      ],
+      marks: 4,
+      hint: "Cover what Harvey discovered, how he proved it, that it disproved Galen, and why the method was significant",
+      topic: "Medicine Through Time",
+    },
+    {
+      question: "Describe how William I controlled England after the Norman Conquest.",
+      answer: "William used several methods to consolidate control after 1066. He redistributed land taken from Anglo-Saxon lords to loyal Norman barons in exchange for military service, imposing a stricter feudal system. He built castles throughout England — initially motte-and-bailey, later stone — as military bases and symbols of power. The Domesday Book (1086) gave him detailed knowledge of every estate and its wealth for taxation. He kept the Church loyal by appointing Normans to senior church positions such as Lanfranc as Archbishop of Canterbury. He was ruthless against rebellion — the Harrying of the North (1069–70) devastated northern England in response to Danish-backed revolts.",
+      acceptedAnswers: [
+        "William controlled England through feudalism (land for loyalty), castle building, the Domesday Book, church appointments, and brutal suppression like the Harrying of the North",
+        "Control through redistributing land to Norman lords, building castles, the 1086 Domesday Book for taxation, appointing Normans to the Church, and crushing revolts harshly",
+        "Castle building, feudal land redistribution, Domesday Book, loyal Norman bishops, and violent suppression of rebellion (Harrying of the North) secured William's control",
+        "Feudalism rewarded loyal Normans with land; castles projected military power; Domesday Book enabled taxation; church appointments maintained loyalty; revolts were crushed with the Harrying of the North",
+      ],
+      marks: 5,
+      hint: "Cover feudalism, castle building, Domesday Book, church control, and responses to rebellion",
+      topic: "Edexcel — Anglo-Saxon England 1060-1088",
+      boards: ["Edexcel"],
+    },
+    {
+      question: "Explain how the role of women changed in Nazi Germany after 1933.",
+      answer: "The Nazis had a clear ideological vision for women summed up in 'Kinder, Küche, Kirche' (children, kitchen, church). Professional women were dismissed from jobs in medicine, law and the civil service. The Law for the Encouragement of Marriage (1933) offered interest-free loans to couples who married, provided the woman left work. The Lebensborn programme encouraged racially 'pure' women to have children. Women were celebrated as mothers — the Mother's Cross medal was awarded for bearing children (bronze for 4, silver for 6, gold for 8). The League of German Girls (BDM) trained girls for their domestic role. However, the demands of rearmament eventually forced the regime to employ women in factories from the late 1930s, contradicting its own ideology. This shows that Nazi racial and military priorities could override ideological consistency.",
+      acceptedAnswers: [
+        "Women were pushed out of professions into domestic roles (Kinder, Küche, Kirche), incentivised to marry and have children through loans and medals, and trained through the BDM",
+        "The Nazis dismissed professional women, promoted motherhood through marriage loans and the Mother's Cross, and used the BDM to prepare girls for domestic life",
+        "Nazi ideology restricted women to home and motherhood through dismissal from professions, marriage incentives, the Mother's Cross, and BDM training — though war later forced women back into factories",
+        "Women lost professional careers, were incentivised to marry and have children, celebrated as mothers with medals, and trained in the BDM — but wartime labour needs contradicted this ideology",
+      ],
+      marks: 4,
+      hint: "Cover dismissal from professions, 'Kinder Küche Kirche', marriage loans, Mother's Cross, BDM, and the contradiction of wartime factory work",
+      topic: "Nazi Germany",
+    },
+    {
+      question: "Explain the importance of the Berlin Crisis of 1961 and the building of the Berlin Wall.",
+      answer: "By 1961 approximately 3 million East Germans had fled to the West through Berlin — many were skilled workers, doctors and engineers, creating a serious economic and propaganda crisis for the USSR and East Germany. Khrushchev pressured the West to recognise East Germany and demanded Western forces leave Berlin. When the West refused, on 13 August 1961 East Germany began building the Berlin Wall, sealing the border. The Wall had major significance: it stopped the refugee flow and stabilised East Germany economically. For the West it was a propaganda gift — concrete proof of communist failure. Kennedy chose not to challenge the Wall militarily, accepting it as a lesser evil than war. The Wall became the most potent symbol of the Iron Curtain and the Cold War division of Europe until its fall on 9 November 1989.",
+      acceptedAnswers: [
+        "The Wall stopped the refugee crisis (3 million fled by 1961), stabilised East Germany, gave the West a propaganda win, and became the defining symbol of Cold War division",
+        "Built on 13 August 1961 to stop the exodus of 3 million skilled East Germans, the Wall stabilised the communist bloc but gave the West powerful propaganda and symbolised the Iron Curtain",
+        "The Berlin Wall was built in 1961 to halt mass emigration that was crippling East Germany; it solved the USSR's refugee problem but became a symbol of communist failure to the West",
+        "3 million refugees by 1961 prompted Khrushchev to build the Wall on 13 August 1961; it stopped the brain drain and stabilised East Germany but was a propaganda disaster for communism",
+      ],
+      marks: 4,
+      hint: "Cover why the Wall was built (refugee crisis, 3 million fled), what it achieved, and its symbolic significance",
+      topic: "Cold War",
     },
   ],
+
   long: [
+    // --- EXISTING QUESTIONS (preserved) ---
     {
       question: "Was the Great Depression the main reason for Hitler's rise to power? Explain your answer. (16 marks)",
       answer: "The Great Depression of 1929 was highly significant in Hitler's rise because it destroyed Weimar Germany's economic stability. Unemployment rose to 6 million by 1932; middle class savings were wiped out. People lost faith in democratic parties and turned to extremes. Nazi support leapt from 2.6% in 1928 to 37.4% in July 1932. Hitler exploited the crisis, blaming Jews, communists and the Weimar 'November Criminals'. However, the Depression alone cannot explain Hitler's rise. The weakness of the Weimar Republic was crucial — it had faced crises since birth (hyperinflation 1923), was seen as associated with defeat, and used proportional representation which led to unstable coalition governments. The appeal of Nazi ideology — nationalism, racial pride, order — had a broader appeal beyond just economic desperation. Von Papen and Hindenburg's miscalculation in appointing Hitler Chancellor in January 1933, thinking they could control him, was a significant immediate cause. In conclusion, the Depression was the key trigger that rapidly accelerated Nazi support, but Hitler's rise was made possible by the Weimar Republic's structural weaknesses and the miscalculations of conservative politicians.",
@@ -377,6 +877,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 8,
       hint: "Argue yes (economic desperation, unemployment, collapse of faith in democracy) then argue no (Weimar weakness, appeal of Nazi ideology, political miscalculation). Reach a judgement.",
+      topic: "Nazi Germany",
     },
     {
       question: "'Life in Nazi Germany improved for most German people between 1933 and 1939.' How far do you agree with this statement? (16 marks)",
@@ -384,11 +885,12 @@ export const historyBank: SubjectBank = {
       acceptedAnswers: [
         "Life improved for racially 'acceptable' Germans who found work and stability, but deteriorated severely for Jews, women, political opponents and workers who lost union rights",
         "Employment rose and living standards improved for many, but Jews suffered persecution, women lost careers, and workers lost rights — the apparent improvement was built on oppression",
-        "Agree in part: unemployment fell and Strength Through Joy improved leisure for many Germans; disagree because Jews, political opponents and women all experienced worsening conditions",
+        "Agree in part: unemployment fell and Strength Through Joy improved leisure for many Germans; disagree because Jews, women, political opponents and workers all experienced worsening conditions",
         "For ordinary Aryan Germans, material conditions improved through employment and leisure; but this came at the cost of civil liberties, workers' rights, and the systematic persecution of minorities",
       ],
       marks: 16,
       hint: "Consider different groups: ordinary workers, women, youth, Jewish people, political opponents. Reach a nuanced judgement about 'most German people'.",
+      topic: "Nazi Germany",
     },
     {
       question: "Was the assassination of Archduke Franz Ferdinand the main cause of World War One? (16 marks)",
@@ -401,6 +903,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 16,
       hint: "Use MAIN (Militarism, Alliances, Imperialism, Nationalism) for long-term causes. Then explain why the assassination itself mattered. Reach a clear judgement about 'main cause'.",
+      topic: "WWI & WWII Context",
     },
     {
       question: "How significant was the role of Martin Luther King in the Civil Rights Movement in the USA, 1955–1968? (16 marks)",
@@ -413,6 +916,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 16,
       hint: "King's direct role (campaigns, legislation, moral authority), then other factors (NAACP, SNCC, Johnson, media). Reach a judgement using 'significant' — very significant, but not the only factor.",
+      topic: "Cold War",
     },
     {
       question: "How effectively did the USA contain communism in the years 1947–1975? (16 marks)",
@@ -425,6 +929,7 @@ export const historyBank: SubjectBank = {
       ],
       marks: 16,
       hint: "Examples of success (Truman Doctrine, Berlin, Korea) and failure (China, Cuba, Vietnam). Assess 'how effectively' with a final judgement.",
+      topic: "Cold War",
     },
     {
       question: "Was medicine transformed in the nineteenth century? Explain your answer. (16 marks)",
@@ -437,9 +942,70 @@ export const historyBank: SubjectBank = {
       ],
       marks: 16,
       hint: "Key developments: germ theory, anaesthetics, antiseptics, public health. Then challenge — how quickly did benefits reach ordinary people? Were problems solved?",
+      topic: "Medicine Through Time",
+    },
+
+    // --- NEW LONG QUESTIONS ---
+    {
+      question: "'Stalin's rule of the Soviet Union was based entirely on terror.' How far do you agree with this statement? (16 marks)",
+      answer: "There is strong evidence that terror was central to Stalinist rule. The Great Purge (1936–38) saw around 750,000 people executed and millions sent to the Gulag. Show trials of Old Bolsheviks (Zinoviev, Bukharin) destroyed all potential rivals. The Red Army was purged, removing 3 of its 5 Marshals — catastrophically weakening it before WWII. The NKVD under Yezhov and later Beria used surveillance, informants and torture to enforce compliance. Citizens feared denunciation by neighbours, friends and even family members. Terror, however, was not the only pillar of Soviet power. Stalin also used ideology and propaganda extensively. The cult of personality presented Stalin as a great father figure and genius — his image was everywhere, his role in the October Revolution was mythologised, and art and culture were strictly controlled to glorify him. Economic policy also generated some genuine support: collectivisation, despite causing famine and mass death, was portrayed as necessary modernisation; rapid industrialisation through the Five Year Plans (from 1928) did create genuine economic growth and pride in Soviet achievement. Soviet workers in newly industrialised cities had real social mobility opportunities that had not existed under tsarism. Education and literacy expanded. In conclusion, terror was absolutely central to Stalin's rule — no one was safe and the regime was willing to kill millions to stay in power. However, reducing Stalinist rule solely to terror oversimplifies it. Propaganda, economic achievement, nationalism and social mobility also sustained the regime. Terror worked alongside these other tools rather than substituting for them.",
+      acceptedAnswers: [
+        "Terror was central but not the only tool: purges, Gulag, show trials enforced control, but propaganda, the cult of personality, industrialisation and social mobility also sustained Stalin's rule",
+        "Strongly agree that terror was foundational — purges, Gulag, NKVD and show trials removed all threats — but propaganda, cult of personality and economic modernisation also provided legitimacy",
+        "Terror through Great Purge and Gulag was vital, but the cult of personality, Five Year Plans' achievements, and genuine social mobility also supported Stalin's rule — it was not terror alone",
+        "Terror was essential (purges, Gulag, show trials) but Stalin also relied on propaganda, the cult of personality and economic modernisation — terror alone cannot fully explain his power",
+      ],
+      marks: 16,
+      hint: "Evidence FOR terror (purges, Gulag, show trials, NKVD). Evidence AGAINST being 'entirely' terror (cult of personality, propaganda, industrialisation, social mobility). Clear final judgement.",
+      topic: "AQA — Russia/Soviet Union 1917-1941",
+      boards: ["AQA"],
+    },
+    {
+      question: "How far was the Norman Conquest a turning point in English history? (16 marks)",
+      answer: "The Norman Conquest of 1066 was undoubtedly one of the most significant turning points in English history. In the immediate aftermath, William replaced virtually all Anglo-Saxon landowners with Norman lords — a wholesale change of the ruling class unprecedented in English history. A stricter feudal system was imposed: all land was held from the king in exchange for military service, giving the monarch far greater control than before. Castles were built across England as tools of military domination. The Domesday Book (1086) gave the king unparalleled knowledge of his kingdom's resources. The English language was profoundly transformed — Norman French became the language of the court, law and government; thousands of French words entered English. The Church was reformed, with Norman bishops replacing Anglo-Saxon ones and stronger ties to Rome established. However, continuity is also important. The Witan (royal council) survived, transformed into the later Curia Regis. Common law traditions and the shire system were incorporated into Norman governance. Anglo-Saxon culture was not entirely extinguished — the English language survived among ordinary people and eventually re-emerged. The argument that 1066 was a turning point is strong because the scale and speed of change in landownership, language, governance and culture were unprecedented. But some historians argue the changes reinforced existing trends towards stronger royal government rather than creating something entirely new. In conclusion, 1066 was a fundamental turning point in government, landownership, culture and language, even if some Anglo-Saxon traditions survived in modified form.",
+      acceptedAnswers: [
+        "A major turning point: wholesale replacement of landowners, stricter feudalism, castle building, Domesday Book, and English language transformation — though Anglo-Saxon law and culture partially survived",
+        "Strongly a turning point in landownership, governance (feudalism), culture (French language influence) and church — but some continuity in common law and shire system limits how total the rupture was",
+        "Significant turning point: Norman lords replaced Anglo-Saxon ones, feudalism strengthened, English transformed by French, Domesday Book — but Witan, common law and English language showed continuity",
+        "1066 was a decisive turning point in social structure, language, church and governance — but the survival of common law traditions and English language show it was not a complete break",
+      ],
+      marks: 16,
+      hint: "Evidence of change: landownership, feudalism, castles, Domesday Book, language. Evidence of continuity: Witan, common law, shire system, English language surviving. Judge 'how far' a turning point.",
+      topic: "Edexcel — Anglo-Saxon England 1060-1088",
+      boards: ["Edexcel"],
+    },
+    {
+      question: "'The Treaty of Versailles made World War Two inevitable.' How far do you agree? (16 marks)",
+      answer: "There is a strong argument that Versailles contributed to WWII. The War Guilt Clause (Article 231) and £6.6 billion in reparations humiliated Germany and created deep resentment. Territorial losses — the Polish Corridor, loss of the Rhineland, Anschluss ban — left many Germans feeling encircled and diminished. These grievances were exploited by Hitler, who used the injustice of Versailles as a key propaganda tool. Nazi support soared during the Great Depression, which reparations had made worse. Hitler's early foreign policy (rearmament, remilitarisation of the Rhineland, Anschluss with Austria) were all direct reversals of Versailles, greeted with German enthusiasm. However, the argument that Versailles made WWII inevitable is too deterministic. Between 1919 and 1933, the Weimar Republic survived and even flourished in the mid-1920s (Stresemann era: Dawes Plan, Locarno, League membership). The Depression, not just Versailles, drove voters to extremism. Hitler's personal ideology, ambition and decisions — particularly the invasion of the USSR in 1941 — went far beyond merely reversing Versailles. The policy of appeasement (Munich, 1938) by Britain and France actually enabled Hitler's expansion. A firmer response earlier might have stopped Hitler without war. Alternative versions of a post-WWI settlement (had Wilson's Fourteen Points been followed more closely) might have avoided the worst resentments. In conclusion, Versailles created the conditions that Hitler exploited, but it did not make WWII inevitable — it required the Depression, the failure of appeasement, and Hitler's own radical decisions to turn resentment into global war.",
+      acceptedAnswers: [
+        "Versailles created dangerous resentments Hitler exploited, but it did not make WWII inevitable — the Depression, appeasement's failure, and Hitler's own decisions were also essential causes",
+        "Versailles contributed significantly through humiliation and resentment, but WWII required the Depression to radicalise Germany, Hitler's personal ideology, and the failure of appeasement",
+        "Partly agree: Versailles fuelled German resentment that Hitler exploited, but WWII was not inevitable — it needed the Depression, Hitler's radical decisions, and appeasement's failures",
+        "Versailles was important in creating the conditions Hitler exploited, but it was not sufficient alone — the Depression, Hitler's ideology beyond just reversing Versailles, and appeasement all played essential roles",
+      ],
+      marks: 16,
+      hint: "Argue for (War Guilt, reparations, territorial humiliation fuelling Nazi rise). Argue against (Weimar survived 1919–29, Depression crucial, Hitler's decisions went beyond Versailles, appeasement enabled Hitler). Clear judgement.",
+      topic: "AQA — Conflict & Tension 1918-1939",
+      boards: ["AQA"],
+    },
+    {
+      question: "How far did Elizabeth I successfully deal with the religious divisions in England during her reign? (16 marks)",
+      answer: "Elizabeth's Religious Settlement of 1559 was designed as a moderate 'middle way' that could appeal to the widest range of English Protestants while not provoking unnecessary Catholic rebellion. The Acts of Supremacy and Uniformity restored Protestantism but with a degree of ambiguity that allowed Catholics to interpret the queen's intentions charitably. In the short term, the settlement worked reasonably well — open Catholic rebellion was avoided and most people conformed outwardly. However, religious divisions persisted throughout Elizabeth's reign. Puritan pressure grew: Puritans wanted a more fully reformed, Calvinist church and resented 'popish remnants' like vestments. The Vestiarian Controversy (1560s) and repeated Puritan pressure in Parliament showed the settlement was not accepted by all Protestants. On the Catholic side, the Northern Earls' Rebellion (1569) showed Catholic loyalty to Mary Queen of Scots. The Papal Bull Regnans in Excelsis (1570) excommunicated Elizabeth and absolved Catholics from loyalty to her, making English Catholics suspect. The Ridolfi, Throckmorton and Babington plots all aimed to replace Elizabeth with Mary. The arrival of seminary priests from 1574 and Jesuits from 1580 increased Catholic resistance. Elizabeth responded with increasingly harsh recusancy laws and executing around 183 Catholic martyrs. This repression hardened divisions. In conclusion, Elizabeth managed religious divisions pragmatically rather than resolving them. The settlement created external conformity rather than genuine religious peace, and both Puritan and Catholic pressures remained live threats throughout her reign, managed but never eliminated.",
+      acceptedAnswers: [
+        "Elizabeth managed divisions pragmatically through the 1559 settlement, but Puritan pressure and Catholic plots (Babington, Northern Earls) persisted throughout — she managed rather than resolved divisions",
+        "The Religious Settlement gave external conformity but did not resolve divisions: Puritan dissatisfaction grew, Catholic plots continued, and execution of Catholics hardened conflict",
+        "The settlement worked initially but failed to satisfy Puritans or loyal Catholics — Northern Earls, seminary priests, Jesuit missions and plots (Ridolfi, Babington) show divisions were managed, not solved",
+        "Elizabeth's settlement created outward conformity but both Puritan opposition and Catholic resistance (Northern Earls 1569, seminary priests, Babington Plot) show divisions were never truly resolved",
+      ],
+      marks: 16,
+      hint: "Success of the 1559 settlement initially. Then Puritan pressures (vestments, Parliament). Then Catholic threats (Northern Earls, plots, seminary priests). Judgement on 'how far' successful.",
+      topic: "AQA — Elizabethan England",
+      boards: ["AQA"],
     },
   ],
+
   flashcard: [
+    // --- EXISTING FLASHCARDS (preserved) ---
     { term: "Treaty of Versailles (1919)", definition: "Peace settlement ending WWI. Germany accepted war guilt (Article 231), paid £6.6bn reparations, lost 13% of land, was banned from joining Austria (Anschluss) and limited to 100,000 soldiers.", example: null },
     { term: "Appeasement", definition: "British and French policy of making concessions to Hitler in the 1930s to avoid war. Seen as weakness that encouraged Hitler's aggression. Munich Agreement (1938) gave Hitler the Sudetenland.", example: "Chamberlain returned from Munich declaring 'peace for our time'" },
     { term: "Enabling Act (1933)", definition: "Law passed by the Reichstag after the Reichstag Fire that gave Hitler the power to pass laws without the Reichstag's approval. Effectively gave Hitler dictatorial power and ended German democracy.", example: null },
@@ -460,5 +1026,22 @@ export const historyBank: SubjectBank = {
     { term: "MAIN Causes of WWI", definition: "Militarism (arms race, military planning), Alliance systems (Triple Alliance vs Triple Entente), Imperialism (competition for colonies), Nationalism (pan-Slavism, Alsace-Lorraine tension). The assassination of Franz Ferdinand was the immediate trigger.", example: null },
     { term: "Berlin Wall (1961)", definition: "Wall built by East Germany on 13 August 1961 dividing East and West Berlin to stop the flow of refugees to the West. Symbol of the Iron Curtain. Fell on 9 November 1989, symbolising the end of the Cold War.", example: null },
     { term: "Hyperinflation (1923)", definition: "Extreme inflation in Weimar Germany caused by printing money to pay striking workers during the French occupation of the Ruhr. Prices rose so fast that people needed wheelbarrows of cash to buy bread. Destroyed savings of the middle class.", example: null },
+
+    // --- NEW FLASHCARDS ---
+    { term: "Collectivisation (USSR)", definition: "Stalin's policy from 1929 of forcing peasants off private farms into state-run collective farms (kolkhozy). Kulaks were 'liquidated as a class'. The resulting disruption caused a famine in 1932–33 killing millions, especially in Ukraine.", example: "Ukraine's famine (Holodomor) killed an estimated 3.5–7.5 million people" },
+    { term: "Gulag", definition: "Soviet network of forced labour camps used to imprison political prisoners, criminals and anyone deemed an enemy of the state. Millions passed through the Gulag system under Stalin; conditions were brutal and many died.", example: "Estimates suggest 18 million people passed through the Gulag between 1930 and 1953" },
+    { term: "Kristallnacht (1938)", definition: "The 'Night of Broken Glass', 9–10 November 1938 — a Nazi pogrom against Jewish Germans in which businesses, synagogues and homes were attacked. Around 30,000 Jews were arrested and sent to concentration camps.", example: "Named for the shattered glass from broken Jewish shop windows across Germany" },
+    { term: "Four Humours", definition: "Ancient Greek medical theory (Hippocrates/Galen) that the body contains four fluids — blood, phlegm, yellow bile, black bile. Health required their balance; illness resulted from imbalance. Treatments such as bloodletting aimed to restore balance.", example: "A patient with a fever might be bled to reduce excess blood" },
+    { term: "Miasma Theory", definition: "The pre-germ theory belief that disease was caused by 'bad air' (miasma) rising from rotting matter and filth. Replaced by germ theory in the 1860s–80s. However, it did lead to useful public health improvements such as clearing sewage.", example: "Florence Nightingale initially believed in miasma, but her hygiene reforms still saved lives" },
+    { term: "Antiseptic Surgery", definition: "Joseph Lister's 1867 method of killing bacteria during surgery using carbolic acid spray, based on Pasteur's germ theory. Reduced post-operative death rates in his wards from 46% to 15%.", example: "Lister used carbolic acid spray on wounds and surgical instruments" },
+    { term: "Reichstag Fire (1933)", definition: "The burning of the German parliament building on 27 February 1933. Hitler blamed the communists and used it to pass the Reichstag Fire Decree, suspending civil liberties. It paved the way for the Enabling Act and the end of German democracy.", example: "Marinus van der Lubbe, a Dutch communist, was arrested — but historians debate whether the Nazis staged it" },
+    { term: "Battle of Hastings (1066)", definition: "Fought on 14 October 1066 between Harold Godwinson and William of Normandy. Harold was killed (traditionally by an arrow to the eye). William's victory led to the Norman Conquest and transformed English society, language and government.", example: "William had the Bayeux Tapestry created to justify his claim to the throne" },
+    { term: "Domesday Book (1086)", definition: "A survey of England ordered by William I, completed in 1086. It recorded who owned every piece of land and its value for taxation. One of the oldest surviving public records in England.", example: "It was called 'Domesday' because its judgements were as final as the Day of Judgement" },
+    { term: "Motte-and-Bailey Castle", definition: "Early Norman castle design with a raised earthwork mound (motte) topped by a wooden tower, and a lower courtyard (bailey) surrounded by a palisade. Built rapidly across England after 1066 to control the conquered population.", example: "William built dozens of motte-and-bailey castles in the years immediately after Hastings" },
+    { term: "Bolsheviks", definition: "Lenin's radical communist faction of the Russian Social Democratic Labour Party, which seized power in the October Revolution of 1917. Renamed the Communist Party of Russia in 1918. Believed in a professional revolutionary vanguard leading the working class.", example: "Lenin issued the April Theses in 1917 calling for 'All power to the Soviets'" },
+    { term: "The Gulag (key term)", definition: "Acronym for Glavnoye Upravleniye Ispravitelno-trudovykh Lagerey — Main Administration of Corrective Labour Camps. Stalin's vast network of forced labour camps holding political prisoners and criminals. Millions died from cold, starvation and brutality.", example: null },
+    { term: "Détente", definition: "A relaxation of Cold War tensions between the USA and USSR in the late 1960s and 1970s. Key events: Nixon's visit to China (1972), SALT I arms limitation treaty (1972), Helsinki Accords (1975). Ended with the Soviet invasion of Afghanistan (1979).", example: "SALT I (1972) limited the number of nuclear missiles each superpower could deploy" },
+    { term: "Versailles War Guilt Clause", definition: "Article 231 of the Treaty of Versailles (1919) which forced Germany to accept sole responsibility for starting WWI. Provided the legal justification for reparations and was deeply resented in Germany as humiliating and historically unfair.", example: "Hitler used Article 231 as a propaganda tool, calling it the 'War Guilt Lie'" },
+    { term: "Lister's Carbolic Acid (1867)", definition: "Joseph Lister applied Pasteur's germ theory to surgery by spraying carbolic acid on wounds and instruments to kill bacteria. This antiseptic approach reduced mortality in his wards from 46% to 15%, transforming the safety of surgery.", example: null },
   ],
 };

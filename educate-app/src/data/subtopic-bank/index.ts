@@ -14,6 +14,17 @@ import { sociologySubtopics } from './sociology';
 import { germanSubtopics } from './german';
 import { physicalEducationSubtopics } from './physical-education';
 import { foodPreparationSubtopics } from './food-preparation';
+import { frenchSubtopics } from './french';
+import { spanishSubtopics } from './spanish';
+import { economicsSubtopics } from './economics';
+import { religiousStudiesSubtopics } from './religious-studies';
+import { businessStudiesSubtopics } from './business-studies';
+import { dramaSubtopics } from './drama';
+import { artDesignSubtopics } from './art-design';
+import { musicSubtopics } from './music';
+import { chineseSubtopics } from './chinese';
+import { designTechnologySubtopics } from './design-technology';
+import { graphicCommunicationSubtopics } from './graphic-communication';
 
 export { mathematicsSubtopics } from './mathematics';
 export { biologySubtopics } from './biology';
@@ -30,6 +41,17 @@ export { sociologySubtopics } from './sociology';
 export { germanSubtopics } from './german';
 export { physicalEducationSubtopics } from './physical-education';
 export { foodPreparationSubtopics } from './food-preparation';
+export { frenchSubtopics } from './french';
+export { spanishSubtopics } from './spanish';
+export { economicsSubtopics } from './economics';
+export { religiousStudiesSubtopics } from './religious-studies';
+export { businessStudiesSubtopics } from './business-studies';
+export { dramaSubtopics } from './drama';
+export { artDesignSubtopics } from './art-design';
+export { musicSubtopics } from './music';
+export { chineseSubtopics } from './chinese';
+export { designTechnologySubtopics } from './design-technology';
+export { graphicCommunicationSubtopics } from './graphic-communication';
 
 export const SUBTOPIC_BANK: SubtopicBank = {
   "Mathematics": mathematicsSubtopics,
@@ -47,4 +69,15 @@ export const SUBTOPIC_BANK: SubtopicBank = {
   "German": germanSubtopics,
   "Physical Education": physicalEducationSubtopics,
   "Food Preparation & Nutrition": foodPreparationSubtopics,
+  "French": frenchSubtopics,
+  "Spanish": spanishSubtopics,
+  "Economics": economicsSubtopics,
+  "Religious Studies": religiousStudiesSubtopics,
+  "Business Studies": businessStudiesSubtopics,
+  "Drama": dramaSubtopics,
+  "Art & Design": artDesignSubtopics,
+  "Music": musicSubtopics,
+  "Chinese": chineseSubtopics,
+  "Design & Technology": designTechnologySubtopics,
+  "Graphic Communication": graphicCommunicationSubtopics,
 };

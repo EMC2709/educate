@@ -2,6 +2,7 @@ import type { SubjectBank } from '@/types';
 
 export const geographyBank: SubjectBank = {
   short: [
+    // ── EXISTING QUESTIONS (all preserved) ──────────────────────────────────
     {
       question: "What is the difference between weather and climate?",
       answer: "Weather is the day-to-day condition of the atmosphere (e.g. temperature, rainfall) at a specific place. Climate is the average weather conditions over a long period (typically 30 years) in a region.",
@@ -13,6 +14,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "One is short-term and specific, the other is long-term and average",
+      topic: "Natural Hazards",
     },
     {
       question: "What is urbanisation?",
@@ -25,6 +27,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "More people moving to or living in cities",
+      topic: "Urban Issues & Challenges",
     },
     {
       question: "What is a tectonic plate?",
@@ -37,6 +40,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Think about the structure of the Earth",
+      topic: "Natural Hazards",
     },
     {
       question: "Define 'erosion' in the context of rivers.",
@@ -49,6 +53,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "There are four types — hydraulic action, abrasion, attrition and solution",
+      topic: "Physical Landscapes UK",
     },
     {
       question: "What is a carbon footprint?",
@@ -61,6 +66,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It measures greenhouse gas emissions",
+      topic: "Natural Hazards",
     },
     {
       question: "What is an ecosystem?",
@@ -73,6 +79,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Living things + their environment",
+      topic: "Ecosystems",
     },
     {
       question: "What is a destructive plate boundary?",
@@ -85,6 +92,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Plates collide — one goes under the other",
+      topic: "Natural Hazards",
     },
     {
       question: "What is the difference between a primary and secondary effect of a tectonic hazard?",
@@ -97,6 +105,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Primary = immediate direct damage; secondary = knock-on effects",
+      topic: "Natural Hazards",
     },
     {
       question: "What is the greenhouse effect?",
@@ -109,6 +118,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Greenhouse gases trap heat — natural is needed, enhanced is the problem",
+      topic: "Natural Hazards",
     },
     {
       question: "What is deforestation?",
@@ -121,6 +131,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Clearing forests — give causes and effects",
+      topic: "Ecosystems",
     },
     {
       question: "What is a floodplain?",
@@ -133,6 +144,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Flat land beside a river, formed by flooding and deposition",
+      topic: "Physical Landscapes UK",
     },
     {
       question: "What does HDI measure?",
@@ -145,6 +157,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "It combines health, education and income into one figure",
+      topic: "Changing Economic World",
     },
     {
       question: "What is a tropical storm (hurricane/cyclone/typhoon)?",
@@ -157,6 +170,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "A rotating storm system forming over warm ocean water — different names in different oceans",
+      topic: "Natural Hazards",
     },
     {
       question: "What is sustainable development?",
@@ -169,6 +183,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Meeting needs today without harming future generations",
+      topic: "Changing Economic World",
     },
     {
       question: "Name the three types of plate boundary.",
@@ -181,6 +196,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Think about the direction of plate movement at each",
+      topic: "Natural Hazards",
     },
     {
       question: "What is food insecurity?",
@@ -193,6 +209,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Not having reliable access to enough safe, nutritious food",
+      topic: "Resource Management",
     },
     {
       question: "What is gentrification?",
@@ -205,6 +222,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Wealthier people moving in to poorer urban areas, changing their character",
+      topic: "Urban Issues & Challenges",
     },
     {
       question: "What is the difference between renewable and non-renewable energy?",
@@ -217,6 +235,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Renewable = won't run out; non-renewable = finite, will run out",
+      topic: "Resource Management",
     },
     {
       question: "What is a volcano and what causes eruptions?",
@@ -229,6 +248,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "Magma escaping through the crust — where does this tend to happen?",
+      topic: "Natural Hazards",
     },
     {
       question: "What is the difference between a refugee and an economic migrant?",
@@ -241,9 +261,358 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 2,
       hint: "One is forced to leave, the other chooses to move for a better life",
+      topic: "Changing Economic World",
+    },
+
+    // ── NEW SHORT QUESTIONS ─────────────────────────────────────────────────
+
+    // Natural Hazards
+    {
+      question: "What is a constructive plate boundary and what landforms does it create?",
+      answer: "A constructive plate boundary is where two tectonic plates move apart. Magma rises to fill the gap, creating new oceanic crust, shield volcanoes and mid-ocean ridges (e.g. Mid-Atlantic Ridge). Iceland sits on this boundary.",
+      acceptedAnswers: [
+        "Where plates diverge (move apart); magma fills the gap creating new crust — forms shield volcanoes and mid-ocean ridges (e.g. Mid-Atlantic Ridge)",
+        "A divergent boundary where plates move apart, magma erupts to form new crust and shield volcanoes — e.g. Mid-Atlantic Ridge / Iceland",
+        "Plates move apart; magma rises creating new seafloor, shield volcanoes and rift valleys — constructive because new crust is made",
+      ],
+      marks: 2,
+      hint: "Plates moving apart — what forms to fill the gap?",
+      topic: "Natural Hazards",
+    },
+    {
+      question: "What is a conservative plate boundary?",
+      answer: "A conservative plate boundary is where two tectonic plates slide past each other horizontally. No crust is created or destroyed. Friction causes powerful earthquakes but no volcanic activity. Example: San Andreas Fault, California.",
+      acceptedAnswers: [
+        "Where plates slide past each other; no crust is created or destroyed; causes earthquakes but not volcanoes — e.g. San Andreas Fault",
+        "Two plates moving past each other in opposite or different directions; creates earthquakes only — San Andreas Fault is an example",
+        "Plates moving sideways past each other; friction builds and releases as earthquakes; no volcanoes form",
+      ],
+      marks: 2,
+      hint: "Plates slide past each other — earthquakes but no volcanoes",
+      topic: "Natural Hazards",
+    },
+    {
+      question: "Name three factors that affect the severity of a tropical storm.",
+      answer: "Sea surface temperature (must be above 27°C to maintain energy), wind shear (high wind shear weakens storms), distance from land (storms weaken over land), storm size and track, and the vulnerability of the area affected.",
+      acceptedAnswers: [
+        "Sea temperature (above 27°C), wind shear and proximity to land are three key factors",
+        "Ocean surface temperature, low wind shear, and track over warm water affect severity",
+        "Temperature of the ocean (>27°C), wind shear, and the wealth/preparedness of affected countries",
+      ],
+      marks: 2,
+      hint: "Think about conditions needed for formation and what affects impact",
+      topic: "Natural Hazards",
+    },
+    {
+      question: "What is the focus and epicentre of an earthquake?",
+      answer: "The focus (or hypocentre) is the point underground where the earthquake originates — where rocks first fracture and energy is released. The epicentre is the point on the Earth's surface directly above the focus. Shallow-focus earthquakes (0–70 km) cause the most surface damage.",
+      acceptedAnswers: [
+        "The focus is underground where the earthquake starts; the epicentre is the point on the surface directly above it",
+        "Focus = underground origin point; epicentre = surface point directly above; shallow focus earthquakes cause more damage",
+        "Focus is where the earthquake energy is released underground; epicentre is the surface point above the focus",
+      ],
+      marks: 2,
+      hint: "One is underground, one is on the surface directly above",
+      topic: "Natural Hazards",
+    },
+    {
+      question: "State two UK weather hazards and explain why they are increasing.",
+      answer: "Flooding (e.g. Somerset Levels 2014, Carlisle 2005, 2015) — more frequent due to climate change bringing heavier rainfall. Storms and high winds (e.g. Storm Desmond 2015) — climate change is increasing storm intensity. Drought — hotter, drier summers linked to global warming are causing water stress in south-east England.",
+      acceptedAnswers: [
+        "Flooding and storms — both increasing due to climate change bringing heavier rainfall and more intense weather systems",
+        "Flooding and drought — climate change is making rainfall more intense but also making summers drier, increasing both hazards",
+        "Heavy rainfall/flooding and storms — climate change raises temperature, leading to more intense precipitation events and stronger storms",
+      ],
+      marks: 2,
+      hint: "Name the hazards and link their increase to climate change",
+      topic: "Natural Hazards",
+    },
+
+    // Ecosystems
+    {
+      question: "What are biotic and abiotic components of an ecosystem? Give examples of each.",
+      answer: "Biotic components are all living things in an ecosystem: plants, animals, fungi, bacteria. Abiotic components are non-living physical factors: temperature, rainfall, soil type, light levels, wind speed, aspect.",
+      acceptedAnswers: [
+        "Biotic = living things (plants, animals, bacteria); abiotic = non-living factors (temperature, rainfall, soil, light)",
+        "Biotic: all living organisms (plants, animals); abiotic: physical environment (soil, temperature, water, sunlight)",
+        "Living (biotic) components include plants and animals; non-living (abiotic) components include temperature, light and soil",
+      ],
+      marks: 2,
+      hint: "Biotic = living, abiotic = non-living. Give examples of each.",
+      topic: "Ecosystems",
+    },
+    {
+      question: "What is desertification and what causes it?",
+      answer: "Desertification is the process by which fertile land becomes increasingly dry and desert-like, losing its vegetation and ability to support life. Causes: climate change (reduced rainfall), overgrazing (removes vegetation), over-cultivation (depletes soil nutrients), deforestation and population pressure. Common at the margins of existing deserts — e.g. the Sahel region of Africa.",
+      acceptedAnswers: [
+        "Fertile land becoming desert-like due to climate change, overgrazing, over-cultivation and deforestation — common in the Sahel",
+        "Degradation of land into desert conditions caused by reduced rainfall, overgrazing, deforestation and poor farming practices",
+        "When land loses fertility and becomes desert — caused by drought, overgrazing, unsustainable farming and population pressure",
+      ],
+      marks: 2,
+      hint: "Land turning to desert — give both human and physical causes",
+      topic: "Ecosystems",
+    },
+    {
+      question: "Name the four vegetation layers of a tropical rainforest.",
+      answer: "From top to bottom: emergent layer (tallest trees, up to 60 m), canopy (dense layer at 30–40 m intercepting most sunlight), understorey (shrubs and young trees in low light), forest floor (very dark, little vegetation, rapid decomposition of leaf litter).",
+      acceptedAnswers: [
+        "Emergent, canopy, understorey and forest floor",
+        "The four layers are: emergent trees, canopy, understorey and forest floor",
+        "From top: emergent layer, canopy layer, understorey/shrub layer, and forest floor",
+      ],
+      marks: 2,
+      hint: "Think from the top down — what are the four layers?",
+      topic: "Ecosystems",
+    },
+    {
+      question: "What is the difference between a hot desert and a cold desert?",
+      answer: "Hot deserts (e.g. Sahara, Atacama) have very high daytime temperatures (40°C+), very low and irregular rainfall (<250 mm/year), and large diurnal temperature ranges. Cold deserts (e.g. Gobi, Antarctica) have very low temperatures, also low rainfall but in the form of snow, and extreme cold winters.",
+      acceptedAnswers: [
+        "Hot deserts (Sahara) have extreme heat and low rainfall; cold deserts (Gobi) have very low temperatures — both receive less than 250 mm precipitation per year",
+        "Both have less than 250 mm rainfall; hot deserts have extreme heat (40°C+); cold deserts have freezing temperatures",
+        "Hot deserts are hot and dry (Sahara); cold deserts are cold and dry (Gobi/Antarctica) — low precipitation defines both",
+      ],
+      marks: 2,
+      hint: "Both are dry — what distinguishes temperature conditions?",
+      topic: "Ecosystems",
+    },
+
+    // Physical Landscapes — Rivers
+    {
+      question: "What is the difference between the upper, middle and lower course of a river?",
+      answer: "Upper course: steep gradient, fast turbulent flow, V-shaped valley, interlocking spurs, waterfalls. Middle course: gentler gradient, meanders begin, wider valley floor. Lower course: very gentle gradient, large meanders, wide floodplain, deposition dominant, oxbow lakes, deltas at the mouth.",
+      acceptedAnswers: [
+        "Upper: steep, V-valley, waterfalls; middle: meanders begin, wider valley; lower: floodplain, oxbow lakes, delta at the mouth",
+        "Upper course has steep gradient and erosion (V-valley, waterfalls); middle course has meanders; lower course has floodplain and deposition",
+        "Upper (steep, erosion, interlocking spurs), middle (meanders, moderate gradient), lower (flat, floodplain, delta, deposition dominates)",
+      ],
+      marks: 2,
+      hint: "Think about how gradient, processes and landforms change from source to mouth",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "Name the four processes of river transportation.",
+      answer: "Traction (large boulders rolled along the riverbed), saltation (smaller stones bounced along), suspension (fine particles carried within the water), solution (dissolved minerals carried in the water). Collectively called the river's load.",
+      acceptedAnswers: [
+        "Traction, saltation, suspension and solution",
+        "The four types are traction (rolling), saltation (bouncing), suspension (floating particles) and solution (dissolved minerals)",
+        "Traction (rolling boulders), saltation (bouncing pebbles), suspension (fine silt) and solution (dissolved material)",
+      ],
+      marks: 2,
+      hint: "Think about material being rolled, bounced, suspended and dissolved",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "What is a waterfall and how does it form?",
+      answer: "A waterfall forms where a river flows over a band of hard rock overlying softer rock. The softer rock underneath is eroded more quickly by hydraulic action and abrasion, undercutting the hard rock. The hard rock overhang eventually collapses. The process repeats, causing the waterfall to retreat upstream and deepen the gorge below.",
+      acceptedAnswers: [
+        "Hard rock overlies soft rock; soft rock erodes faster, undercutting the hard rock; overhang collapses; waterfall retreats leaving a gorge",
+        "A waterfall forms where hard rock sits over softer rock; the soft rock is undercut by erosion, the hard rock collapses and the waterfall retreats upstream",
+        "Differential erosion of hard rock over soft rock causes undercutting; hard rock collapses creating a plunge pool; waterfall retreats upstream",
+      ],
+      marks: 2,
+      hint: "Think about differential erosion between hard and soft rock",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "What is longshore drift?",
+      answer: "Longshore drift is the movement of sediment along a coastline by wave action. Waves approach at an angle (determined by the prevailing wind), carrying sediment up the beach (swash). The backwash carries sediment straight back down the beach at 90°. Over time, sediment is transported along the coast in a zigzag pattern.",
+      acceptedAnswers: [
+        "The zigzag movement of sediment along a coast — waves carry material up at an angle (swash) and back perpendicular to shore (backwash)",
+        "Sediment transported along the coast by waves approaching at an angle; swash carries sediment up, backwash returns it straight back",
+        "Longshore drift moves sediment along the beach in a zigzag path due to waves approaching at an angle to the coastline",
+      ],
+      marks: 2,
+      hint: "Waves approach at an angle — how does sediment move as a result?",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "What is the difference between constructive and destructive waves?",
+      answer: "Constructive waves are low-energy, with a long wavelength and low frequency. They have a strong swash and weak backwash, so they deposit sediment and build beaches. Destructive waves are high-energy, with a short wavelength and high frequency. They have a powerful backwash that erodes material from beaches and cliffs.",
+      acceptedAnswers: [
+        "Constructive waves: low energy, strong swash, deposit sediment, build beaches. Destructive waves: high energy, powerful backwash, erode coastlines",
+        "Constructive = low frequency, deposits sediment, builds beaches; destructive = high frequency, strong backwash, erodes cliffs and beaches",
+        "Constructive waves have stronger swash than backwash (deposition); destructive waves have stronger backwash than swash (erosion)",
+      ],
+      marks: 2,
+      hint: "Which has stronger swash and which has stronger backwash?",
+      topic: "Physical Landscapes UK",
+    },
+
+    // Glaciation
+    {
+      question: "What is a corrie (cirque) and how does it form?",
+      answer: "A corrie is a bowl-shaped hollow high on a mountainside, formed by glacial erosion. Snow accumulates in a hollow, compresses into ice and a glacier forms. The ice rotates, eroding the base by abrasion (plucking) and the sides by freeze-thaw weathering, deepening and widening the hollow. When the glacier melts, a corrie lake (tarn) often remains.",
+      acceptedAnswers: [
+        "A steep-sided hollow on a mountainside formed by a glacier; rotational slip and abrasion deepen it; a tarn may form when ice melts",
+        "Snow collects in a hollow, becomes ice; the glacier rotates, plucking and abrading the floor and sides, creating a bowl; leaves a tarn when ice melts",
+        "A corrie forms when a glacier develops in a mountain hollow; rotational movement, plucking and abrasion carve a steep-sided bowl; often has a tarn",
+      ],
+      marks: 2,
+      hint: "Snow compresses to ice; the glacier rotates and erodes — what shape does it create?",
+      topic: "Glaciation",
+    },
+    {
+      question: "What is the difference between abrasion and plucking in glacial erosion?",
+      answer: "Abrasion is when rocks and debris embedded in the base of a glacier act like sandpaper, scratching and wearing away the valley floor and sides. Plucking (quarrying) is when meltwater refreezes around rock fragments at the base of the glacier; as the glacier moves forward it pulls (plucks) these fragments away.",
+      acceptedAnswers: [
+        "Abrasion = rocks in the glacier grind and scratch the surface below; plucking = meltwater freezes around rock and the glacier pulls it free",
+        "Abrasion: glacial debris scratches the bedrock like sandpaper. Plucking: water refreezes around rocks at the glacier base and rips them out as it moves",
+        "Abrasion uses embedded rocks to grind valley surfaces; plucking involves ice freezing to bedrock and tearing rock fragments away",
+      ],
+      marks: 2,
+      hint: "One is grinding, the other is tearing — how does each work?",
+      topic: "Glaciation",
+    },
+    {
+      question: "What is a U-shaped valley (glacial trough) and how does it differ from a V-shaped valley?",
+      answer: "A U-shaped valley (glacial trough) is carved by a glacier moving through a pre-existing V-shaped river valley. The glacier erodes the valley floor and sides by abrasion and plucking, widening and deepening it into a distinctive U-shape with steep sides and a flat floor. V-shaped valleys are narrower, with interlocking spurs, formed by river erosion.",
+      acceptedAnswers: [
+        "U-shaped: wide, steep sides, flat floor — carved by glacial erosion. V-shaped: narrow, interlocking spurs — formed by river erosion",
+        "Glaciers widen and deepen V-shaped river valleys into U-shapes with steep sides and flat floors; rivers create V-shapes with interlocking spurs",
+        "U-valley is glacially eroded — wide, steep, flat-floored; V-valley is river-eroded — narrow with interlocking spurs",
+      ],
+      marks: 2,
+      hint: "One is river-formed, the other is glacier-formed — describe the shape of each",
+      topic: "Glaciation",
+    },
+    {
+      question: "What is a pyramidal peak and how does it form?",
+      answer: "A pyramidal peak is a sharp, steep-sided mountain summit formed when three or more corries (cirques) erode backwards into the same mountain from different sides, leaving a pointed peak. Example: the Matterhorn in the Alps.",
+      acceptedAnswers: [
+        "Three or more corries eroding back into a mountain from different sides leaves a sharp pointed summit — e.g. the Matterhorn",
+        "A sharp mountain peak formed when several corries cut back into a mountain from multiple sides — Matterhorn is a classic example",
+        "Formed when three or more glacial corries erode the same mountain, leaving a pointed peak (e.g. Matterhorn)",
+      ],
+      marks: 2,
+      hint: "What happens when three or more corries meet? Name an example.",
+      topic: "Glaciation",
+    },
+
+    // Urban Issues
+    {
+      question: "What is a squatter settlement and what problems do residents face?",
+      answer: "A squatter settlement (favela, slum, shanty town) is an area of poor-quality, often self-built housing on land the inhabitants do not legally own. Problems: lack of clean water, poor sanitation, no legal land tenure, overcrowding, poor health, crime, limited access to education and services, risk of flooding or landslides.",
+      acceptedAnswers: [
+        "An area of informal, self-built housing on land residents do not own; problems include lack of clean water, poor sanitation, overcrowding and health issues",
+        "Squatter settlements are informal housing areas without legal ownership; residents face poor sanitation, overcrowding, no clean water and limited services",
+        "Self-built housing on unowned land (favela/shanty town); problems: no clean water, poor sanitation, disease, overcrowding, no legal tenure",
+      ],
+      marks: 2,
+      hint: "Illegal land ownership — what problems follow from this? Think about services and conditions.",
+      topic: "Urban Issues & Challenges",
+    },
+    {
+      question: "What is the 'rural-urban fringe' and why is it under pressure?",
+      answer: "The rural-urban fringe is the area of transition between the built-up urban area and the surrounding countryside. It is under pressure because: urban sprawl pushes housing, retail parks and business parks outward; greenfield land is cheaper than brownfield; but greenbelts limit development. It is a zone of conflict between urban growth and rural conservation.",
+      acceptedAnswers: [
+        "The transition zone between city and countryside; under pressure from urban sprawl, new housing and retail development encroaching on rural land",
+        "Area between urban and rural land; pressured by outward city growth (housing, roads, retail parks) threatening green space — greenbelts try to limit this",
+        "The edge-of-city zone where urban and rural land meet; pressure from development (housing, business parks) vs conservation of green space",
+      ],
+      marks: 2,
+      hint: "Where city meets countryside — what pressures does it face?",
+      topic: "Urban Issues & Challenges",
+    },
+
+    // Changing Economic World
+    {
+      question: "What is deindustrialisation and where has it affected the UK?",
+      answer: "Deindustrialisation is the decline of manufacturing and heavy industry (steel, coal, shipbuilding, textiles) in a country or region. In the UK it accelerated from the 1970s–1980s, affecting areas like South Wales (coal, steel), the North East (shipbuilding), West Yorkshire (textiles) and South Yorkshire (steel). Jobs moved to NICs where labour was cheaper.",
+      acceptedAnswers: [
+        "Decline of manufacturing/heavy industry; in the UK affected South Wales (coal/steel), NE England (shipbuilding), Yorkshire (textiles) as jobs moved to cheaper-labour countries",
+        "The closure of manufacturing industries; UK examples: coal in South Wales, steel in Sheffield, shipbuilding in Sunderland — replaced partly by services",
+        "Loss of traditional manufacturing industries (coal, steel, textiles) mainly from the 1970s; hit northern England, South Wales hardest",
+      ],
+      marks: 2,
+      hint: "Decline of heavy industry — name UK regions affected",
+      topic: "Changing Economic World",
+    },
+    {
+      question: "What is the difference between a LIC, a NEE and a HIC?",
+      answer: "LIC (Low Income Country): low GDP/GNI per capita, low HDI, high poverty — e.g. Chad, Niger. NEE (Newly Emerging Economy): rapid economic growth and industrialisation, rising incomes, but still with significant inequality — e.g. China, India, Nigeria, Brazil. HIC (High Income Country): high GDP, high HDI, strong services sector — e.g. UK, USA, Germany.",
+      acceptedAnswers: [
+        "LIC = low income, low HDI (e.g. Niger); NEE = rapidly developing, growing industry (e.g. China, Nigeria); HIC = high income, high development (e.g. UK)",
+        "LICs are poorest (Niger, Chad); NEEs are growing economies with rapid industrialisation (China, India, Brazil, Nigeria); HICs are wealthiest (UK, USA)",
+        "LIC: low income/HDI; NEE: rapidly growing economy (China, Nigeria); HIC: high income and development (UK, Germany)",
+      ],
+      marks: 2,
+      hint: "Three levels of development — give examples of countries at each level",
+      topic: "Changing Economic World",
+    },
+
+    // Resource Management
+    {
+      question: "What is water stress and which areas of the world face it most?",
+      answer: "Water stress occurs when demand for water exceeds available supply, or when poor water quality restricts use. Sub-Saharan Africa, the Middle East, parts of South Asia and Central Asia face severe stress. In the UK, the south-east England faces water deficit (demand exceeds rainfall supply) while the north-west has a water surplus.",
+      acceptedAnswers: [
+        "When water demand exceeds supply or quality is too poor; worst in sub-Saharan Africa, Middle East and parts of Asia; in the UK south-east has a deficit",
+        "Water stress = demand > supply; affects Middle East, sub-Saharan Africa, South Asia most; UK south-east has a water deficit",
+        "Areas where water demand exceeds reliable supply — Middle East, Africa, South Asia; UK south-east has demand exceeding rainfall",
+      ],
+      marks: 2,
+      hint: "Demand exceeds supply — which world regions and which part of the UK?",
+      topic: "Resource Management",
+    },
+    {
+      question: "State two negative environmental impacts of large-scale dam projects.",
+      answer: "Flooding of land upstream destroys habitats and displaces communities. Reduced sediment transport downstream (the dam traps silt) causes coastal erosion and loss of farmland fertility. Disruption to fish migration (e.g. salmon unable to reach spawning grounds). Water loss through evaporation in hot climates.",
+      acceptedAnswers: [
+        "Flooding of upstream habitats and communities; reduced sediment downstream causing coastal erosion and loss of fertile farmland",
+        "Upstream habitat/community flooding; downstream reduced silt causing erosion and reduced river fertility; disrupted fish migration",
+        "Habitat destruction upstream; reduced silt downstream leading to delta erosion; blocked fish migration routes",
+      ],
+      marks: 2,
+      hint: "Think about impacts upstream AND downstream of the dam",
+      topic: "Resource Management",
+    },
+
+    // Glaciation continued
+    {
+      question: "What is a ribbon lake and how does it form?",
+      answer: "A ribbon lake is a long, narrow lake occupying the floor of a glacial trough (U-shaped valley). It forms because the glacier eroded the valley floor unevenly — areas of softer rock were eroded more deeply, forming a rock basin that fills with water when the ice melts. Example: Windermere in the Lake District.",
+      acceptedAnswers: [
+        "A long narrow lake in a U-valley; formed by differential glacial erosion of soft rock creating a basin that fills with water — e.g. Windermere",
+        "Ribbon lakes form in glacial troughs where soft rock was over-deepened by the glacier; water fills the basin — Windermere is an example",
+        "Long lake in a glacial valley; glacier eroded soft rock more deeply creating a basin; fills with water on glacial retreat — e.g. Windermere, Lake District",
+      ],
+      marks: 2,
+      hint: "Long and narrow in a glacial valley — how did differential erosion create it?",
+      topic: "Glaciation",
+    },
+
+    // AQA-specific
+    {
+      question: "What is managed retreat in the context of coastal management?",
+      answer: "Managed retreat (or managed realignment) is a soft engineering strategy where the current line of coastal defence is abandoned and the sea is allowed to flood inland. New defences may be built further inland. This creates new habitats (salt marsh) which provide natural coastal protection. It is cheaper than hard engineering and more sustainable, but displaces landowners and can be politically unpopular.",
+      acceptedAnswers: [
+        "Allowing the sea to flood previously defended land; creates salt marsh habitat acting as natural protection; cheaper than hard engineering but unpopular with landowners",
+        "Soft engineering approach where existing defences are abandoned; sea floods in, creating salt marsh; more sustainable but displaces communities",
+        "Letting the coast erode/flood back to a new line; natural habitats form; cost-effective but controversial as land is lost",
+      ],
+      marks: 2,
+      hint: "Letting the sea in — what are the benefits and drawbacks?",
+      topic: "AQA — Holderness Coast Case Study",
+      boards: ['AQA'],
+    },
+    {
+      question: "Why is the Holderness Coast in Yorkshire described as the fastest eroding coastline in Europe?",
+      answer: "The Holderness Coast erodes at an average rate of approximately 2 metres per year. Reasons: the cliffs are made of soft boulder clay (till) deposited by glaciers, which is easily eroded by waves. The coastline faces the North Sea, where powerful destructive waves approach from the north-east. Longshore drift carries eroded sediment southward, preventing natural beach accumulation that would protect cliffs.",
+      acceptedAnswers: [
+        "Soft boulder clay (glacial till) cliffs erode easily; powerful North Sea destructive waves; longshore drift removes protective beach material — approximately 2 metres/year average erosion",
+        "Soft glacial boulder clay cliffs + powerful North Sea waves + longshore drift removing protective sediment = ~2 m/year erosion rate",
+        "Boulder clay is very soft and easily eroded; destructive North Sea waves are powerful; longshore drift removes beach material providing no protection",
+      ],
+      marks: 2,
+      hint: "Think about rock type, wave energy and the role of longshore drift in removing protection",
+      topic: "AQA — Holderness Coast Case Study",
+      boards: ['AQA'],
     },
   ],
+
   mid: [
+    // ── EXISTING QUESTIONS (all preserved) ──────────────────────────────────
     {
       question: "Explain the causes and effects of tropical deforestation, using a named example.",
       answer: "Causes in the Amazon rainforest: commercial farming (soya, cattle ranching) — the biggest driver; logging for timber; mining; road building; population growth and subsistence farming. Effects: loss of biodiversity — species extinction; release of stored carbon increasing global warming; disruption of the water cycle (trees recycle rainfall through transpiration); indigenous communities displaced; soil erosion after tree cover removed. The Amazon has lost around 17% of its forest in 50 years — an area larger than France.",
@@ -255,6 +624,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Name a specific rainforest. Give economic causes and environmental effects. Include data.",
+      topic: "Ecosystems",
     },
     {
       question: "Describe and explain the features of a meander.",
@@ -267,6 +637,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Describe both banks — why is erosion on one side and deposition on the other? Refer to water velocity.",
+      topic: "Physical Landscapes UK",
     },
     {
       question: "Explain how climate change is affecting the Arctic and the consequences for global sea levels.",
@@ -279,6 +650,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover Arctic warming rates, ice loss, permafrost methane, sea level rise, consequences for low-lying areas",
+      topic: "Natural Hazards",
     },
     {
       question: "Explain the causes of a named earthquake and its immediate effects.",
@@ -291,6 +663,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Name the earthquake, explain the tectonic cause, then describe immediate physical and human effects",
+      topic: "Natural Hazards",
     },
     {
       question: "Describe the strategies used to manage the impacts of tropical storms, giving examples.",
@@ -303,6 +676,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover prediction, preparation, protection. Compare HIC and LIC responses using named examples.",
+      topic: "Natural Hazards",
     },
     {
       question: "Explain the causes and effects of urban sprawl in the UK, using a named example.",
@@ -315,6 +689,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Define urban sprawl, give causes and effects. Mention planning responses like greenbelts and brownfield development.",
+      topic: "Urban Issues & Challenges",
     },
     {
       question: "Explain the causes of the development gap between HICs and LICs.",
@@ -327,6 +702,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover historical (colonialism), economic (trade, debt), physical (geography, disease) and political causes. Note that the gap can be closed.",
+      topic: "Changing Economic World",
     },
     {
       question: "Describe the characteristics of the tropical rainforest biome and explain how plants are adapted to it.",
@@ -339,6 +715,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Describe the climate (temperature, rainfall), then the vegetation structure (layers), then specific plant adaptations",
+      topic: "Ecosystems",
     },
     {
       question: "Explain how the UK's coastal landscapes are shaped by erosion and deposition, giving examples.",
@@ -351,6 +728,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Name specific coastal landforms and UK examples. Cover both erosion AND deposition features.",
+      topic: "Physical Landscapes UK",
     },
     {
       question: "Explain the strategies used to reduce the development gap between HICs and LICs.",
@@ -363,6 +741,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Cover aid (types and limitations), trade, debt relief, technology, microfinance. Give specific examples for each.",
+      topic: "Changing Economic World",
     },
     {
       question: "Explain the causes of climate change, distinguishing between natural and human factors.",
@@ -375,9 +754,135 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 4,
       hint: "Give at least two natural AND at least two human causes. State that human causes are now dominant.",
+      topic: "Natural Hazards",
+    },
+
+    // ── NEW MID QUESTIONS ───────────────────────────────────────────────────
+
+    {
+      question: "Describe and explain the formation of a spit using geographical terminology.",
+      answer: "A spit is a long, narrow ridge of sand or shingle extending from the coast into the sea or across an estuary. Formation: longshore drift transports sediment along the coast. Where the coastline changes direction abruptly (e.g. at an estuary mouth), the prevailing current continues into open water and loses energy. Deposition occurs as velocity drops, gradually extending the spit. Prevailing winds may curve the end (recurved tip). Calm water on the sheltered (lee) side of the spit allows salt marsh to develop. Example: Spurn Head (Humber Estuary) or Hurst Castle Spit (Hampshire).",
+      acceptedAnswers: [
+        "Longshore drift carries sediment along the coast; where the coast curves, sediment is deposited in open water; the spit grows with a recurved end; salt marsh forms behind — e.g. Spurn Head",
+        "Sediment is transported by longshore drift; at a headland or estuary the coast changes direction; deposition extends a ridge into the sea; curls where wind changes — e.g. Hurst Castle Spit",
+        "Longshore drift deposits sediment where the coast changes direction; forms a ridge extending into open water with a recurved tip; calm water behind allows salt marsh — Spurn Head is an example",
+      ],
+      marks: 4,
+      hint: "Define spit, describe how longshore drift creates it, explain why the end curves, and mention what forms behind it.",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "Explain the formation of a V-shaped valley and interlocking spurs.",
+      answer: "V-shaped valleys form in the upper course of a river where vertical erosion (downcutting) dominates. The river uses hydraulic action and abrasion to cut downward into the bedrock. Rainwater and mass movement (e.g. soil creep, slumping) wash loose material into the river from the sides, widening the valley slightly into a V-shape. Interlocking spurs are ridges of harder rock that project alternately from each side into the valley, as the river winds around obstacles it cannot easily erode. The valley is narrow and deep, with limited lateral erosion.",
+      acceptedAnswers: [
+        "River cuts downward (vertical erosion); weathering and mass movement widen the sides to form a V-shape; interlocking spurs are hard rock ridges the river winds around",
+        "Vertical erosion dominates in the upper course; hydraulic action and abrasion cut downward; mass movement from sides creates the V-shape; spurs of hard rock cause the river to weave — interlocking spurs",
+        "Upper course river erodes downward; valley sides weathered and collapse giving a V-shape; the river curves around hard rock ridges (interlocking spurs) that alternate from each bank",
+      ],
+      marks: 4,
+      hint: "Explain what erosion process dominates, how the V-shape forms, and why spurs interlock.",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "Explain how glacial landscapes in the UK show evidence of past glaciation, using named examples.",
+      answer: "UK glacial landscapes in areas like the Lake District, Snowdonia and the Scottish Highlands show clear evidence of past glaciation. Corries (e.g. Red Tarn in the Lake District) are bowl-shaped hollows formed by rotational ice movement. Arêtes (e.g. Striding Edge) are knife-edge ridges between two corries. U-shaped valleys (e.g. Borrowdale) have steep sides and flat floors. Ribbon lakes (e.g. Windermere) fill over-deepened glacial troughs. Drumlins (e.g. Vale of Eden) are egg-shaped hills of glacial till indicating direction of ice flow. Erratics are rocks transported by glaciers and deposited far from their origin.",
+      acceptedAnswers: [
+        "Corries (Red Tarn), arêtes (Striding Edge), U-valleys (Borrowdale), ribbon lakes (Windermere), drumlins and erratics all show past glaciation in the Lake District and Scottish Highlands",
+        "UK glacial landscapes include corries, arêtes, U-valleys, ribbon lakes (Windermere), drumlins and erratics — all formed by glacial erosion, transport and deposition",
+        "Evidence includes corries (bowl hollows), arêtes (sharp ridges), U-valleys with ribbon lakes (Windermere), drumlins (Lake District), and erratics deposited far from their origin",
+      ],
+      marks: 5,
+      hint: "Name at least three specific glacial landforms with UK examples. Explain what each reveals about past glaciation.",
+      topic: "Glaciation",
+    },
+    {
+      question: "Explain how Nigeria has developed as a Newly Emerging Economy (NEE), and what challenges remain.",
+      answer: "Nigeria is Africa's largest economy, with significant oil reserves in the Niger Delta driving revenue. Manufacturing (e.g. Lagos) and services have grown. TNCs (e.g. Shell, Unilever) have invested, bringing jobs and technology. The Lagos–Abuja corridor has developed rapidly. However, challenges remain: overdependence on oil means the economy is vulnerable to price changes; corruption reduces public services; wealth inequality is very high (poverty remains widespread in the north); Niger Delta oil spills devastate local communities; and infrastructure (roads, electricity) remains inadequate outside cities.",
+      acceptedAnswers: [
+        "Nigeria has grown through oil revenues and TNC investment (Shell, Unilever), growing manufacturing in Lagos; but faces corruption, overdependence on oil, regional inequality and pollution",
+        "Oil wealth and TNC investment have driven Nigeria's development; Lagos has grown rapidly; but inequality, corruption, oil pollution and poor infrastructure limit progress",
+        "Oil revenues and FDI have grown Nigeria's economy; Lagos as a manufacturing/service hub; challenges: oil-dependent economy, corruption, poverty in the north, Niger Delta pollution",
+      ],
+      marks: 4,
+      hint: "Cover economic successes (oil, TNCs, Lagos) then challenges (inequality, corruption, oil dependence, pollution)",
+      topic: "Changing Economic World",
+    },
+    {
+      question: "Describe the effects of rapid urbanisation in a named LIC or NEE city.",
+      answer: "Rio de Janeiro (NEE, Brazil): rapid rural-to-urban migration has created a population of 13 million. Approximately 22% live in favelas (informal settlements) — the largest being Rocinha (150,000 people). Effects: inadequate housing, lack of clean water and sanitation, high crime rates linked to poverty and drug gangs (e.g. Comando Vermelho). Traffic congestion, air pollution. However, Rio has implemented improvements: the Favela Bairro programme upgraded services; cable cars and funiculars improved access; the 2014 World Cup and 2016 Olympics drove infrastructure investment, though critics argue this gentrified favelas without solving root problems.",
+      acceptedAnswers: [
+        "Rio de Janeiro: rapid urbanisation created 22% of population in favelas (Rocinha); effects include inadequate housing, poor sanitation, crime; Favela Bairro programme improved infrastructure",
+        "In Rio, urbanisation created large favelas (Rocinha, 150,000 people) with poor water, sanitation and high crime; some improvements through Favela Bairro and Olympic infrastructure investment",
+        "Rapid urbanisation in Rio created housing shortages, favelas, poor sanitation and high crime; urban improvements include the Favela Bairro programme and 2016 Olympic infrastructure",
+      ],
+      marks: 4,
+      hint: "Name the city, give data, describe problems (housing, water, sanitation, crime) and any management responses",
+      topic: "Urban Issues & Challenges",
+    },
+    {
+      question: "Explain what is meant by sustainable urban living and give examples of how it is achieved.",
+      answer: "Sustainable urban living means organising cities to minimise environmental impact while maintaining high quality of life, now and in the future. Strategies: sustainable transport (cycle lanes, light rail, car-free zones — e.g. Freiburg, Germany); renewable energy in buildings (solar panels, green roofs — e.g. BedZED, London); water recycling and rainwater harvesting; green spaces and urban forests to absorb CO₂ and reduce heat islands; mixed land use reduces travel needs; community food growing. In the UK, Sustainable Urban Drainage Systems (SUDS) reduce flood risk. BedZED in Sutton, London, uses passive solar design, insulation and renewable energy to reduce carbon footprint by 82%.",
+      acceptedAnswers: [
+        "Sustainable urban living reduces environmental impact while maintaining quality of life; examples include Freiburg's cycling, BedZED's renewable energy, SUDS for drainage and green roofs",
+        "Achieved through sustainable transport, renewable energy (BedZED), green spaces, water recycling and local food growing — e.g. Freiburg (cycling city) and BedZED (82% lower carbon footprint)",
+        "Low-carbon transport, renewable building energy, water harvesting, urban green space, SUDS — examples include BedZED (London) and Freiburg (Germany) as sustainable city models",
+      ],
+      marks: 4,
+      hint: "Define sustainable urban living then give at least three concrete strategies with named examples",
+      topic: "Urban Issues & Challenges",
+    },
+    {
+      question: "Explain the formation of headlands and bays along a discordant coastline.",
+      answer: "A discordant coastline has alternating bands of hard and soft rock running at right angles to the sea. Destructive waves attack all rock types, but softer rock (e.g. clay or sand) is eroded more quickly by hydraulic action, abrasion and attrition, forming bays. Harder rock (e.g. chalk, limestone) resists erosion and protrudes as headlands. Over time, the headlands become increasingly exposed to wave attack and begin to develop their own erosion features: sea caves, arches (e.g. Durdle Door), stacks and stumps. Example: Swanage Bay in Dorset, where soft clay forms the bay and chalk/limestone forms the headlands.",
+      acceptedAnswers: [
+        "Alternating hard and soft rock perpendicular to the coast; soft rock erodes faster forming bays; hard rock resists forming headlands — e.g. Swanage Bay, Dorset",
+        "Discordant coastline: bands of rock perpendicular to shore; differential erosion erodes soft rock as bays and leaves hard rock as headlands — Swanage Bay (Dorset) is an example",
+        "Hard and soft rock run at 90° to the coast; waves erode soft rock faster (bays) and leave hard rock projecting (headlands); headlands then develop caves, arches and stacks — Swanage Bay",
+      ],
+      marks: 4,
+      hint: "Explain the rock structure, differential erosion, and what forms at each rock type. Give a named UK example.",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "Explain the effects of climate change on hot desert environments.",
+      answer: "Climate change is making hot deserts hotter and, in many cases, enlarging them through desertification. Higher temperatures increase evaporation, reducing soil moisture. Rainfall becomes more erratic — prolonged droughts are more frequent and intense. This degrades vegetation cover, exposing soil to wind erosion and water erosion when rain does fall. Desertification threatens the Sahel region (south of the Sahara) — the Sahara is advancing southward at around 48 km/year in some areas. Sand dunes become mobile without vegetation anchoring them, threatening settlements and farmland. Flash flooding also increases as bare soil cannot absorb intense rainfall events.",
+      acceptedAnswers: [
+        "Climate change increases temperatures and drought frequency in deserts; desertification expands deserts (Sahara advancing ~48 km/year in Sahel); vegetation loss, soil erosion and mobile dunes threaten communities",
+        "Hotter temperatures and more erratic rainfall cause desertification; Sahel countries face expanding Sahara; vegetation lost, soil eroded, dunes mobile, livelihoods destroyed",
+        "Climate change raises temperatures and extends droughts; desertification in Sahel advances ~48 km/year; vegetation and soil lost; communities threatened by sand encroachment and flash floods",
+      ],
+      marks: 4,
+      hint: "Focus on how climate change worsens the desert environment — link to desertification and give data on the Sahel",
+      topic: "Ecosystems",
+    },
+    {
+      question: "Using a named example, explain how one river has been managed to reduce flood risk.",
+      answer: "The River Thames in London is managed through a combination of hard and soft engineering. The Thames Barrier (built 1982, raised ~200 times) is a series of moveable steel gates across the Thames that prevent tidal storm surges from flooding central London. Upstream, flood embankments and walls protect riverside communities. Floodplain zoning restricts building on the floodplain. In the upper catchment, afforestation has been trialled at Pontbren, Wales, where tree planting reduced peak river flows by over 50%. This shows that combining hard engineering (Thames Barrier) with soft engineering (afforestation, zoning) is more effective and sustainable than either approach alone.",
+      acceptedAnswers: [
+        "Thames Barrier (1982) protects London from tidal surges; combined with embankments, floodplain zoning and afforestation (Pontbren reducing peak flows by 50%) — combined hard and soft approach is most effective",
+        "River Thames: Thames Barrier (closed ~200 times) prevents tidal flooding; floodplain zoning restricts building; upstream afforestation reduces runoff — hard and soft engineering together",
+        "Thames management: Thames Barrier as hard engineering for tidal surges; soft engineering includes floodplain zoning and upstream tree planting; combined approach is most effective",
+      ],
+      marks: 4,
+      hint: "Name the river, identify at least one hard and one soft strategy, assess effectiveness",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "Explain the global distribution of tropical rainforests and why they are found where they are.",
+      answer: "Tropical rainforests are found between the Tropics of Cancer and Capricorn (roughly 10°N–10°S of the equator) — in South America (Amazon basin), Central Africa (Congo basin) and South-East Asia (Borneo, Sumatra, Papua New Guinea). They are found here because: these regions receive strong, near-vertical solar radiation year-round (being close to the equator), creating consistently high temperatures (25–28°C). Warm, moist air rises at the Inter-Tropical Convergence Zone (ITCZ), cools, condenses and falls as heavy convectional rainfall (2,000+ mm/year), supporting dense vegetation growth.",
+      acceptedAnswers: [
+        "Found between the Tropics (10°N–10°S): Amazon, Congo, Borneo; high temperatures year-round due to vertical sunlight; heavy convectional rainfall from the ITCZ supports dense vegetation",
+        "Tropical rainforests occur near the equator (Amazon, Congo, SE Asia) where high solar radiation, high temperature and heavy convectional rainfall provide ideal growing conditions",
+        "Located between Tropics of Cancer and Capricorn; consistent vertical sun means high temperature and convectional rainfall via the ITCZ — Amazon, Congo and SE Asian rainforests are key areas",
+      ],
+      marks: 4,
+      hint: "State where they are found, then explain the climate reasons (solar angle, ITCZ, convectional rainfall)",
+      topic: "Ecosystems",
     },
   ],
+
   long: [
+    // ── EXISTING QUESTIONS (all preserved) ──────────────────────────────────
     {
       question: "'Urban areas in LICs face greater challenges than those in HICs.' To what extent do you agree? Refer to named examples. (9 marks)",
       answer: "Urban areas in LICs (Lower Income Countries) like Mumbai face extraordinary challenges: rapid urbanisation exceeds infrastructure capacity. Around 55% of Mumbai's population lives in slums like Dharavi, lacking clean water, sanitation and legal land tenure. Infant mortality, disease (cholera, typhoid) and air/water pollution are severe. However, LIC cities also demonstrate remarkable human resilience — Dharavi has a thriving informal economy worth $650 million/year; NGOs and self-help schemes have improved conditions. In contrast, urban areas in HICs (Higher Income Countries) like London face different but significant challenges: housing unaffordability, homelessness, traffic congestion and urban deprivation in inner-city areas. Deindustrialisation has left 'rust belt' cities like Detroit with high unemployment and urban decay. However, HIC cities generally have functioning systems of governance, sanitation and legal housing. In conclusion, I broadly agree that LIC urban challenges are more severe in immediate human terms — poverty, sanitation and health are more acute. However, challenges in HIC cities should not be dismissed, and the gap is closing as some cities (e.g. Singapore, Seoul) transition rapidly.",
@@ -389,6 +894,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 9,
       hint: "Use named examples (LIC and HIC city). Cover multiple challenges. Offer a balanced argument with a clear concluding judgement.",
+      topic: "Urban Issues & Challenges",
     },
     {
       question: "'Physical factors are more important than human factors in determining the distribution of tectonic hazards.' To what extent do you agree? (9 marks)",
@@ -401,6 +907,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 9,
       hint: "Physical factors determine WHERE hazards occur (plate boundaries). Human factors determine the IMPACT. Use named examples with data.",
+      topic: "Natural Hazards",
     },
     {
       question: "'Climate change is the greatest threat facing humanity in the 21st century.' Do you agree? Justify your answer. (9 marks)",
@@ -413,6 +920,7 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 9,
       hint: "Build a strong case that climate change IS the greatest threat (IPCC data, tipping points, global reach). Then consider other threats. Conclude with a justified judgement.",
+      topic: "Natural Hazards",
     },
     {
       question: "Assess the effectiveness of strategies to manage river flooding in the UK, using named examples. (9 marks)",
@@ -420,11 +928,12 @@ export const geographyBank: SubjectBank = {
       acceptedAnswers: [
         "Hard engineering (dams, flood walls, channel straightening) provides immediate protection but is expensive and can shift flooding downstream; soft engineering (floodplain zoning, afforestation, managed retreat) is more sustainable — Pickering shows 2–3% peak flow reduction",
         "Effective strategies combine hard (Thames flood defences, Clywedog Dam) and soft approaches (Pickering afforestation, Somerset Levels management); soft engineering is increasingly preferred as more sustainable",
-        "Hard engineering works short-term but has drawbacks (cost, land loss, transferring flooding); soft engineering like Pickering's natural flood management is more sustainable; combined approaches are most effective",
+        "Hard engineering works short-term but has drawbacks (cost, land loss, transferring flooding); soft engineering like Pickering's natural flood management is more sustainable; combined approaches seen at Somerset Levels are most effective",
         "Hard engineering (dams, embankments) provides direct protection; soft engineering (afforestation at Pickering, floodplain zoning) tackles root causes; combined approaches seen at Somerset Levels are most effective overall",
       ],
       marks: 9,
       hint: "Name at least two contrasting strategies (hard and soft). Use specific UK river examples. Assess effectiveness — not just describe.",
+      topic: "Physical Landscapes UK",
     },
     {
       question: "'Economic development always improves the quality of life for all people in a country.' How far do you agree? Refer to examples in your answer. (9 marks)",
@@ -437,27 +946,126 @@ export const geographyBank: SubjectBank = {
       ],
       marks: 9,
       hint: "Agree with evidence (HDI improvements, life expectancy, education). Then challenge (inequality, uneven distribution, environmental costs, rural-urban divide). Reach a justified conclusion.",
+      topic: "Changing Economic World",
+    },
+
+    // ── NEW LONG QUESTIONS ──────────────────────────────────────────────────
+
+    {
+      question: "'Hard engineering is more effective than soft engineering in managing coastal erosion.' Assess this view, using named examples. (9 marks)",
+      answer: "Hard engineering structures offer immediate, direct protection but carry long-term costs and unintended consequences. Sea walls (e.g. Seaham, County Durham) reflect wave energy and protect settlements but cost millions of pounds, require constant maintenance, reflect wave energy causing scour at the base, and do not address the fundamental problem of erosion. Groynes trap beach sediment updrift but starve beaches further along the coast of sand — Mappleton on the Holderness coast had groynes built in 1991 costing £2 million, which protected the village but accelerated erosion at Cowden Farm to the south. Rock armour (rip-rap) is cheaper but visually intrusive. In contrast, soft engineering works with natural processes. Managed retreat at Abbotts Hall Farm, Essex, allowed 84 hectares to be flooded, creating salt marsh habitat that absorbs wave energy cheaply and sustainably. Beach nourishment (e.g. Bournemouth) replenishes sand but requires regular repetition. The argument that hard engineering is 'more effective' depends on timescale and what 'effective' means. Short-term protection of specific settlements: hard engineering wins. Long-term, sustainable protection over kilometres of coastline: soft or managed retreat is more effective. In conclusion, a combination of hard and soft engineering is most effective — hard engineering for high-value sites, soft engineering and managed retreat elsewhere. Blanket use of hard engineering is neither affordable nor sustainable over the whole coastline.",
+      acceptedAnswers: [
+        "Hard engineering (sea walls, groynes) protects specific sites immediately but is expensive, requires maintenance and can transfer erosion; soft engineering (managed retreat, beach nourishment) is cheaper and more sustainable long-term",
+        "Sea walls and groynes provide immediate protection but Mappleton case shows they can accelerate erosion elsewhere; managed retreat (Abbotts Hall) and beach nourishment are more sustainable; combined approaches are most effective",
+        "Partially agree: hard engineering is effective short-term at specific sites; but cost, maintenance and displacement of erosion make soft engineering or managed retreat preferable over larger scales — judgement depends on timescale",
+      ],
+      marks: 9,
+      hint: "Compare hard (sea walls, groynes, rock armour) and soft (managed retreat, beach nourishment) with specific named examples. Assess effectiveness in terms of cost, sustainability and consequences. Offer a justified conclusion.",
+      topic: "Physical Landscapes UK",
+    },
+    {
+      question: "Assess the extent to which deforestation of tropical rainforests is inevitable given the pressures for economic development. (9 marks)",
+      answer: "Deforestation of tropical rainforests appears economically inevitable when viewed from the perspective of developing nations like Brazil, Indonesia or the DRC. These countries have large populations with significant poverty and debt. Commercial farming (soya, palm oil, cattle), logging and mining bring immediate income and employment — Brazil's agribusiness sector generated over $100 billion in 2022. For national governments under pressure to develop, the short-term economic gains from clearing the forest seem to outweigh the long-term environmental costs. However, deforestation is not inevitable — several countries have demonstrated that development and forest conservation are compatible. Costa Rica reversed deforestation through payment for ecosystem services (PES) — farmers are paid to maintain forest. Brazil's REDD+ programme (Reducing Emissions from Deforestation and forest Degradation) slowed Amazon loss significantly from 2004 to 2012, though it reversed under political pressure. Sustainable management — eco-tourism, sustainable timber certification (FSC), buffer zones around indigenous lands — shows that forests can generate income without destruction. The key variable is political will and global support. Wealthier nations and global consumers who benefit from cheap soya and palm oil bear responsibility. Carbon credits and fair international agreements could make preservation more economically attractive than deforestation. In conclusion, deforestation is not physically inevitable — it is a political and economic choice. With the right international pressure, financial incentives and sustainable development models, tropical forests can be preserved while supporting economic progress.",
+      acceptedAnswers: [
+        "Not inevitable: Costa Rica's PES scheme, Brazil's REDD+ programme and sustainable eco-tourism show development without deforestation is possible; political will and international finance are key",
+        "Strong economic pressures (farming, logging, mining) make deforestation likely without intervention; but Costa Rica, REDD+ and FSC certification show it can be avoided with political will and financial incentives",
+        "Deforestation is driven by economic need in developing nations but is not inevitable — sustainable alternatives (eco-tourism, PES, REDD+) exist if supported globally; it is a political not physical inevitability",
+      ],
+      marks: 9,
+      hint: "Acknowledge the economic pressure to deforest (farming, logging, poverty); then argue it is not inevitable using sustainable management examples. Reach a supported conclusion.",
+      topic: "Ecosystems",
+    },
+    {
+      question: "'Tectonic hazards always have a greater impact in LICs than in HICs.' To what extent do you agree? (9 marks)",
+      answer: "There is strong evidence that LICs suffer greater impacts from tectonic hazards. The 2010 Haiti earthquake (Mw 7.0) killed approximately 230,000 people — a catastrophic toll explained by poor building construction (unreinforced concrete), high population density, inadequate emergency services and a pre-existing governance crisis. In contrast, the 2011 Japan earthquake (Mw 9.0 — far more powerful) killed around 15,000 — Japan's strict building codes, earthquake-resistant 'base isolation' technology, excellent early warning systems and effective evacuation limited casualties dramatically. Per-unit magnitude, Japan's earthquake was over 1,000 times more energetic but killed fewer people. However, the statement 'always' is an overstatement. Hurricane Katrina (2005, USA) demonstrated that HICs can suffer catastrophic impacts if inequality means vulnerable communities (predominantly Black, low-income residents of New Orleans' Lower Ninth Ward) have less access to evacuation and recovery resources. The vulnerability of a population — not just its national income — determines impact. Japan's wealth is also an exception: many HICs lack Japan's investment in hazard resilience. Conclusion: LICs generally suffer greater tectonic impacts due to lower resilience, but 'always' is too absolute. Vulnerability within countries and the nature of specific hazards matter as much as a country's income level.",
+      acceptedAnswers: [
+        "Generally agree — Haiti 2010 (230,000 deaths) vs Japan 2011 (15,000, stronger quake) shows LICs suffer more; but Hurricane Katrina shows HICs can also suffer disproportionate impacts; 'always' is too absolute",
+        "LICs typically suffer greater impacts (Haiti 2010) due to poor building standards and limited emergency response; but Japan 2011 shows HIC resilience; Katrina shows within-HIC inequality can make 'always' wrong",
+        "Mostly agree: weak building codes, limited services and poverty amplify impacts in LICs (Nepal 2015, Haiti 2010); HICs reduce impacts through strict codes and preparation (Japan); but 'always' overstates the case",
+      ],
+      marks: 9,
+      hint: "Compare a named LIC earthquake event with a named HIC event using data. Challenge 'always' by showing exceptions. Reach a nuanced conclusion.",
+      topic: "Natural Hazards",
+    },
+    {
+      question: "Evaluate the success of strategies to reduce the development gap. Use examples from at least two different scales or strategies. (9 marks)",
+      answer: "Several strategies have been used to reduce the development gap, with mixed success. Aid: emergency aid (food, medicine) saves lives in crises but is not transformative. Developmental aid from NGOs (WaterAid — clean water for 28 million people across Africa and Asia) addresses specific needs but can create dependency and rarely addresses structural causes. Trade: the Fairtrade movement has given certified farmers (e.g. coffee cooperatives in Ethiopia) reliable above-market prices, improving farm incomes and community investment. However, Fairtrade reaches only a small fraction of LIC farmers and world trade rules still disadvantage LICs through subsidies and tariffs. Technology transfer: intermediate technology (rope pumps, solar panels, treadle pumps) is appropriate to local contexts and builds skills. The Grameen Bank's microfinance programme in Bangladesh has extended credit to 9 million borrowers (97% women) and lifted millions out of poverty — but critics note that small loans don't address structural economic inequality. Investment through TNCs: Chinese investment in African infrastructure (roads, ports, railways) has accelerated economic growth but has been criticised as 'debt trap diplomacy.' South Korea's own development trajectory — using education, export-led industrialisation and stable governance — shows the most transformative route. In conclusion, no single strategy closes the gap reliably. The most successful approach combines education, infrastructure, trade reform and political stability — as seen in the 'Asian Tiger' economies. Aid and microfinance are helpful but insufficient alone.",
+      acceptedAnswers: [
+        "Aid (WaterAid, emergency aid) has limited success; Fairtrade improves incomes for certified farmers but not all; Grameen Bank microfinance helps individuals; South Korea's education/industrialisation model is most transformative",
+        "Mixed success: WaterAid reaches millions, Fairtrade raises farm income, Grameen Bank empowers women; but structural trade inequalities remain; South Korea shows education and industrialisation is most effective long-term",
+        "Aid, trade (Fairtrade), microfinance and technology all reduce the gap partially; most effective is a combination with political stability and education — South Korean model is most successful; no single strategy works alone",
+      ],
+      marks: 9,
+      hint: "Evaluate at least two strategies (aid, trade, microfinance, technology, investment). For each, assess successes AND limitations. Reach a conclusion about which approach is most effective.",
+      topic: "Changing Economic World",
+    },
+    {
+      question: "'Glaciation has had a greater impact on shaping the UK's upland landscapes than any other process.' To what extent do you agree? (9 marks)",
+      answer: "Glaciation has profoundly shaped the UK's upland landscapes. The Lake District, Snowdonia, Scottish Highlands and the Pennines all bear the marks of the last ice age (ending approximately 10,000 years ago). Glacial erosion has created iconic landforms: corries (Red Tarn, Lake District), arêtes (Striding Edge), pyramidal peaks (Snowdon), U-shaped valleys (Borrowdale), ribbon lakes (Windermere) and truncated spurs. Glacial deposition has left drumlins (Vale of Eden), moraines, and erratics across lowland areas. These landforms are foundational — they give upland UK its fundamental shape. However, other processes have also significantly shaped these landscapes. Fluvial processes (river erosion and deposition) continue to modify glacial valleys — rivers cut into glacial troughs, transport glacial material and deposit alluvium on floodplains. Chemical and physical weathering break down exposed rock faces — freeze-thaw is still active in Scottish Highlands above 600 m. Human activity has transformed these landscapes since glacial retreat: deforestation (originally forested), sheep grazing preventing woodland regeneration, peat formation. In conclusion, glaciation provides the fundamental template of UK upland landscapes — without it, the dramatic topography would not exist. However, fluvial, weathering and human processes have modified these glacial landforms significantly over 10,000 years. Glaciation is clearly the most important process for the basic shape; ongoing processes continue to refine it.",
+      acceptedAnswers: [
+        "Strongly agree: glaciation created the fundamental upland landscape (corries, U-valleys, arêtes, ribbon lakes — Lake District, Snowdonia); but fluvial processes, weathering and human activity have modified it since",
+        "Glaciation provides the basic template of UK upland landscapes (Striding Edge, Windermere, Borrowdale) but fluvial erosion, freeze-thaw and millennia of human land use have substantially modified these glacial landforms",
+        "Broadly agree — glaciation created the dramatic upland topography; U-valleys, corries, arêtes and ribbon lakes dominate; but post-glacial fluvial and weathering processes, plus human deforestation, have also shaped the landscape",
+      ],
+      marks: 9,
+      hint: "Make a strong case for glaciation (named landforms with examples). Then consider fluvial, weathering and human processes. Offer a supported conclusion on relative importance.",
+      topic: "Glaciation",
     },
   ],
+
   flashcard: [
-    { term: "Plate Boundaries", definition: "Three types: constructive (plates move apart — volcanic activity, e.g. Mid-Atlantic Ridge); destructive (plates collide — earthquakes and volcanoes, e.g. Japan Trench); conservative (plates slide past — earthquakes only, e.g. San Andreas Fault).", example: null },
-    { term: "Hydraulic Action", definition: "A type of river or coastal erosion where the force of water and air pressure in cracks in the riverbed or cliff face causes rock to break away.", example: "Common in rapids, waterfalls and at the base of cliffs" },
-    { term: "Gross Domestic Product (GDP)", definition: "The total value of goods and services produced by a country in a year. Used to measure economic development. GNI per capita (per person) is often used for comparisons between countries.", example: "USA has one of the highest GDPs; Niger one of the lowest" },
-    { term: "Demographic Transition Model (DTM)", definition: "A model showing how birth rates and death rates change as a country develops. Five stages from high BR/high DR (Stage 1) to low BR/low DR (Stage 5). Population grows most rapidly in Stage 2–3.", example: "UK is in Stage 5; Niger is in Stage 2" },
-    { term: "Biome", definition: "A large-scale ecosystem defined by its climate and vegetation. Major biomes include tropical rainforest, temperate deciduous forest, tundra, hot desert and savannah.", example: "Amazon = tropical rainforest biome; Sahara = hot desert biome" },
-    { term: "Sustainable Development", definition: "Development that meets the needs of the present without compromising the ability of future generations to meet their own needs (Brundtland definition, 1987). Balances economic, social and environmental goals.", example: "Solar panels provide renewable energy without depleting resources" },
-    { term: "Urbanisation", definition: "The increase in the proportion of people living in urban areas. Fastest in LICs. Caused by rural-urban migration (pull factors: jobs, services; push factors: poverty, drought) and natural increase.", example: "Lagos, Nigeria growing by around 77 people per hour" },
-    { term: "Flood Risk Management", definition: "Strategies include: hard engineering (dams, flood walls, channel straightening) and soft engineering (floodplain zoning, afforestation, managed retreat). Soft approaches are more sustainable but less immediately effective.", example: "Thames Barrier: hard engineering protecting London from tidal flooding" },
-    { term: "Subduction", definition: "When a denser oceanic plate is forced beneath a less dense continental plate at a destructive boundary. Creates ocean trenches, fold mountains, volcanoes and deep-focus earthquakes.", example: "Nazca Plate subducting beneath South American Plate formed the Andes" },
-    { term: "Tropical Rainforest Adaptations", definition: "Plants: buttress roots (support tall trees in shallow soil), drip tips (shed rain), epiphytes (grow on other plants to reach light), lianas (climbing plants). Animals: camouflage, nocturnal behaviour, canopy living.", example: "Strangler figs wrap around host trees to reach the canopy" },
-    { term: "Development Gap", definition: "The difference in levels of economic development between the richest (HICs) and poorest (LICs) countries. Measured using GDP, HDI, literacy rates, infant mortality. Caused by colonialism, trade inequalities, debt and geography.", example: "Norway HDI 0.961 vs Niger HDI 0.394 (2022)" },
-    { term: "Intermediate Technology", definition: "Technology that is appropriate to the skills, knowledge and wealth of the local community. Cheap, easy to maintain and sustainable. Used in LIC development projects to reduce dependency.", example: "Rope pump for clean water in Uganda; treadle pump for small-scale irrigation" },
-    { term: "Hot Desert Adaptations", definition: "Cacti have thick waxy stems to store water, shallow wide roots to capture rainfall, spines instead of leaves to reduce water loss. Fennec foxes have large ears to radiate heat, are nocturnal to avoid daytime heat.", example: "Saguaro cactus can store up to 200 litres of water after rainfall" },
-    { term: "Ox-bow Lake", definition: "A crescent-shaped lake formed when a river meander becomes so extreme that the river cuts through the neck of the meander, taking a shorter course. The abandoned meander fills with still water.", example: "Common on the floodplains of large rivers like the Mississippi or Amazon" },
-    { term: "Greenhouse Gases", definition: "Gases that trap heat in the atmosphere: carbon dioxide (CO₂ — from burning fossil fuels), methane (CH₄ — from cattle, rice paddies, landfill), nitrous oxide (N₂O — from agriculture), water vapour. Concentration has increased since industrialisation.", example: "CO₂ concentration: 280 ppm (pre-industrial) → 420 ppm (2023)" },
-    { term: "Fairtrade", definition: "A trading arrangement that guarantees producers in LICs a minimum fair price for their goods (coffee, cocoa, bananas) regardless of world market prices. Aims to reduce poverty and improve working conditions.", example: "Fairtrade coffee cooperatives in Ethiopia receive stable income for farmers" },
-    { term: "Push and Pull Migration Factors", definition: "Push factors force people to leave an area (poverty, conflict, drought, lack of jobs). Pull factors attract people to a new area (better wages, services, safety, political freedom). Rural-to-urban migration within LICs is driven by both.", example: "Push: drought in Sahel; Pull: manufacturing jobs in Lagos" },
-    { term: "Richter Scale vs Moment Magnitude", definition: "The Richter Scale measures the amplitude of seismic waves (logarithmic — each point is 10x stronger). The Moment Magnitude Scale (Mw) is now standard for large earthquakes, measuring total energy released. A Mw 7.0 releases 32x more energy than Mw 6.0.", example: "Haiti 2010: Mw 7.0; Japan 2011: Mw 9.0 — Japan's was ~100x more powerful" },
-    { term: "Cumulative Causation (Myrdal)", definition: "Gunnar Myrdal's theory that economic growth in one region creates a self-reinforcing cycle: success attracts more investment, skilled workers and infrastructure, widening the gap with less developed regions (backwash effect).", example: "London's financial services attract talent and investment, widening UK regional inequality" },
+    // ── EXISTING FLASHCARDS (all preserved) ─────────────────────────────────
+    { term: "Plate Boundaries", definition: "Three types: constructive (plates move apart — volcanic activity, e.g. Mid-Atlantic Ridge); destructive (plates collide — earthquakes and volcanoes, e.g. Japan Trench); conservative (plates slide past — earthquakes only, e.g. San Andreas Fault).", example: null, topic: "Natural Hazards" },
+    { term: "Hydraulic Action", definition: "A type of river or coastal erosion where the force of water and air pressure in cracks in the riverbed or cliff face causes rock to break away.", example: "Common in rapids, waterfalls and at the base of cliffs", topic: "Physical Landscapes UK" },
+    { term: "Gross Domestic Product (GDP)", definition: "The total value of goods and services produced by a country in a year. Used to measure economic development. GNI per capita (per person) is often used for comparisons between countries.", example: "USA has one of the highest GDPs; Niger one of the lowest", topic: "Changing Economic World" },
+    { term: "Demographic Transition Model (DTM)", definition: "A model showing how birth rates and death rates change as a country develops. Five stages from high BR/high DR (Stage 1) to low BR/low DR (Stage 5). Population grows most rapidly in Stage 2–3.", example: "UK is in Stage 5; Niger is in Stage 2", topic: "Changing Economic World" },
+    { term: "Biome", definition: "A large-scale ecosystem defined by its climate and vegetation. Major biomes include tropical rainforest, temperate deciduous forest, tundra, hot desert and savannah.", example: "Amazon = tropical rainforest biome; Sahara = hot desert biome", topic: "Ecosystems" },
+    { term: "Sustainable Development", definition: "Development that meets the needs of the present without compromising the ability of future generations to meet their own needs (Brundtland definition, 1987). Balances economic, social and environmental goals.", example: "Solar panels provide renewable energy without depleting resources", topic: "Changing Economic World" },
+    { term: "Urbanisation", definition: "The increase in the proportion of people living in urban areas. Fastest in LICs. Caused by rural-urban migration (pull factors: jobs, services; push factors: poverty, drought) and natural increase.", example: "Lagos, Nigeria growing by around 77 people per hour", topic: "Urban Issues & Challenges" },
+    { term: "Flood Risk Management", definition: "Strategies include: hard engineering (dams, flood walls, channel straightening) and soft engineering (floodplain zoning, afforestation, managed retreat). Soft approaches are more sustainable but less immediately effective.", example: "Thames Barrier: hard engineering protecting London from tidal flooding", topic: "Physical Landscapes UK" },
+    { term: "Subduction", definition: "When a denser oceanic plate is forced beneath a less dense continental plate at a destructive boundary. Creates ocean trenches, fold mountains, volcanoes and deep-focus earthquakes.", example: "Nazca Plate subducting beneath South American Plate formed the Andes", topic: "Natural Hazards" },
+    { term: "Tropical Rainforest Adaptations", definition: "Plants: buttress roots (support tall trees in shallow soil), drip tips (shed rain), epiphytes (grow on other plants to reach light), lianas (climbing plants). Animals: camouflage, nocturnal behaviour, canopy living.", example: "Strangler figs wrap around host trees to reach the canopy", topic: "Ecosystems" },
+    { term: "Development Gap", definition: "The difference in levels of economic development between the richest (HICs) and poorest (LICs) countries. Measured using GDP, HDI, literacy rates, infant mortality. Caused by colonialism, trade inequalities, debt and geography.", example: "Norway HDI 0.961 vs Niger HDI 0.394 (2022)", topic: "Changing Economic World" },
+    { term: "Intermediate Technology", definition: "Technology that is appropriate to the skills, knowledge and wealth of the local community. Cheap, easy to maintain and sustainable. Used in LIC development projects to reduce dependency.", example: "Rope pump for clean water in Uganda; treadle pump for small-scale irrigation", topic: "Changing Economic World" },
+    { term: "Hot Desert Adaptations", definition: "Cacti have thick waxy stems to store water, shallow wide roots to capture rainfall, spines instead of leaves to reduce water loss. Fennec foxes have large ears to radiate heat, are nocturnal to avoid daytime heat.", example: "Saguaro cactus can store up to 200 litres of water after rainfall", topic: "Ecosystems" },
+    { term: "Ox-bow Lake", definition: "A crescent-shaped lake formed when a river meander becomes so extreme that the river cuts through the neck of the meander, taking a shorter course. The abandoned meander fills with still water.", example: "Common on the floodplains of large rivers like the Mississippi or Amazon", topic: "Physical Landscapes UK" },
+    { term: "Greenhouse Gases", definition: "Gases that trap heat in the atmosphere: carbon dioxide (CO₂ — from burning fossil fuels), methane (CH₄ — from cattle, rice paddies, landfill), nitrous oxide (N₂O — from agriculture), water vapour. Concentration has increased since industrialisation.", example: "CO₂ concentration: 280 ppm (pre-industrial) → 420 ppm (2023)", topic: "Natural Hazards" },
+    { term: "Fairtrade", definition: "A trading arrangement that guarantees producers in LICs a minimum fair price for their goods (coffee, cocoa, bananas) regardless of world market prices. Aims to reduce poverty and improve working conditions.", example: "Fairtrade coffee cooperatives in Ethiopia receive stable income for farmers", topic: "Changing Economic World" },
+    { term: "Push and Pull Migration Factors", definition: "Push factors force people to leave an area (poverty, conflict, drought, lack of jobs). Pull factors attract people to a new area (better wages, services, safety, political freedom). Rural-to-urban migration within LICs is driven by both.", example: "Push: drought in Sahel; Pull: manufacturing jobs in Lagos", topic: "Urban Issues & Challenges" },
+    { term: "Richter Scale vs Moment Magnitude", definition: "The Richter Scale measures the amplitude of seismic waves (logarithmic — each point is 10x stronger). The Moment Magnitude Scale (Mw) is now standard for large earthquakes, measuring total energy released. A Mw 7.0 releases 32x more energy than Mw 6.0.", example: "Haiti 2010: Mw 7.0; Japan 2011: Mw 9.0 — Japan's was ~100x more powerful", topic: "Natural Hazards" },
+    { term: "Cumulative Causation (Myrdal)", definition: "Gunnar Myrdal's theory that economic growth in one region creates a self-reinforcing cycle: success attracts more investment, skilled workers and infrastructure, widening the gap with less developed regions (backwash effect).", example: "London's financial services attract talent and investment, widening UK regional inequality", topic: "Changing Economic World" },
+
+    // ── NEW FLASHCARDS ───────────────────────────────────────────────────────
+    { term: "Abrasion (Corrasion)", definition: "An erosion process in which material carried by a river or glacier (or waves) scrapes and grinds against the valley floor, bank or cliff face, wearing it away like sandpaper.", example: "Pebbles dragged across a riverbed scratch parallel grooves (striations) in bedrock", topic: "Physical Landscapes UK" },
+    { term: "Attrition", definition: "An erosion process in which transported particles collide with each other, gradually breaking into smaller, rounder and smoother fragments as they travel downstream or along the coast.", example: "Large angular boulders in the upper course become small rounded pebbles in the lower course", topic: "Physical Landscapes UK" },
+    { term: "Solution (Corrosion)", definition: "The chemical dissolving of soluble minerals (especially calcium carbonate in limestone) by mildly acidic water. Dissolved material is carried in solution — invisible to the eye.", example: "Limestone cliffs and chalk coastlines are slowly dissolved by seawater and rainwater", topic: "Physical Landscapes UK" },
+    { term: "Longshore Drift", definition: "The movement of sediment along a coastline by wave action. Swash carries sediment up the beach at the angle of incoming waves (prevailing wind angle); backwash returns sediment perpendicular to the shore, resulting in a net zigzag transport of sediment.", example: "Spurn Head spit has grown south-eastward due to longshore drift from north to south along the Holderness Coast", topic: "Physical Landscapes UK" },
+    { term: "Spit", definition: "A long, narrow ridge of sand or shingle extending from the coast into the sea or across an estuary, formed by longshore drift depositing sediment where the coastline changes direction. May have a recurved tip due to secondary wave directions.", example: "Spurn Head (Humber Estuary, Yorkshire); Hurst Castle Spit (Hampshire)", topic: "Physical Landscapes UK" },
+    { term: "Wave-cut Platform", definition: "A broad, gently sloping rocky shelf at the base of a retreating cliff, formed as the cliff is undercut by wave erosion, collapses, and retreats inland. The platform is exposed at low tide.", example: "Wave-cut platforms visible at low tide along the Holderness and Dorset coasts", topic: "Physical Landscapes UK" },
+    { term: "Arête", definition: "A narrow, knife-edged rocky ridge formed between two adjacent corries (cirques) that have eroded back-to-back until only a thin wall of rock remains between them.", example: "Striding Edge on Helvellyn, Lake District; Crib Goch on Snowdon, Wales", topic: "Glaciation" },
+    { term: "Drumlin", definition: "A smooth, elongated hill of glacial till (unsorted sediment), shaped like an upturned spoon. The steep (stoss) end faces the direction from which the ice came; the gentle (lee) slope faces away. Indicates direction of past ice flow.", example: "Drumlins found in the Vale of Eden, Cumbria and the Ribble Valley, Lancashire", topic: "Glaciation" },
+    { term: "Erratic", definition: "A rock or boulder that has been transported by a glacier and deposited far from its origin, often in an area of different rock type. Erratics are evidence of past glacial movement.", example: "The Norber Erratics in Yorkshire — Silurian boulders deposited on Carboniferous limestone 450 m from their source", topic: "Glaciation" },
+    { term: "Moraine", definition: "Unsorted glacial sediment (till) deposited by a glacier. Types: lateral (along the sides), medial (along the centre from two merged glaciers), terminal/end (at the furthest point of advance) and ground moraine (deposited beneath the glacier).", example: "Terminal moraines mark the maximum advance of the last British ice sheet across the Midlands", topic: "Glaciation" },
+    { term: "Truncated Spur", definition: "A former interlocking spur of a river valley that has been cut off (truncated) by the straight-sided path of an advancing glacier, leaving a cliff-like face on the valley wall.", example: "Visible in many Lake District U-valleys such as Great Langdale", topic: "Glaciation" },
+    { term: "Positive Feedback Loop (Climate)", definition: "A process where an initial change triggers further changes that amplify the original effect. In climate science, melting Arctic ice reduces albedo (reflectivity), absorbing more solar heat, accelerating further warming and ice melt — a self-reinforcing cycle.", example: "Permafrost thaw releases methane → more warming → more permafrost thaw → more methane", topic: "Natural Hazards" },
+    { term: "Albedo", definition: "The proportion of solar energy reflected back by a surface. Light surfaces (ice, snow) have high albedo and reflect most energy. Dark surfaces (ocean, forest) have low albedo and absorb more energy. Loss of Arctic ice lowers Earth's overall albedo, accelerating warming.", example: "Fresh snow albedo: ~0.9 (reflects 90% of energy); open ocean albedo: ~0.06 (absorbs 94%)", topic: "Natural Hazards" },
+    { term: "ITCZ (Inter-Tropical Convergence Zone)", definition: "A band of low pressure near the equator where trade winds from the northern and southern hemispheres converge. Warm, moist air rises, cools and condenses, producing heavy convectional rainfall. The ITCZ migrates seasonally with the overhead sun.", example: "The ITCZ drives the wet/dry seasons of tropical grassland (savannah) regions and year-round rainfall in equatorial rainforests", topic: "Natural Hazards" },
+    { term: "Desertification", definition: "The process by which fertile dryland areas degrade into desert-like conditions, losing vegetation, soil moisture and productive capacity. Driven by climate change (reduced rainfall), overgrazing, deforestation and over-cultivation.", example: "The Sahel region of Africa — countries including Mali, Niger and Chad — is particularly affected", topic: "Ecosystems" },
+    { term: "Nutrient Cycling in Tropical Rainforest", definition: "In the TRF, nutrients are stored mainly in the biomass (vegetation), not the soil. Dead organic matter decomposes rapidly in the hot, wet conditions, releasing nutrients that are immediately taken up by plant roots. Soils are therefore thin and infertile — clearing the forest exposes poor laterite soils.", example: "After deforestation, Amazon soils become infertile within a few years of cultivation", topic: "Ecosystems" },
+    { term: "Favela / Squatter Settlement", definition: "Informal, self-built housing areas in urban LICs/NEEs, typically on land without legal tenure, lacking clean water, sanitation, electricity and proper roads. Often located on hazardous land (steep slopes, flood zones).", example: "Rocinha, Rio de Janeiro — approximately 150,000 people; Dharavi, Mumbai — approximately 1 million", topic: "Urban Issues & Challenges" },
+    { term: "Brownfield Site", definition: "Previously developed (often industrial) land within or adjacent to an urban area that has been abandoned or is underused. Preferred for new development over greenfield sites as it reduces urban sprawl and can regenerate deprived areas.", example: "Salford Quays (Manchester) — former docks redeveloped as MediaCityUK and housing", topic: "Urban Issues & Challenges" },
+    { term: "Greenbelt", definition: "A zone of protected, largely undeveloped land surrounding a city, designated to restrict urban sprawl, protect countryside and prevent cities merging. Development is strictly controlled within greenbelts.", example: "London's Green Belt covers about 5,100 km² around the capital — includes farmland, woodland and parks", topic: "Urban Issues & Challenges" },
+    { term: "Managed Retreat (Coastal)", definition: "A coastal management strategy where existing sea defences are removed or not replaced, allowing the sea to naturally flood previously protected land. Creates new intertidal habitats (salt marsh) that provide low-cost natural wave attenuation.", example: "Abbotts Hall Farm, Essex — 84 hectares deliberately flooded to create salt marsh and reduce erosion costs", topic: "AQA — Holderness Coast Case Study", boards: ['AQA'] },
+    { term: "Storm Surge", definition: "An abnormal rise in sea level above the predicted tide level, caused by a combination of low atmospheric pressure and strong onshore winds pushing water towards the coast. Can cause severe coastal flooding.", example: "1953 North Sea storm surge killed over 300 people in the UK and 1,800 in the Netherlands", topic: "Natural Hazards" },
+    { term: "Relief Rainfall (Orographic Rainfall)", definition: "Rainfall produced when moist air is forced to rise over a mountain range. As it rises, it cools and condenses, producing rain on the windward side. The leeward side receives less rain (rain shadow).", example: "Wales and Western Scotland receive high relief rainfall; eastern England is in a rain shadow", topic: "Natural Hazards" },
+    { term: "Tectonic Hazard Risk Equation", definition: "Risk = Hazard × Vulnerability / Capacity. A powerful earthquake in a remote uninhabited area = low risk. The same quake under a densely populated, LIC city = high risk. Risk is determined by both the physical hazard and human vulnerability.", example: "Japan (high hazard, high capacity, lower risk) vs Nepal (lower hazard, low capacity, higher risk)", topic: "Natural Hazards" },
+    { term: "Appropriate (Intermediate) Technology", definition: "Technology that is matched to the skills, resources and economic level of the local community. It should be affordable, locally maintainable, and empower rather than create dependency. Contrasts with large-scale, expensive technology transfers.", example: "A simple sand dam in Kenya stores rainwater cheaply; a rope pump in Uganda provides clean water without electricity", topic: "Changing Economic World" },
+    { term: "Water Security", definition: "Having reliable access to sufficient quantities of safe, affordable water for health, livelihoods and economic activity. Threatened by population growth, pollution, climate change and unequal distribution.", example: "Cape Town, South Africa nearly ran out of water in 2018 ('Day Zero' crisis) despite being a relatively wealthy city", topic: "Resource Management" },
+    { term: "Energy Mix", definition: "The combination of energy sources (fossil fuels, nuclear, renewables) used to meet a country's energy demand. Countries aim to diversify their energy mix to improve security, reduce costs and cut carbon emissions.", example: "UK energy mix (2023): gas ~40%, nuclear ~15%, wind ~27%, solar ~4%, other renewables ~14%", topic: "Resource Management" },
+    { term: "Glacial Trough (U-shaped Valley)", definition: "A wide, steep-sided valley with a flat floor, formed by a glacier eroding a pre-existing V-shaped river valley. Erosion by abrasion and plucking widens and deepens the valley. After ice retreat, the valley may contain ribbon lakes.", example: "Borrowdale (Lake District); Llanberis Pass (Snowdonia)", topic: "Glaciation" },
+    { term: "Tarn", definition: "A small mountain lake or pool occupying the floor of a corrie (cirque), formed when the hollow left by glacial erosion fills with water after the ice melts. Retained by a rock lip or moraine at the corrie lip.", example: "Red Tarn on Helvellyn, Lake District; Glaslyn below Snowdon, Wales", topic: "Glaciation" },
+    { term: "Permafrost", definition: "Ground that has remained frozen for at least two consecutive years. Found in Arctic and sub-Arctic regions (Siberia, Alaska, northern Canada). Contains large amounts of stored organic carbon/methane. Climate warming is causing permafrost to thaw, releasing greenhouse gases.", example: "About 25% of the Northern Hemisphere's land area is underlain by permafrost", topic: "Natural Hazards" },
+    { term: "Fluvial Processes", definition: "Processes related to rivers: erosion (hydraulic action, abrasion, attrition, solution), transportation (traction, saltation, suspension, solution) and deposition (when velocity decreases). Together these shape river landforms from source to mouth.", example: "Erosion dominant in upper course; deposition dominant in lower course — producing different landforms at each stage", topic: "Physical Landscapes UK" },
+    { term: "Levee", definition: "A natural embankment of sediment built up alongside a river channel during repeated flood events. When a river floods, the coarsest sediment is deposited first near the channel, gradually building up raised banks. Levees can be artificially strengthened as flood defences.", example: "Natural levees along the Mississippi and Nile; artificial levees protect New Orleans (though these failed in Hurricane Katrina, 2005)", topic: "Physical Landscapes UK" },
   ],
 };
