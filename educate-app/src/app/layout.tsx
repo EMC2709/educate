@@ -8,6 +8,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { FocusModeProvider } from '@/components/layout/FocusMode';
 import { CookieBanner } from '@/components/layout/CookieBanner';
 import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegistration';
+import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 
 export const metadata: Metadata = {
   title: 'Educate — GCSE Revision',
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ToastProvider>
             <FocusModeProvider>
               <ChatProvider>
-                {children}
+                <ConditionalLayout>
+                  {children}
+                </ConditionalLayout>
                 <FloatingChat />
                 <CommandPalette />
                 <CookieBanner />
