@@ -3,13 +3,14 @@ import { z } from 'zod';
 import { QUESTION_BANK } from '@/data/question-bank';
 import { PAST_PAPER_BANK } from '@/data/past-paper-bank';
 import { SUBTOPIC_BANK } from '@/data/subtopic-bank';
+import { MCQ_BANK } from '@/data/mcq-bank';
 import { shuffle } from '@/lib/shuffle';
 import type { Question, Flashcard } from '@/types';
 
 const schema = z.object({
   subject: z.string().min(1).max(80),
   board: z.string().min(1).max(40),
-  type: z.enum(['short', 'mid', 'long', 'flashcard', 'past-paper']),
+  type: z.enum(['short', 'mid', 'long', 'flashcard', 'past-paper', 'mcq']),
   focusStr: z.string().max(500).nullable().optional(),
 });
 
@@ -60,6 +61,15 @@ export async function POST(request: Request) {
   const { subject, type, focusStr } = parsedBody;
 
   try {
+    // ── MCQ ───────────────────────────────────────────────────────────────────
+    if (type === 'mcq') {
+      const mcqQs = MCQ_BANK[subject];
+      if (mcqQs && mcqQs.length > 0) {
+        return NextResponse.json({ mcqQuestions: shuffle(mcqQs).slice(0, 10) });
+      }
+      return NextResponse.json({ mcqQuestions: [] });
+    }
+
     // ── Flashcards ────────────────────────────────────────────────────────────
     if (type === 'flashcard') {
       // Prefer subtopic-bank content if user focused on a specific topic

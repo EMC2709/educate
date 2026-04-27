@@ -6,4 +6,5 @@ export const Q_TYPES: QuestionTypeConfig[] = [
   { type: "long",      label: "Extended Response", icon: "\ud83d\udcdd", marks: "6\u20138 marks", color: "#e94560", desc: "Full argument + evaluation." },
   { type: "flashcard",   label: "Flashcards",        icon: "\ud83c\udccf", marks: "Key terms",   color: "#10b981", desc: "Flip to reveal definitions." },
   { type: "past-paper", label: "Past Paper",        icon: "\ud83d\udcc4", marks: "8\u201320 marks", color: "#0ea5e9", desc: "Real exam-style essay questions." },
+  { type: "mcq",        label: "Multiple Choice",   icon: "\ud83c\udfaf", marks: "1 mark each",  color: "#06b6d4", desc: "Pick the correct answer from 4 options." },
 ];

@@ -22,7 +22,9 @@ import { shuffle } from '@/lib/shuffle';
 import { getBankQuestionsForSelection, getBankCardsForSelection } from '@/lib/question-helpers';
 import { checkAchievements, type Achievement } from '@/lib/achievements';
 import { PhysicsEquationSheet } from '@/components/quiz/PhysicsEquationSheet';
-import type { Question, Flashcard, FeedbackResult, QuestionType } from '@/types';
+import { MCQOptions } from '@/components/quiz/MCQOptions';
+import { MCQ_BANK } from '@/data/mcq-bank';
+import type { Question, Flashcard, FeedbackResult, QuestionType, MCQQuestion } from '@/types';
 
 export default function QuizPage({
   params,
@@ -57,12 +59,18 @@ export default function QuizPage({
   const [achievementToast, setAchievementToast] = useState<Achievement | null>(null);
   const totalMarksAwarded = useRef(0);
 
+  // ── MCQ-specific state ────────────────────────────────────────────────────
+  const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
+  const [mcqDone, setMcqDone] = useState(false);
+
   if (!board || !board.subjects.includes(subject) || !qTypeCfg) notFound();
 
   const loadQuiz = useCallback(async () => {
     setLoading(true);
     setQuestions([]);
     setFlashcards([]);
+    setMcqQuestions([]);
+    setMcqDone(false);
     setCurrentQ(0);
     setFeedback(null);
     setUserAnswer('');
@@ -86,6 +94,20 @@ export default function QuizPage({
       }
     });
     const focusStr = parts.length > 0 ? parts.join('; ') : null;
+
+    // ── MCQ ──────────────────────────────────────────────────────────────────
+    if (questionType === 'mcq') {
+      const bankQs = MCQ_BANK[subject] || [];
+      if (bankQs.length > 0) {
+        setLoadingSource('bank');
+        setMcqQuestions(shuffle(bankQs).slice(0, 10));
+      } else {
+        // No static MCQ available — leave empty (UI will show "not available" message)
+        setMcqQuestions([]);
+      }
+      setLoading(false);
+      return;
+    }
 
     if (questionType === 'past-paper') {
       const bankOnly = sessionStorage.getItem('educate-bank-only') === 'true';
@@ -371,6 +393,48 @@ export default function QuizPage({
     }
   };
 
+  // ── MCQ answer handler ─────────────────────────────────────────────────────
+  const handleMCQNext = (wasCorrect: boolean) => {
+    const newScore = { correct: score.correct + (wasCorrect ? 1 : 0), total: score.total + 1 };
+    setScore(newScore);
+
+    if (isSignedIn) {
+      fetch('/api/award-xp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marksAwarded: wasCorrect ? 1 : 0, questionType: 'mcq', attempted: true }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if ((data.xpGained ?? 0) > 0) {
+            setXpToast({ xp: data.xpGained, levelUp: data.xpResult?.leveledUp });
+            setTimeout(() => setXpToast(null), 2500);
+            window.dispatchEvent(new Event('educate-xp-updated'));
+          }
+        })
+        .catch(() => {});
+    }
+
+    if (currentQ < mcqQuestions.length - 1) {
+      setCurrentQ(p => p + 1);
+    } else {
+      // Last question — save result and show completion screen
+      setMcqDone(true);
+      if (isSignedIn && !resultSavedRef.current) {
+        resultSavedRef.current = true;
+        fetch('/api/save-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject, board: boardName, questionType: 'mcq',
+            scoreCorrect: newScore.correct,
+            scoreTotal: newScore.total,
+          }),
+        }).catch(() => {});
+      }
+    }
+  };
+
   const handleHint = () => {
     setChatOpen(true);
     setChatInput(`I'm doing a ${subject} question: "${questions[currentQ]?.question}" — can you give me a hint without giving the full answer?`);
@@ -402,8 +466,81 @@ export default function QuizPage({
               <FlashcardDeck cards={flashcards} board={board} subject={subject} onBack={resetToTopics} onNewDeck={loadQuiz} />
             )}
 
+            {/* MCQ — no API marking needed, everything is client-side */}
+            {!loading && questionType === 'mcq' && (
+              <div>
+                {mcqQuestions.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="text-4xl mb-4">🎯</div>
+                    <h3 className="text-white font-semibold mb-2">MCQs not yet available for {subject}</h3>
+                    <p className="text-neutral-500 text-sm mb-6">We&apos;re adding questions soon. Try Short Answer or Flashcards in the meantime.</p>
+                    <Button variant="secondary" onClick={resetToTopics}>← Choose another type</Button>
+                  </div>
+                ) : mcqDone ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <Button variant="ghost" onClick={resetToTopics}>← Change Topics</Button>
+                    </div>
+                    <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-2xl p-6 text-center mb-4">
+                      <p className="text-3xl mb-2">
+                        {score.correct === score.total ? '🏆' : score.correct >= score.total / 2 ? '✅' : '📚'}
+                      </p>
+                      <p className="text-emerald-400 font-bold text-lg m-0">
+                        {score.correct}/{score.total} correct
+                      </p>
+                      <p className="text-neutral-400 text-sm mt-1 m-0">
+                        {Math.round((score.correct / score.total) * 100)}% — {
+                          score.correct === score.total ? 'Perfect score!' :
+                          score.correct >= score.total * 0.8 ? 'Excellent work!' :
+                          score.correct >= score.total * 0.6 ? 'Good effort — keep revising!' :
+                          'Keep practising — you\'ll get there!'
+                        }
+                      </p>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <button
+                        onClick={loadQuiz}
+                        className="flex-1 border-none rounded-xl py-3 text-white font-bold text-sm cursor-pointer"
+                        style={{ backgroundColor: board.accent }}
+                      >
+                        New Set
+                      </button>
+                      <Button variant="secondary" onClick={resetToTopics}>Change Topics</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <Button variant="ghost" onClick={resetToTopics}>← Change Topics</Button>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-xs text-neutral-500 hidden sm:inline">{subject} · {boardName}</span>
+                        <span className="bg-neutral-800 rounded-full px-3.5 py-1 text-xs text-neutral-400">
+                          {currentQ + 1}/{mcqQuestions.length}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <ProgressBar value={((currentQ + 1) / mcqQuestions.length) * 100} color="bg-[#06b6d4]" />
+                    </div>
+
+                    {/* key=currentQ forces a fresh MCQOptions mount (resets selected state) on each question */}
+                    <MCQOptions
+                      key={currentQ}
+                      question={mcqQuestions[currentQ]}
+                      questionNumber={currentQ + 1}
+                      totalQuestions={mcqQuestions.length}
+                      onNext={handleMCQNext}
+                      isLast={currentQ === mcqQuestions.length - 1}
+                      accentColor="#06b6d4"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Questions */}
-            {!loading && questionType !== 'flashcard' && questions.length > 0 && (
+            {!loading && questionType !== 'flashcard' && questionType !== 'mcq' && questions.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <Button variant="ghost" onClick={resetToTopics}>&#8592; Change Topics</Button>

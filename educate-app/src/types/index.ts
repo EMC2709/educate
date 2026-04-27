@@ -41,7 +41,20 @@ export interface SubtopicContent {
 
 export type SubtopicBank = Record<string, Record<string, Record<string, SubtopicContent>>>;
 
-export type QuestionType = 'short' | 'mid' | 'long' | 'flashcard' | 'past-paper';
+export type QuestionType = 'short' | 'mid' | 'long' | 'flashcard' | 'past-paper' | 'mcq';
+
+export interface MCQQuestion {
+  /** The question text */
+  question: string;
+  /** Exactly four answer options */
+  options: [string, string, string, string];
+  /** 0-based index of the correct option */
+  answer: 0 | 1 | 2 | 3;
+  /** Shown after the student answers */
+  explanation?: string;
+  topic?: string;
+  boards?: ('AQA' | 'Edexcel' | 'OCR' | 'WJEC')[];
+}
 
 export interface ExamBoard {
   color: string;
