@@ -9,6 +9,7 @@ import { FocusModeProvider } from '@/components/layout/FocusMode';
 import { CookieBanner } from '@/components/layout/CookieBanner';
 import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegistration';
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
+import { ThemeProvider } from '@/context/ThemeContext';
 
 export const metadata: Metadata = {
   title: 'Educate — GCSE Revision',
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider signInUrl="/login" signUpUrl="/login" appearance={{ variables: { colorBackground: '#0f0f0f', colorText: '#ffffff', colorPrimary: '#6366f1' } }}>
       <html lang="en" className="h-full antialiased">
         <body className="min-h-full">
+          <ThemeProvider>
           <ToastProvider>
             <FocusModeProvider>
               <ChatProvider>
@@ -40,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </ChatProvider>
             </FocusModeProvider>
           </ToastProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

@@ -14,6 +14,8 @@ interface Deck {
   name: string;
   subject: string | null;
   card_count: number;
+  is_public: boolean;
+  shared_by_name: string | null;
   updated_at: string;
 }
 
@@ -39,7 +41,7 @@ const CUSTOM_BOARD: ExamBoard = {
 
 export default function DeckPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
 
   const [deck,    setDeck]    = useState<Deck | null>(null);
   const [cards,   setCards]   = useState<Card[]>([]);
@@ -62,6 +64,10 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [editDef,   setEditDef]   = useState('');
   const [editEx,    setEditEx]    = useState('');
 
+  // Share state
+  const [isPublic,  setIsPublic]  = useState(false);
+  const [toggling,  setToggling]  = useState(false);
+
   // ── Load deck ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -70,7 +76,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
     fetch(`/api/flashcards/${id}`)
       .then(r => r.json())
       .then(d => {
-        if (d.deck) { setDeck(d.deck); setNameVal(d.deck.name); }
+        if (d.deck) { setDeck(d.deck); setNameVal(d.deck.name); setIsPublic(d.deck.is_public ?? false); }
         if (d.cards) setCards(d.cards);
       })
       .catch(() => {})
@@ -142,6 +148,26 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
         : c,
     ));
     setEditingId(null);
+  };
+
+  const toggleShare = async () => {
+    if (!deck) return;
+    setToggling(true);
+    const newPublic   = !isPublic;
+    const displayName = user?.fullName || user?.firstName || 'Anonymous';
+    await fetch(`/api/flashcards/${id}`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        is_public:      newPublic,
+        shared_by_name: newPublic ? displayName : undefined,
+      }),
+    });
+    setIsPublic(newPublic);
+    setDeck(prev =>
+      prev ? { ...prev, is_public: newPublic, shared_by_name: newPublic ? displayName : null } : prev
+    );
+    setToggling(false);
   };
 
   // ── Flashcard shape for FlashcardDeck ───────────────────────────────────────
@@ -266,6 +292,19 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 {deck.subject ? ` · ${deck.subject}` : ''}
               </p>
             </div>
+
+            <button
+              onClick={toggleShare}
+              disabled={toggling}
+              className={`px-3 py-2 text-xs font-semibold rounded-xl transition-colors cursor-pointer border-none shrink-0 ${
+                isPublic
+                  ? 'bg-emerald-500/20 text-emerald-400 hover:bg-rose-500/20 hover:text-rose-400'
+                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
+              }`}
+              title={isPublic ? 'Click to make private' : 'Share publicly with other students'}
+            >
+              {toggling ? '…' : isPublic ? '🔓 Shared' : '🔒 Share'}
+            </button>
 
             <button
               onClick={() => setMode('study')}

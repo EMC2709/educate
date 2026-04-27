@@ -6,15 +6,20 @@ import { sql } from '@/lib/db';
 async function ensureTables() {
   await sql`
     CREATE TABLE IF NOT EXISTS user_flashcard_decks (
-      id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id    text        NOT NULL,
-      name       text        NOT NULL,
-      subject    text,
-      card_count integer     NOT NULL DEFAULT 0,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
+      id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id         text        NOT NULL,
+      name            text        NOT NULL,
+      subject         text,
+      card_count      integer     NOT NULL DEFAULT 0,
+      is_public       boolean     NOT NULL DEFAULT false,
+      shared_by_name  text,
+      created_at      timestamptz NOT NULL DEFAULT now(),
+      updated_at      timestamptz NOT NULL DEFAULT now()
     )
   `;
+  // Idempotent migrations — no-op if columns already exist
+  await sql`ALTER TABLE user_flashcard_decks ADD COLUMN IF NOT EXISTS is_public      boolean NOT NULL DEFAULT false`;
+  await sql`ALTER TABLE user_flashcard_decks ADD COLUMN IF NOT EXISTS shared_by_name text`;
   await sql`
     CREATE TABLE IF NOT EXISTS user_flashcards (
       id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42,7 +47,7 @@ export async function GET() {
   try {
     await ensureTables();
     const decks = await sql`
-      SELECT id, name, subject, card_count, created_at, updated_at
+      SELECT id, name, subject, card_count, is_public, created_at, updated_at
       FROM   user_flashcard_decks
       WHERE  user_id = ${userId}
       ORDER  BY updated_at DESC

@@ -4,8 +4,10 @@ import { z } from 'zod';
 import { sql } from '@/lib/db';
 
 const patchSchema = z.object({
-  name:    z.string().min(1).max(100).optional(),
-  subject: z.string().max(100).nullable().optional(),
+  name:            z.string().min(1).max(100).optional(),
+  subject:         z.string().max(100).nullable().optional(),
+  is_public:       z.boolean().optional(),
+  shared_by_name:  z.string().max(100).optional(),
 });
 
 export async function GET(
@@ -22,7 +24,7 @@ export async function GET(
 
   try {
     const decks = await sql`
-      SELECT id, name, subject, card_count, created_at, updated_at
+      SELECT id, name, subject, card_count, is_public, shared_by_name, created_at, updated_at
       FROM   user_flashcard_decks
       WHERE  id = ${id} AND user_id = ${userId}
     `;
@@ -69,8 +71,17 @@ export async function PATCH(
         WHERE  id = ${id} AND user_id = ${userId}
       `;
     }
+    if (body.is_public !== undefined) {
+      await sql`
+        UPDATE user_flashcard_decks
+        SET    is_public = ${body.is_public},
+               shared_by_name = ${body.shared_by_name ?? null},
+               updated_at = now()
+        WHERE  id = ${id} AND user_id = ${userId}
+      `;
+    }
     const rows = await sql`
-      SELECT id, name, subject, card_count, created_at, updated_at
+      SELECT id, name, subject, card_count, is_public, shared_by_name, created_at, updated_at
       FROM   user_flashcard_decks
       WHERE  id = ${id} AND user_id = ${userId}
     `;

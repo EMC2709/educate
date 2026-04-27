@@ -48,6 +48,54 @@ textarea::placeholder, input::placeholder {
   color: #444;
 }
 
+/* ── Light mode ──────────────────────────────────────────────────────────────
+   Overrides Tailwind v4 CSS variables so every bg-neutral-* and
+   text-neutral-* class adapts without touching component markup.
+   The neutral scale is inverted: 900 (dark bg) becomes near-white, etc.
+── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Inverted neutral scale */
+  --color-neutral-950: oklch(0.13 0 0);
+  --color-neutral-900: oklch(0.97 0 0);   /* cards / surfaces */
+  --color-neutral-800: oklch(0.93 0 0);   /* inputs / hover */
+  --color-neutral-700: oklch(0.88 0 0);   /* borders */
+  --color-neutral-600: oklch(0.46 0 0);   /* muted borders */
+  --color-neutral-500: oklch(0.38 0 0);   /* secondary text */
+  --color-neutral-400: oklch(0.28 0 0);   /* body text */
+  --color-neutral-300: oklch(0.18 0 0);   /* strong text */
+  --color-neutral-200: oklch(0.11 0 0);
+  --color-neutral-100: oklch(0.07 0 0);
+  --color-neutral-50:  oklch(0.04 0 0);
+}
+
+[data-theme="light"] body {
+  background: #f0f2f5;
+  color: #1a1a2e;
+}
+
+/* text-white → near-black in light mode */
+[data-theme="light"] .text-white {
+  color: #1a1a2e !important;
+}
+
+/* Hardcoded dark page backgrounds */
+[data-theme="light"] .bg-\[\#0a0a0a\],
+[data-theme="light"] .bg-\[\#0f0f0f\] {
+  background-color: #f0f2f5 !important;
+}
+
+/* Scrollbar in light mode */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+}
+
+[data-theme="light"] textarea::placeholder,
+[data-theme="light"] input::placeholder {
+  color: #9ca3af;
+}
+
 /* Hide scrollbar while keeping scroll functionality */
 .scrollbar-hide {
   scrollbar-width: none;           /* Firefox */

@@ -7,6 +7,7 @@ import { useUser, useClerk } from '@clerk/nextjs';
 import { levelFromXP, getLevelTitle } from '@/lib/xp-client';
 import { getStreakData } from '@/lib/streak';
 import { useChat } from '@/context/ChatContext';
+import { useTheme } from '@/context/ThemeContext';
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,8 @@ const NAV_ITEMS = [
   { href: '/profile',            label: 'Profile',        icon: '👤' },
   { href: '/marketplace',        label: 'Marketplace',    icon: '🛒' },
   { href: '/boards',             label: 'Exam Boards',    icon: '📋' },
+  { href: '/reference',          label: 'Reference',      icon: '📐' },
+  { href: '/shared-flashcards',  label: 'Shared Decks',   icon: '🃏' },
   { href: '/export',             label: 'Export',         icon: '📤' },
 ];
 
@@ -37,6 +40,7 @@ export function TopNav() {
   const { user, isLoaded, isSignedIn } = useUser();
   const { signOut }             = useClerk();
   const { chatOpen, setChatOpen } = useChat();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const [xp,     setXp]     = useState<number | null>(null);
   const [streak, setStreak] = useState(0);
@@ -147,6 +151,15 @@ export function TopNav() {
 
       {/* ── Right side ────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 shrink-0 ml-2">
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center w-8 h-8 rounded-xl text-sm bg-transparent border-none cursor-pointer transition-all duration-150 text-neutral-500 hover:bg-neutral-800 hover:text-white"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
 
         {/* AI Tutor button */}
         <button
