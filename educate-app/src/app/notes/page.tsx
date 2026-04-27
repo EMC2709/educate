@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { useToast } from '@/components/ui/Toast';
 import { unlockAchievement } from '@/lib/achievements';
@@ -20,6 +21,7 @@ interface Note {
 
 interface Flashcard { front: string; back: string; }
 interface CustomQuestion { question: string; marks: number; answer: string; }
+interface FlashDeck { id: string; name: string; subject: string | null; card_count: number; updated_at: string; }
 
 function getNotes(): Note[] {
   try {
@@ -281,6 +283,9 @@ export default function NotesPage() {
   const [selectedBoard, setSelectedBoard] = useState('');
   const [generating, setGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab]     = useState<'notes' | 'flashcards'>('notes');
+  const [flashDecks, setFlashDecks]   = useState<FlashDeck[]>([]);
+  const [flashLoading, setFlashLoading] = useState(false);
 
   useEffect(() => {
     setNotes(getNotes());
@@ -296,6 +301,16 @@ export default function NotesPage() {
       }
     } catch {}
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'flashcards' || !isSignedIn) return;
+    setFlashLoading(true);
+    fetch('/api/flashcards')
+      .then(r => r.json())
+      .then(d => setFlashDecks(d.decks ?? []))
+      .catch(() => {})
+      .finally(() => setFlashLoading(false));
+  }, [activeTab, isSignedIn]);
 
   const filteredNotes = searchQuery
     ? notes.filter(n =>
@@ -410,48 +425,114 @@ export default function NotesPage() {
           {/* Notes list sidebar */}
           <div className="w-72 border-r border-neutral-800 flex flex-col bg-neutral-950 shrink-0 hidden sm:flex">
             <div className="p-3 border-b border-neutral-800">
-              <div className="flex items-center gap-2 mb-3">
-                <h2 className="text-sm font-bold text-white m-0 flex-1">Notes</h2>
+              {/* Tab bar */}
+              <div className="flex gap-1 mb-3 bg-neutral-900 rounded-lg p-0.5">
                 <button
-                  onClick={handleCreate}
-                  className="bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg border-none cursor-pointer hover:bg-indigo-400 transition-colors"
+                  onClick={() => setActiveTab('notes')}
+                  className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-colors border-none cursor-pointer ${
+                    activeTab === 'notes' ? 'bg-neutral-700 text-white' : 'bg-transparent text-neutral-500 hover:text-neutral-300'
+                  }`}
                 >
-                  + New
+                  📝 Notes
+                </button>
+                <button
+                  onClick={() => setActiveTab('flashcards')}
+                  className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-colors border-none cursor-pointer ${
+                    activeTab === 'flashcards' ? 'bg-neutral-700 text-white' : 'bg-transparent text-neutral-500 hover:text-neutral-300'
+                  }`}
+                >
+                  📇 Flashcards
                 </button>
               </div>
-              <input
-                type="text"
-                placeholder="Search notes..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white outline-none placeholder:text-neutral-600 focus:border-neutral-700"
-              />
+
+              {activeTab === 'notes' && (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-bold text-neutral-500 flex-1">All Notes</span>
+                    <button
+                      onClick={handleCreate}
+                      className="bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg border-none cursor-pointer hover:bg-indigo-400 transition-colors"
+                    >
+                      + New
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search notes..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white outline-none placeholder:text-neutral-600 focus:border-neutral-700"
+                  />
+                </>
+              )}
+
+              {activeTab === 'flashcards' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-neutral-500 flex-1">My Decks</span>
+                  <Link
+                    href="/my-flashcards"
+                    className="bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg no-underline hover:bg-indigo-400 transition-colors"
+                  >
+                    + New
+                  </Link>
+                </div>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto p-2">
-              {Object.keys(grouped).length === 0 ? (
-                <p className="text-neutral-600 text-xs text-center py-8">No notes yet</p>
+              {activeTab === 'notes' ? (
+                Object.keys(grouped).length === 0 ? (
+                  <p className="text-neutral-600 text-xs text-center py-8">No notes yet</p>
+                ) : (
+                  Object.entries(grouped).map(([subject, subNotes]) => (
+                    <div key={subject} className="mb-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-600 px-2 mb-1">{subject}</p>
+                      {subNotes.map(n => (
+                        <button
+                          key={n.id}
+                          onClick={() => { setSelectedNote(n); setCreating(false); setEditing(false); setTitle(n.title); setContent(n.content); }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs border-none cursor-pointer transition-colors mb-0.5 ${
+                            selectedNote?.id === n.id
+                              ? 'bg-indigo-500/15 text-indigo-400'
+                              : 'bg-transparent text-neutral-400 hover:bg-neutral-900'
+                          }`}
+                        >
+                          <p className="m-0 font-semibold truncate">{n.title}</p>
+                          <p className="m-0 text-neutral-600 text-[10px] mt-0.5">
+                            {new Date(n.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  ))
+                )
               ) : (
-                Object.entries(grouped).map(([subject, subNotes]) => (
-                  <div key={subject} className="mb-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-600 px-2 mb-1">{subject}</p>
-                    {subNotes.map(n => (
-                      <button
-                        key={n.id}
-                        onClick={() => { setSelectedNote(n); setCreating(false); setEditing(false); setTitle(n.title); setContent(n.content); }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-xs border-none cursor-pointer transition-colors mb-0.5 ${
-                          selectedNote?.id === n.id
-                            ? 'bg-indigo-500/15 text-indigo-400'
-                            : 'bg-transparent text-neutral-400 hover:bg-neutral-900'
-                        }`}
-                      >
-                        <p className="m-0 font-semibold truncate">{n.title}</p>
-                        <p className="m-0 text-neutral-600 text-[10px] mt-0.5">
-                          {new Date(n.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                        </p>
-                      </button>
-                    ))}
+                /* ── Flashcard deck list ── */
+                flashLoading ? (
+                  <p className="text-neutral-600 text-xs text-center py-8">Loading…</p>
+                ) : !isSignedIn ? (
+                  <p className="text-neutral-600 text-xs text-center py-8">Sign in to view flashcards</p>
+                ) : flashDecks.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-neutral-600 text-xs mb-3">No decks yet</p>
+                    <Link href="/my-flashcards" className="text-indigo-400 text-xs no-underline hover:text-indigo-300">
+                      Create your first deck →
+                    </Link>
                   </div>
-                ))
+                ) : (
+                  flashDecks.map(deck => (
+                    <Link
+                      key={deck.id}
+                      href={`/my-flashcards/${deck.id}`}
+                      className="block w-full text-left px-3 py-2 rounded-lg text-xs no-underline text-neutral-400 hover:bg-neutral-900 mb-0.5 transition-colors"
+                    >
+                      <p className="m-0 font-semibold truncate text-white">{deck.name}</p>
+                      <p className="m-0 text-neutral-600 text-[10px] mt-0.5">
+                        {deck.card_count} card{deck.card_count !== 1 ? 's' : ''}
+                        {deck.subject ? ` · ${deck.subject}` : ''}
+                      </p>
+                    </Link>
+                  ))
+                )
               )}
             </div>
           </div>
@@ -599,17 +680,35 @@ export default function NotesPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <span className="text-5xl mb-4">📝</span>
-                <h2 className="text-lg font-bold text-white mb-2">Revision Notes</h2>
-                <p className="text-neutral-500 text-sm mb-6 max-w-sm">
-                  Create and organise your revision notes by subject. Use AI to generate summaries for any topic.
-                </p>
-                <button
-                  onClick={handleCreate}
-                  className="bg-indigo-500 text-white font-bold px-6 py-3 rounded-xl border-none cursor-pointer hover:bg-indigo-400 transition-colors"
-                >
-                  Create First Note
-                </button>
+                {activeTab === 'flashcards' ? (
+                  <>
+                    <span className="text-5xl mb-4">📇</span>
+                    <h2 className="text-lg font-bold text-white mb-2">My Flashcards</h2>
+                    <p className="text-neutral-500 text-sm mb-6 max-w-sm">
+                      Select a deck from the list to study, or create a new one with spaced repetition.
+                    </p>
+                    <Link
+                      href="/my-flashcards"
+                      className="bg-indigo-500 text-white font-bold px-6 py-3 rounded-xl no-underline hover:bg-indigo-400 transition-colors text-sm"
+                    >
+                      Manage All Decks →
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-5xl mb-4">📝</span>
+                    <h2 className="text-lg font-bold text-white mb-2">Revision Notes</h2>
+                    <p className="text-neutral-500 text-sm mb-6 max-w-sm">
+                      Create and organise your revision notes by subject. Use AI to generate summaries for any topic.
+                    </p>
+                    <button
+                      onClick={handleCreate}
+                      className="bg-indigo-500 text-white font-bold px-6 py-3 rounded-xl border-none cursor-pointer hover:bg-indigo-400 transition-colors"
+                    >
+                      Create First Note
+                    </button>
+                  </>
+                )}
                 <div className="sm:hidden w-full mt-8">
                   {notes.length > 0 && (
                     <div className="flex flex-col gap-2">
