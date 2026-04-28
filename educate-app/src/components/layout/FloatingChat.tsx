@@ -48,15 +48,15 @@ export function FloatingChat() {
               right: '16px',
               width: 'min(380px, calc(100vw - 32px))',
               height: 'min(520px, calc(100vh - 120px))',
-              background: '#111',
-              border: '1px solid #262626',
+              background: 'var(--chat-surface)',
+              border: '1px solid var(--chat-border)',
               borderRadius: '20px',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.15)',
+              boxShadow: 'var(--chat-shadow)',
             }}
           >
             {/* Header */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-800 shrink-0"
-              style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.18),rgba(0,0,0,0))' }}>
+              style={{ background: 'var(--chat-header-gradient)' }}>
               <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-rose-500 rounded-full flex items-center justify-center text-base shrink-0">
                 🎓
               </div>
@@ -85,9 +85,10 @@ export function FloatingChat() {
                         </div>
                       )}
                       <div
-                        className="max-w-[82%] px-3.5 py-2.5 text-[13px] leading-relaxed text-white"
+                        className="max-w-[82%] px-3.5 py-2.5 text-[13px] leading-relaxed"
                         style={{
-                          background: msg.role === 'user' ? '#6366f1' : '#1e1e1e',
+                          background: msg.role === 'user' ? '#6366f1' : 'var(--chat-ai-bubble)',
+                          color:      msg.role === 'user' ? '#ffffff' : 'var(--chat-ai-text)',
                           borderRadius: msg.role === 'user'
                             ? '16px 16px 4px 16px'
                             : '16px 16px 16px 4px',
@@ -104,7 +105,7 @@ export function FloatingChat() {
                   {chatLoading && (
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 bg-gradient-to-br from-indigo-500 to-rose-500 rounded-full flex items-center justify-center text-xs shrink-0">🎓</div>
-                      <div className="flex gap-1 px-3.5 py-2.5 rounded-2xl" style={{ background: '#1e1e1e' }}>
+                      <div className="flex gap-1 px-3.5 py-2.5 rounded-2xl" style={{ background: 'var(--chat-ai-bubble)' }}>
                         {[0, 1, 2].map(i => (
                           <div key={i} className="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.18}s` }} />
                         ))}
@@ -125,13 +126,13 @@ export function FloatingChat() {
                     className="flex-1 bg-neutral-800 border border-neutral-700 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none transition-colors"
                     style={{ fontSize: '14px' }}
                     onFocus={e => (e.target.style.borderColor = '#6366f1')}
-                    onBlur={e => (e.target.style.borderColor = '#404040')}
+                    onBlur={e => (e.target.style.borderColor = 'var(--chat-input-blur)')}
                   />
                   <button
                     onClick={() => sendChat(subject, board)}
                     disabled={chatLoading || !chatInput.trim()}
                     className="w-10 h-10 rounded-xl border-none cursor-pointer flex items-center justify-center text-white text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
-                    style={{ background: chatInput.trim() && !chatLoading ? '#6366f1' : '#262626' }}
+                    style={{ background: chatInput.trim() && !chatLoading ? '#6366f1' : 'var(--chat-send-idle)' }}
                   >
                     ↑
                   </button>
@@ -168,10 +169,10 @@ export function FloatingChat() {
           height: '56px',
           borderRadius: '50%',
           background: chatOpen
-            ? '#262626'
+            ? 'var(--chat-fab-idle)'
             : 'linear-gradient(135deg, #6366f1, #ec4899)',
           boxShadow: chatOpen
-            ? '0 4px 16px rgba(0,0,0,0.4)'
+            ? '0 4px 16px rgba(0,0,0,0.15)'
             : '0 4px 20px rgba(99,102,241,0.5)',
         }}
         aria-label="Open AI Tutor"

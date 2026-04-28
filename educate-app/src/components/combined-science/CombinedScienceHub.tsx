@@ -247,7 +247,7 @@ export function CombinedScienceHub({ board }: CombinedScienceHubProps) {
                     const isPartial      = selCount > 0 && selCount < subs.length;
                     const isExpanded     = !!expandedTopics[topic];
                     const hasBank        = !!(SUBTOPIC_BANK?.['Combined Science']?.[topic]);
-                    const borderHighlight = (isTopicSel || isPartial) ? `${strand.color}55` : '#2a2a2a';
+                    const borderHighlight = (isTopicSel || isPartial) ? `${strand.color}55` : 'var(--border-subtle)';
 
                     return (
                       <div key={topic}>
@@ -294,7 +294,7 @@ export function CombinedScienceHub({ board }: CombinedScienceHubProps) {
                         {isExpanded && (
                           <div
                             className="border border-t-0 rounded-b-xl px-2 py-2 bg-neutral-950"
-                            style={{ borderColor: (isTopicSel || isPartial) ? `${strand.color}33` : '#222' }}
+                            style={{ borderColor: (isTopicSel || isPartial) ? `${strand.color}33` : 'var(--border-faint)' }}
                           >
                             {subs.map(sub => {
                               const key       = `${topic}||${sub}`;
@@ -349,7 +349,7 @@ export function CombinedScienceHub({ board }: CombinedScienceHubProps) {
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border cursor-pointer transition-all"
                 style={active
                   ? { backgroundColor: t.color, borderColor: t.color, color: '#0f0f0f', fontWeight: 700 }
-                  : { backgroundColor: 'transparent', borderColor: '#333', color: '#888' }
+                  : { backgroundColor: 'transparent', borderColor: 'var(--border-inactive)', color: 'var(--text-inactive)' }
                 }
               >
                 {t.icon} {t.label}
@@ -373,8 +373,8 @@ export function CombinedScienceHub({ board }: CombinedScienceHubProps) {
             disabled={!hasAny}
             className="flex-1 border-none rounded-xl py-3 text-sm font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             style={{
-              backgroundColor: hasAny ? qTypeCfg.color : '#1a1a1a',
-              color:           hasAny ? '#0f0f0f'       : '#555',
+              backgroundColor: hasAny ? qTypeCfg.color : 'var(--surface-disabled)',
+              color:           hasAny ? '#0f0f0f'       : 'var(--text-disabled)',
             }}
           >
             {hasAny ? `Start ${qTypeCfg.label}` : 'Select topics to begin'}

@@ -31,7 +31,7 @@ export function TopicRow({
         className={`flex items-center bg-neutral-900 overflow-hidden transition-all duration-150 border ${
           isExpanded ? 'rounded-t-xl' : 'rounded-xl'
         }`}
-        style={{ borderColor: isSelected || partial ? `${accentColor}66` : '#2a2a2a' }}
+        style={{ borderColor: isSelected || partial ? `${accentColor}66` : 'var(--border-subtle)' }}
       >
         {/* Checkbox */}
         <div
@@ -67,7 +67,7 @@ export function TopicRow({
       {isExpanded && (
         <div
           className="bg-neutral-950 border border-t-0 rounded-b-xl px-3 py-2 pl-12"
-          style={{ borderColor: isSelected || partial ? `${accentColor}44` : '#222' }}
+          style={{ borderColor: isSelected || partial ? `${accentColor}44` : 'var(--border-faint)' }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {subtopics.map(sub => {

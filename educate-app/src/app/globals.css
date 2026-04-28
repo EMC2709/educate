@@ -1,13 +1,51 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   DESIGN TOKENS
+   CSS custom properties used by inline-styled components (inline styles bypass
+   Tailwind class overrides, so we expose values as CSS vars so light mode can
+   change them via [data-theme="light"] without touching component markup).
+   ──────────────────────────────────────────────────────────────────────────── */
+
 :root {
   color-scheme: dark;
-  /* Safe area insets for iOS notch/home bar */
-  --safe-top: env(safe-area-inset-top, 0px);
+
+  /* iOS safe area */
+  --safe-top:    env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+
+  /* FloatingChat / AI Tutor */
+  --chat-surface:          #111111;
+  --chat-border:           #262626;
+  --chat-header-gradient:  linear-gradient(135deg, rgba(99,102,241,0.18), rgba(0,0,0,0));
+  --chat-ai-bubble:        #1e1e1e;
+  --chat-ai-text:          #ffffff;
+  --chat-fab-idle:         #262626;
+  --chat-send-idle:        #262626;
+  --chat-input-blur:       #404040;
+  --chat-shadow:           0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.15);
+
+  /* Flashcard faces */
+  --card-face:             #1a1a1a;
+  --card-face-back:        #1e1e1e;
+
+  /* Topic / subtopic row borders */
+  --border-subtle:         #2a2a2a;
+  --border-faint:          #222222;
+
+  /* Inactive / raised surface (math pad tabs, disabled buttons) */
+  --surface-raised:        #262626;
+  --surface-disabled:      #1a1a1a;
+  --text-disabled:         #555555;
+  --text-inactive:         #888888;
+  --border-inactive:       #333333;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE STYLES
+   ──────────────────────────────────────────────────────────────────────────── */
 
 body {
   background: #0f0f0f;
@@ -41,71 +79,125 @@ button, a, [role="button"] {
 
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  50%       { transform: translateY(-4px); }
 }
 
 textarea::placeholder, input::placeholder {
   color: #444;
 }
 
-/* ── Light mode ──────────────────────────────────────────────────────────────
-   Overrides Tailwind v4 CSS variables so every bg-neutral-* and
-   text-neutral-* class adapts without touching component markup.
-   The neutral scale is inverted: 900 (dark bg) becomes near-white, etc.
-── */
+/* ─────────────────────────────────────────────────────────────────────────────
+   LIGHT MODE
+   Two layers of override:
+   1. Tailwind v4 CSS variable inversions  → bg-neutral-* / text-neutral-* adapt
+   2. Design-token overrides               → inline-styled components adapt
+   ──────────────────────────────────────────────────────────────────────────── */
+
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Inverted neutral scale */
-  --color-neutral-950: oklch(0.13 0 0);
-  --color-neutral-900: oklch(0.97 0 0);   /* cards / surfaces */
-  --color-neutral-800: oklch(0.93 0 0);   /* inputs / hover */
+  /* ── Neutral scale (inverted: dark bg tokens become light) ── */
+  --color-neutral-950: oklch(0.92 0 0);   /* subtopic panel */
+  --color-neutral-900: oklch(0.97 0 0);   /* card / surface backgrounds */
+  --color-neutral-800: oklch(0.93 0 0);   /* input / hover states */
   --color-neutral-700: oklch(0.88 0 0);   /* borders */
   --color-neutral-600: oklch(0.46 0 0);   /* muted borders */
   --color-neutral-500: oklch(0.38 0 0);   /* secondary text */
   --color-neutral-400: oklch(0.28 0 0);   /* body text */
-  --color-neutral-300: oklch(0.18 0 0);   /* strong text */
+  --color-neutral-300: oklch(0.18 0 0);   /* strong body text */
   --color-neutral-200: oklch(0.11 0 0);
   --color-neutral-100: oklch(0.07 0 0);
   --color-neutral-50:  oklch(0.04 0 0);
+
+  /* ── FloatingChat / AI Tutor ── */
+  --chat-surface:         #ffffff;
+  --chat-border:          #e2e8f0;
+  --chat-header-gradient: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(255,255,255,0));
+  --chat-ai-bubble:       #f1f5f9;
+  --chat-ai-text:         #1e293b;
+  --chat-fab-idle:        #e2e8f0;
+  --chat-send-idle:       #d1d5db;
+  --chat-input-blur:      #cbd5e1;
+  --chat-shadow:          0 8px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(99,102,241,0.20);
+
+  /* ── Flashcard faces ── */
+  --card-face:            #f8fafc;
+  --card-face-back:       #f1f5f9;
+
+  /* ── Topic / subtopic borders ── */
+  --border-subtle:        #e2e8f0;
+  --border-faint:         #e5e7eb;
+
+  /* ── Raised / inactive surfaces ── */
+  --surface-raised:       #e5e7eb;
+  --surface-disabled:     #f1f5f9;
+  --text-disabled:        #94a3b8;
+  --text-inactive:        #64748b;
+  --border-inactive:      #d1d5db;
 }
 
+/* ── Body ── */
 [data-theme="light"] body {
   background: #f0f2f5;
   color: #1a1a2e;
 }
 
-/* text-white → near-black in light mode */
+/* ── text-white → near-black in light mode ── */
 [data-theme="light"] .text-white {
   color: #1a1a2e !important;
 }
 
-/* Hardcoded dark page backgrounds */
+/*
+ * Exception: keep white text readable on accent-coloured surfaces.
+ * Higher specificity (3 classes / element + 2 classes) beats the
+ * .text-white rule above (2 classes) so !important wins correctly.
+ */
+[data-theme="light"] .bg-indigo-500.text-white,
+[data-theme="light"] .bg-indigo-500 > .text-white,
+[data-theme="light"] .bg-indigo-400.text-white,
+[data-theme="light"] .bg-indigo-400 > .text-white,
+[data-theme="light"] .bg-rose-500.text-white,
+[data-theme="light"] .bg-rose-500 > .text-white,
+[data-theme="light"] .bg-emerald-500.text-white,
+[data-theme="light"] .bg-emerald-500 > .text-white,
+[data-theme="light"] a.bg-indigo-500,
+[data-theme="light"] button.bg-indigo-500 {
+  color: #ffffff !important;
+}
+
+/* ── Hardcoded dark page backgrounds (class-based) ── */
 [data-theme="light"] .bg-\[\#0a0a0a\],
-[data-theme="light"] .bg-\[\#0f0f0f\] {
+[data-theme="light"] .bg-\[\#0f0f0f\],
+[data-theme="light"] .bg-\[\#111\],
+[data-theme="light"] .bg-\[\#111111\] {
   background-color: #f0f2f5 !important;
 }
 
-/* Scrollbar in light mode */
+/* ── Scrollbar ── */
 [data-theme="light"] ::-webkit-scrollbar-thumb {
   background: #c0c4cc;
 }
 
+/* ── Placeholders ── */
 [data-theme="light"] textarea::placeholder,
 [data-theme="light"] input::placeholder {
   color: #9ca3af;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   UTILITIES
+   ──────────────────────────────────────────────────────────────────────────── */
+
 /* Hide scrollbar while keeping scroll functionality */
 .scrollbar-hide {
-  scrollbar-width: none;           /* Firefox */
-  -ms-overflow-style: none;        /* IE / Edge */
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE / Edge */
 }
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;                   /* Chrome / Safari / Opera */
+  display: none;                /* Chrome / Safari / Opera */
 }
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(80px); }
-  to { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: translateX(0); }
 }

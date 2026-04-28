@@ -117,8 +117,8 @@ export function MathSymbolPad({ onInsert }: MathSymbolPadProps) {
                   onClick={() => setActiveGroup(i)}
                   className="shrink-0 text-[10px] px-2.5 py-1 rounded-lg cursor-pointer border-0 transition-colors font-semibold"
                   style={{
-                    backgroundColor: activeGroup === i ? '#6366f1' : '#262626',
-                    color: activeGroup === i ? '#fff' : '#a3a3a3',
+                    backgroundColor: activeGroup === i ? '#6366f1' : 'var(--surface-raised)',
+                    color: activeGroup === i ? '#fff' : 'var(--text-inactive)',
                   }}
                 >
                   {group.label}

@@ -31,7 +31,7 @@ export function FlashcardCard({ card, flipped, onFlip, boardColor, boardAccent, 
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
-            backgroundColor: '#1a1a1a',
+            backgroundColor: 'var(--card-face)',
             borderColor: `${boardAccent}44`,
           }}
         >
@@ -47,7 +47,7 @@ export function FlashcardCard({ card, flipped, onFlip, boardColor, boardAccent, 
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            background: `linear-gradient(145deg, ${boardColor}dd, #1e1e1e)`,
+            background: `linear-gradient(145deg, ${boardColor}dd, var(--card-face-back))`,
             borderColor: `${boardAccent}88`,
           }}
         >
