@@ -39,6 +39,16 @@ export async function GET() {
       }
     } catch { /* columns may not exist yet — return defaults */ }
 
+    // Sync Clerk username → profiles.username so teacher add-by-username works
+    if (user.username) {
+      try {
+        await sql`
+          UPDATE profiles SET username = ${user.username}
+          WHERE user_id = ${userId} AND (username IS NULL OR username != ${user.username})
+        `;
+      } catch { /* ignore if column not yet migrated */ }
+    }
+
     return NextResponse.json({
       userId,
       displayName: profile.display_name,

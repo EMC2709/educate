@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getUserRole, getUserOrg } from '@/lib/roles';
@@ -98,15 +98,36 @@ export async function POST(
     } else if (typeof username === 'string' && username.trim()) {
       // Strip leading @ if provided
       const cleanUsername = username.trim().replace(/^@/, '');
+
+      // 1) Try profiles table first (fast path — synced on each profile load)
       const rows = await sql`
         SELECT user_id FROM profiles
         WHERE LOWER(username) = LOWER(${cleanUsername})
         LIMIT 1
       ` as ProfileRow[];
-      if (rows.length === 0) {
+
+      if (rows.length > 0) {
+        resolvedId = rows[0].user_id;
+      } else {
+        // 2) Fall back to Clerk API (covers users who haven't loaded their profile since the migration)
+        try {
+          const client = await clerkClient();
+          const result = await client.users.getUserList({ username: [cleanUsername], limit: 1 });
+          const clerkUser = result.data?.[0];
+          if (clerkUser) {
+            resolvedId = clerkUser.id;
+            // Opportunistically sync the username into profiles
+            await sql`
+              UPDATE profiles SET username = ${cleanUsername}
+              WHERE user_id = ${clerkUser.id} AND (username IS NULL OR username != ${cleanUsername})
+            `.catch(() => {});
+          }
+        } catch { /* Clerk lookup failed — fall through to 404 */ }
+      }
+
+      if (!resolvedId) {
         return NextResponse.json({ error: `No student found with username "${cleanUsername}".` }, { status: 404 });
       }
-      resolvedId = rows[0].user_id;
     }
 
     if (!resolvedId) {
