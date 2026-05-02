@@ -6,7 +6,6 @@ export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
 
-  // Show which Neon host/database Vercel is actually connected to (no password)
   const dbUrl = process.env.DATABASE_URL ?? '';
   const dbInfo = dbUrl ? dbUrl.replace(/:\/\/[^@]+@/, '://***@') : 'DATABASE_URL not set';
 
@@ -20,5 +19,23 @@ export async function GET() {
     });
   } catch (err) {
     return NextResponse.json({ clerkUserId: userId, error: String(err), vercelDb: dbInfo });
+  }
+}
+
+/** One-time self-promotion: sets the currently signed-in user to super_admin. */
+export async function POST() {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
+
+  try {
+    await sql`
+      INSERT INTO profiles (user_id, display_name, role)
+      VALUES (${userId}, 'Ethan', 'super_admin')
+      ON CONFLICT (user_id) DO UPDATE SET role = 'super_admin'
+    `;
+    const rows = await sql`SELECT user_id, display_name, role FROM profiles WHERE user_id = ${userId}`;
+    return NextResponse.json({ ok: true, profile: rows[0] });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
