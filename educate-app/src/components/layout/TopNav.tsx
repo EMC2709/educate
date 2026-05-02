@@ -19,17 +19,14 @@ const NAV_ITEMS = [
   { href: '/exams',              label: 'Exams',          icon: '⏳' },
   { href: '/timer',              label: 'Timer',          icon: '⏰' },
   { href: '/notes',              label: 'Notes',          icon: '🗂️' },
-  { href: '/revision-notes',     label: 'Revision',       icon: '📖' },
   { href: '/checklist',          label: 'Checklist',      icon: '✅' },
   { href: '/mastery',            label: 'Mastery',        icon: '🗺️' },
   { href: '/progress',           label: 'Progress',       icon: '📊' },
   { href: '/achievements',       label: 'Achievements',   icon: '🏆' },
   { href: '/games',              label: 'Games',          icon: '🎮' },
   { href: '/profile',            label: 'Profile',        icon: '👤' },
-  { href: '/marketplace',        label: 'Marketplace',    icon: '🛒' },
   { href: '/boards',             label: 'Exam Boards',    icon: '📋' },
   { href: '/reference',          label: 'Reference',      icon: '📐' },
-  { href: '/shared-flashcards',  label: 'Shared Decks',   icon: '🃏' },
   { href: '/export',             label: 'Export',         icon: '📤' },
 ];
 
@@ -99,7 +96,7 @@ export function TopNav() {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 z-50 bg-neutral-900 border-b border-neutral-800 flex items-center gap-3 px-4">
+    <header className="fixed top-0 left-0 right-0 h-14 z-50 nav-glass flex items-center gap-3 px-4">
 
       {/* ── Logo ──────────────────────────────────────────────────────── */}
       <Link
@@ -250,6 +247,20 @@ export function TopNav() {
                     className="block px-4 py-2.5 text-sm text-neutral-300 no-underline hover:bg-neutral-700 transition-colors"
                   >
                     My Profile
+                  </Link>
+                  <Link
+                    href="/student/classes"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-neutral-300 no-underline hover:bg-neutral-700 transition-colors"
+                  >
+                    🏫 My Classes
+                  </Link>
+                  <Link
+                    href="/marketplace"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-neutral-300 no-underline hover:bg-neutral-700 transition-colors"
+                  >
+                    🛒 Marketplace
                   </Link>
                   <button
                     onClick={() => { setMenuOpen(false); signOut({ redirectUrl: '/' }); }}

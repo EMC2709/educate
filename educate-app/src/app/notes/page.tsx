@@ -467,13 +467,23 @@ export default function NotesPage() {
               )}
 
               {activeTab === 'flashcards' && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-neutral-500 flex-1">My Decks</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-neutral-500 flex-1">My Decks</span>
+                    <Link
+                      href="/my-flashcards"
+                      className="bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg no-underline hover:bg-indigo-400 transition-colors"
+                    >
+                      + New
+                    </Link>
+                  </div>
                   <Link
-                    href="/my-flashcards"
-                    className="bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg no-underline hover:bg-indigo-400 transition-colors"
+                    href="/shared-flashcards"
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 no-underline transition-colors"
                   >
-                    + New
+                    <span>🃏</span>
+                    <span>Browse Shared Decks</span>
+                    <span className="ml-auto text-neutral-600">→</span>
                   </Link>
                 </div>
               )}
