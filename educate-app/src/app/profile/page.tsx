@@ -324,20 +324,27 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          {/* My Classes */}
-          <Link
-            href="/student/classes"
-            className="flex items-center justify-between gap-3 bg-neutral-900 border border-neutral-800 hover:border-indigo-500/40 rounded-2xl px-5 py-4 no-underline transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🏫</span>
-              <div>
-                <p className="text-white font-semibold text-sm m-0">My Classes</p>
-                <p className="text-neutral-500 text-xs m-0">View classes &amp; assignments from your teacher</p>
-              </div>
-            </div>
-            <span className="text-neutral-600 group-hover:text-neutral-400 transition-colors text-sm">→</span>
-          </Link>
+          {/* Quick links */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { href: '/student/classes', icon: '🏫', label: 'My Classes',  desc: 'Classes & assignments' },
+              { href: '/progress',        icon: '📊', label: 'Progress',    desc: 'Track your results' },
+              { href: '/export',          icon: '📤', label: 'Export',      desc: 'Download your data' },
+            ].map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 hover:border-indigo-500/40 rounded-2xl px-4 py-3.5 no-underline transition-colors group"
+              >
+                <span className="text-xl shrink-0">{link.icon}</span>
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-sm m-0">{link.label}</p>
+                  <p className="text-neutral-500 text-xs m-0 truncate">{link.desc}</p>
+                </div>
+                <span className="text-neutral-600 group-hover:text-neutral-400 transition-colors text-sm ml-auto shrink-0">→</span>
+              </Link>
+            ))}
+          </div>
 
           {/* Last active */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl px-5 py-3 flex items-center justify-between">

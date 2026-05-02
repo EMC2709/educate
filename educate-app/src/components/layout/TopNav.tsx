@@ -21,13 +21,11 @@ const NAV_ITEMS = [
   { href: '/notes',              label: 'Notes',          icon: '🗂️' },
   { href: '/checklist',          label: 'Checklist',      icon: '✅' },
   { href: '/mastery',            label: 'Mastery',        icon: '🗺️' },
-  { href: '/progress',           label: 'Progress',       icon: '📊' },
   { href: '/achievements',       label: 'Achievements',   icon: '🏆' },
   { href: '/games',              label: 'Games',          icon: '🎮' },
   { href: '/profile',            label: 'Profile',        icon: '👤' },
   { href: '/boards',             label: 'Exam Boards',    icon: '📋' },
   { href: '/reference',          label: 'Reference',      icon: '📐' },
-  { href: '/export',             label: 'Export',         icon: '📤' },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -254,6 +252,20 @@ export function TopNav() {
                     className="block px-4 py-2.5 text-sm text-neutral-300 no-underline hover:bg-neutral-700 transition-colors"
                   >
                     🏫 My Classes
+                  </Link>
+                  <Link
+                    href="/progress"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-neutral-300 no-underline hover:bg-neutral-700 transition-colors"
+                  >
+                    📊 Progress
+                  </Link>
+                  <Link
+                    href="/export"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-neutral-300 no-underline hover:bg-neutral-700 transition-colors"
+                  >
+                    📤 Export
                   </Link>
                   <Link
                     href="/marketplace"
