@@ -8,6 +8,7 @@ interface Member {
   student_id: string;
   joined_at: string;
   display_name: string | null;
+  username: string | null;
   xp: number | null;
   level: number | null;
 }
@@ -115,7 +116,7 @@ export function StudentsTab({ classId }: StudentsTabProps) {
       const res = await fetch(`/api/classes/${classId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId: val }),
+        body: JSON.stringify({ username: val }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -170,13 +171,14 @@ export function StudentsTab({ classId }: StudentsTabProps) {
 
       {/* Add student */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
-        <h3 className="text-white font-semibold mb-3">Add Student</h3>
+        <h3 className="text-white font-semibold mb-1">Add Student</h3>
+        <p className="text-neutral-500 text-xs mb-3">Enter the student&apos;s username (e.g. <span className="font-mono text-neutral-400">emc27</span> or <span className="font-mono text-neutral-400">@emc27</span>)</p>
         <form onSubmit={handleAddStudent} className="flex gap-3">
           <input
             type="text"
             value={studentInput}
             onChange={e => setStudentInput(e.target.value)}
-            placeholder="Student user ID"
+            placeholder="Student username"
             className="flex-1 bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 text-sm"
           />
           <button
@@ -220,7 +222,9 @@ export function StudentsTab({ classId }: StudentsTabProps) {
                         <div className="text-white font-medium">
                           {m.display_name || 'Unknown'}
                         </div>
-                        <div className="text-neutral-600 text-xs font-mono">{m.student_id.slice(0, 12)}...</div>
+                        <div className="text-neutral-500 text-xs font-mono">
+                          {m.username ? `@${m.username}` : m.student_id.slice(0, 12) + '…'}
+                        </div>
                       </td>
                       <td className="px-5 py-3 text-neutral-300">{m.xp ?? '—'}</td>
                       <td className="px-5 py-3 text-neutral-300">{m.level ?? '—'}</td>

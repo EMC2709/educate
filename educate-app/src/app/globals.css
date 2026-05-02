@@ -201,3 +201,76 @@ textarea::placeholder, input::placeholder {
   from { opacity: 0; transform: translateX(80px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GLASSMORPHISM TOPNAV
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.nav-glass {
+  background: rgba(10, 10, 10, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="light"] .nav-glass {
+  background: rgba(248, 250, 252, 0.82);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SKELETON SHIMMER
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #1e1e1e 25%, #2d2d2d 50%, #1e1e1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+[data-theme="light"] .skeleton-shimmer {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   XP FLOAT ANIMATION
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes xpFloat {
+  0%   { opacity: 0; transform: translateY(0)    scale(0.7); }
+  12%  { opacity: 1; transform: translateY(-10px) scale(1.05); }
+  65%  { opacity: 1; transform: translateY(-28px) scale(1); }
+  100% { opacity: 0; transform: translateY(-52px) scale(0.9); }
+}
+
+.animate-xp-float {
+  animation: xpFloat 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   QUESTION SLIDE-IN
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes questionSlideIn {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-question-slide {
+  animation: questionSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CONFETTI
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes confetti-fall {
+  0%   { opacity: 1; transform: translateY(0)    rotate(0deg)   scale(1); }
+  100% { opacity: 0; transform: translateY(130px) rotate(720deg) scale(0.4); }
+}

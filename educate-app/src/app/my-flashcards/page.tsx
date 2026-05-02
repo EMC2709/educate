@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { FileImportModal } from '@/components/flashcards/FileImportModal';
+import { DeckListSkeleton } from '@/components/ui/Skeleton';
 
 interface Deck {
   id: string;
@@ -155,11 +156,7 @@ export default function MyFlashcardsPage() {
           )}
 
           {/* ── Loading state ───────────────────────────────────────────────── */}
-          {loading && isSignedIn && (
-            <div className="flex items-center justify-center py-20">
-              <p className="text-neutral-500 text-sm">Loading your decks…</p>
-            </div>
-          )}
+          {loading && isSignedIn && <DeckListSkeleton count={4} />}
 
           {/* ── Empty state ─────────────────────────────────────────────────── */}
           {!loading && isSignedIn && decks.length === 0 && !creating && (

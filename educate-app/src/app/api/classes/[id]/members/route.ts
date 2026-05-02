@@ -15,8 +15,13 @@ interface MemberRow {
   student_id: string;
   joined_at: string;
   display_name: string | null;
+  username: string | null;
   xp: number | null;
   level: number | null;
+}
+
+interface ProfileRow {
+  user_id: string;
 }
 
 async function getClass(classId: string): Promise<ClassRow | null> {
@@ -54,7 +59,7 @@ export async function GET(
 
     const members = await sql`
       SELECT cm.id, cm.class_id, cm.student_id, cm.joined_at,
-             p.display_name, p.xp, p.level
+             p.display_name, p.username, p.xp, p.level
       FROM class_members cm
       LEFT JOIN profiles p ON p.user_id = cm.student_id
       WHERE cm.class_id = ${id}
@@ -83,16 +88,34 @@ export async function POST(
     const allowed = await canManageClass(userId, classRow);
     if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const body = await req.json() as { studentId?: unknown };
-    const { studentId } = body;
+    const body = await req.json() as { studentId?: unknown; username?: unknown };
+    const { studentId, username } = body;
 
-    if (!studentId || typeof studentId !== 'string') {
-      return NextResponse.json({ error: 'studentId is required' }, { status: 400 });
+    let resolvedId: string | null = null;
+
+    if (typeof studentId === 'string' && studentId.trim()) {
+      resolvedId = studentId.trim();
+    } else if (typeof username === 'string' && username.trim()) {
+      // Strip leading @ if provided
+      const cleanUsername = username.trim().replace(/^@/, '');
+      const rows = await sql`
+        SELECT user_id FROM profiles
+        WHERE LOWER(username) = LOWER(${cleanUsername})
+        LIMIT 1
+      ` as ProfileRow[];
+      if (rows.length === 0) {
+        return NextResponse.json({ error: `No student found with username "${cleanUsername}".` }, { status: 404 });
+      }
+      resolvedId = rows[0].user_id;
+    }
+
+    if (!resolvedId) {
+      return NextResponse.json({ error: 'A username or studentId is required.' }, { status: 400 });
     }
 
     await sql`
       INSERT INTO class_members (class_id, student_id)
-      VALUES (${id}, ${studentId})
+      VALUES (${id}, ${resolvedId})
       ON CONFLICT (class_id, student_id) DO NOTHING
     `;
 

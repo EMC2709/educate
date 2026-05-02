@@ -101,10 +101,27 @@ export default function QuizPage({
       if (bankQs.length > 0) {
         setLoadingSource('bank');
         setMcqQuestions(shuffle(bankQs).slice(0, 10));
-      } else {
-        // No static MCQ available — leave empty (UI will show "not available" message)
-        setMcqQuestions([]);
+        setLoading(false);
+        return;
       }
+      // AI fallback — generate MCQ questions for subjects not in the static bank
+      setLoadingSource('api');
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject, board: boardName, type: 'mcq', focusStr }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.mcqQuestions?.length > 0) {
+            setMcqQuestions(data.mcqQuestions);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch { /* fall through to empty state */ }
+      setMcqQuestions([]);
       setLoading(false);
       return;
     }
@@ -525,8 +542,8 @@ export default function QuizPage({
                     </div>
 
                     {/* key=currentQ forces a fresh MCQOptions mount (resets selected state) on each question */}
+                    <div key={currentQ} className="animate-question-slide">
                     <MCQOptions
-                      key={currentQ}
                       question={mcqQuestions[currentQ]}
                       questionNumber={currentQ + 1}
                       totalQuestions={mcqQuestions.length}
@@ -534,6 +551,7 @@ export default function QuizPage({
                       isLast={currentQ === mcqQuestions.length - 1}
                       accentColor="#06b6d4"
                     />
+                    </div>
                   </div>
                 )}
               </div>
@@ -556,12 +574,14 @@ export default function QuizPage({
                   <ProgressBar value={((currentQ + 1) / questions.length) * 100} color={`bg-[${qTypeCfg.color}]`} />
                 </div>
 
+                <div key={currentQ} className="animate-question-slide">
                 <QuestionCard
                   question={questions[currentQ]}
                   typeLabel={qTypeCfg.label}
                   typeColor={qTypeCfg.color}
                   questionType={questionType as 'short' | 'mid' | 'long' | 'flashcard' | 'past-paper'}
                 />
+                </div>
 
                 {!feedback ? (
                   <AnswerInput
@@ -611,11 +631,11 @@ export default function QuizPage({
 
       {/* XP Toast */}
       {xpToast && (
-        <div className="fixed bottom-6 right-6 z-[100] animate-bounce">
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-bold">
-            <span className="text-lg">&#9889;</span>
+        <div className="fixed bottom-8 right-6 z-[100] animate-xp-float pointer-events-none">
+          <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-bold">
+            <span className="text-base">⚡</span>
             +{xpToast.xp} XP
-            {xpToast.levelUp && <span className="ml-1">&#127881; Level Up!</span>}
+            {xpToast.levelUp && <span className="ml-1">🎉 Level Up!</span>}
           </div>
         </div>
       )}

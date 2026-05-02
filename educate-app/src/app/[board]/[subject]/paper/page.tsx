@@ -22,29 +22,171 @@ interface PaperInfo {
 
 type Mode = 'intro' | 'exam' | 'results';
 
-// Detect whether a question needs MCQ, drawing, or written answer
+// Extended Question type for past papers — includes figure metadata from DB
+interface PaperQuestion extends Question {
+  hasImage?: boolean;
+  imageDesc?: string | null;
+}
+
+// Detect whether a question needs MCQ, drawing, or written answer.
+// Handles every real GCSE past-paper format scraped from PDFs:
+//   A) text | A. text | A: text | (A) text   — punctuation formats
+//   A\ttext                                   — tab-separated (PDF tables)
+//   A  text  (2+ spaces)                      — AQA / Edexcel no-punct format
+//   A text   (1 space)                        — only accepted when all 4 appear
 function detectAnswerType(text: string): 'mcq' | 'drawing' | 'written' {
-  // MCQ: 3+ lines matching "A) ...", "B) ...", "C) ..." or "A. " etc
-  const mcqMatches = text.match(/(?:^|\n)\s*[A-D][.)]\s+\S/gm) ?? [];
-  if (mcqMatches.length >= 3) return 'mcq';
+  const lines = text.split('\n');
+  const highConfidence = new Set<string>(); // matched by punctuation/tab/2-space
+  const lowConfidence  = new Set<string>(); // matched only by single-space rule
+
+  for (const line of lines) {
+    const t = line.trimStart();
+    if (!t) continue;
+
+    // Pattern 1 — (A) text
+    let m = t.match(/^\(([A-Da-d])\)[ \t]/i);
+    if (m) { highConfidence.add(m[1].toUpperCase()); continue; }
+
+    // Pattern 2 — A) | A. | A: followed by space
+    m = t.match(/^([A-Da-d])[).:]\s/i);
+    if (m) { highConfidence.add(m[1].toUpperCase()); continue; }
+
+    // Pattern 3 — A\ttext (tab after letter)
+    m = t.match(/^([A-Da-d])\t/i);
+    if (m) { highConfidence.add(m[1].toUpperCase()); continue; }
+
+    // Pattern 4 — A  text (2+ spaces — AQA format)
+    m = t.match(/^([A-Da-d]) {2,}\S/i);
+    if (m) { highConfidence.add(m[1].toUpperCase()); continue; }
+
+    // Pattern 5 — A text (single space) — low confidence; only used when 4 letters present
+    m = t.match(/^([A-Da-d]) \S/i);
+    if (m) { lowConfidence.add(m[1].toUpperCase()); }
+  }
+
+  // High-confidence: 3+ distinct letters (e.g. A, B, C found) → MCQ
+  if (highConfidence.size >= 3) return 'mcq';
+
+  // Low-confidence: all 4 letters A,B,C,D found → MCQ (accidental overlap nearly impossible)
+  const combined = new Set([...highConfidence, ...lowConfidence]);
+  if (combined.size >= 4 && ['A','B','C','D'].every(l => combined.has(l))) return 'mcq';
+
+  // Inline fallback — all on one line (heuristic-collapsed PDF format)
+  // Handles: "stem A opt B opt C opt D opt", "stem A. opt B. opt", "stem A) opt B) opt"
+  {
+    const cleaned = text.replace(/\s*\[\d+\s*marks?\]\s*$/i, '').replace(/\n/g, ' ');
+    // Find each option marker as: (start or space) + letter + (space, dot, or paren)
+    const findMark = (letter: string, from: number): number => {
+      const re = new RegExp(`(?:^| )${letter}(?=[). ])`, 'g');
+      re.lastIndex = from;
+      const m = re.exec(cleaned);
+      if (!m) return -1;
+      return m.index + (m[0].length > 1 ? 1 : 0); // position of the letter
+    };
+    const aIdx = findMark('A', 0);
+    if (aIdx >= 0) {
+      const bIdx = findMark('B', aIdx + 1);
+      if (bIdx > aIdx) {
+        const cIdx = findMark('C', bIdx + 1);
+        if (cIdx > bIdx) {
+          const dIdx = findMark('D', cIdx + 1);
+          if (dIdx > cIdx) return 'mcq';
+        }
+      }
+    }
+  }
+
   // Drawing questions
   if (/\b(draw|sketch|label|complete the diagram|plot|mark on|shade|circle the|underline)\b/i.test(text)) return 'drawing';
   return 'written';
 }
 
-// Parse MCQ question into stem + options
+// Parse MCQ question into stem + options.
+// Handles all formats: A) | A. | A: | (A) | A\t | A  (2+ spaces) | A (1 space, last resort)
 function parseMCQ(text: string): { stem: string; options: { letter: string; text: string }[] } {
   const lines = text.split('\n');
   const options: { letter: string; text: string }[] = [];
   const stemLines: string[] = [];
+
   for (const line of lines) {
-    const m = line.match(/^\s*([A-D])[.)]\s+(.+)/);
-    if (m) {
-      options.push({ letter: m[1], text: m[2].trim() });
-    } else if (options.length === 0) {
+    const t = line.trimStart();
+
+    // (A) text
+    let m = t.match(/^\(([A-Da-d])\)[ \t]+(.+)/i);
+    if (m) { options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue; }
+
+    // A) | A. | A: followed by space/text
+    m = t.match(/^([A-Da-d])[).:]\s+(.+)/i);
+    if (m) { options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue; }
+
+    // A\ttext (tab)
+    m = t.match(/^([A-Da-d])\t+(.+)/i);
+    if (m) { options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue; }
+
+    // A  text (2+ spaces)
+    m = t.match(/^([A-Da-d]) {2,}(.+)/i);
+    if (m) { options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue; }
+
+    // A text (single space) — only treat as option if we already found ≥1 option
+    if (options.length > 0) {
+      m = t.match(/^([A-Da-d]) (.+)/i);
+      if (m && ['A','B','C','D'].includes(m[1].toUpperCase())) {
+        options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue;
+      }
+    }
+
+    if (options.length === 0) {
       stemLines.push(line);
     }
   }
+
+  // ── Inline fallback (heuristic-collapsed PDF format) ──────────────────────
+  // Triggered only when multi-line pass found no options.
+  // Handles: "stem A opt B opt C opt D opt"
+  //          "stem A. opt B. opt C. opt D. opt"
+  //          "stem A) opt B) opt C) opt D) opt"
+  if (options.length === 0) {
+    const clean = text.replace(/\s*\[\d+\s*marks?\]\s*$/i, '').replace(/\n/g, ' ').trim();
+    // Scan for option markers: (start-or-space) + letter + (space, dot, or paren)
+    // Track both the letter position (idx) and where the option text starts (contentStart)
+    const markers: { letter: string; idx: number; contentStart: number }[] = [];
+    const scanRe = /(?:^| )([A-D])(?=[). ])/g;
+    let scanMatch: RegExpExecArray | null;
+    while ((scanMatch = scanRe.exec(clean)) !== null) {
+      const hasLeadingSpace = scanMatch[0].length > 1; // starts with ' '
+      const letterIdx = hasLeadingSpace ? scanMatch.index + 1 : scanMatch.index;
+      // content starts after the letter + any punctuation/space that follows
+      const afterLetter = letterIdx + 1;
+      let contentStart = afterLetter;
+      while (contentStart < clean.length && /[). ]/.test(clean[contentStart])) contentStart++;
+      markers.push({ letter: scanMatch[1], idx: letterIdx, contentStart });
+    }
+    // Find last valid ordered A → B → C → D
+    const aM = markers.filter(m => m.letter === 'A').pop();
+    const bM = aM ? markers.filter(m => m.letter === 'B' && m.idx > aM.idx).pop() : undefined;
+    const cM = bM ? markers.filter(m => m.letter === 'C' && m.idx > bM.idx).pop() : undefined;
+    const dM = cM ? markers.filter(m => m.letter === 'D' && m.idx > cM.idx).pop() : undefined;
+
+    if (aM && bM && cM && dM) {
+      const optA = clean.slice(aM.contentStart, bM.idx).trim();
+      const optB = clean.slice(bM.contentStart, cM.idx).trim();
+      const optC = clean.slice(cM.contentStart, dM.idx).trim();
+      const optD = clean.slice(dM.contentStart).trim();
+      // Validate: each option must be non-empty and ≤ 120 chars
+      if ([optA, optB, optC, optD].every(o => o.length > 0 && o.length <= 120)) {
+        return {
+          stem: clean.slice(0, aM.idx).trim(),
+          options: [
+            { letter: 'A', text: optA },
+            { letter: 'B', text: optB },
+            { letter: 'C', text: optC },
+            { letter: 'D', text: optD },
+          ],
+        };
+      }
+    }
+  }
+
   return { stem: stemLines.join('\n').trim(), options };
 }
 
@@ -347,9 +489,9 @@ export default function ExamPaperPage({
 
   if (!board || !board.subjects.includes(subject)) notFound();
 
-  const staticQuestions: Question[] = PAST_PAPER_BANK[subject] ?? [];
+  const staticQuestions: PaperQuestion[] = PAST_PAPER_BANK[subject] ?? [];
 
-  const [questions, setQuestions] = useState<Question[]>(staticQuestions);
+  const [questions, setQuestions] = useState<PaperQuestion[]>(staticQuestions);
   const [loadingDb, setLoadingDb] = useState(false);
   const [mode, setMode] = useState<Mode>('intro');
   const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ''));
@@ -394,7 +536,7 @@ export default function ExamPaperPage({
         setLoadingDb(true);
 
         type PaperMeta = { id: string; year: number | null; paper_number: string | null; total_questions: number };
-        type QRow = { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: string | number | null };
+        type QRow = { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: string | number | null; has_image?: boolean; image_desc?: string | null; };
 
         // Parse "25(c)" → [25, 'c', 0]   "18(iii)" → [18, 0, 3]   "3" → [3,0,0]
         const parseQN = (qn: string | number | null | undefined): [number, number, number] => {
@@ -479,11 +621,16 @@ export default function ExamPaperPage({
               return a1 - b1 || a2 - b2 || a3 - b3;
             });
 
-            const dbQs: Question[] = qs.map(q => ({
-              question: q.question_text,
-              answer:   q.mark_scheme || '',
-              marks:    q.marks || 1,
-              hint:     q.topic || '',
+            const dbQs: PaperQuestion[] = qs.map(q => ({
+              question:  q.question_text,
+              answer:    q.mark_scheme || '',
+              // Marks > 25 are almost certainly section/paper totals mistakenly parsed
+              // by the heuristic extractor (e.g. "[40 marks] Section A" header).
+              // No individual GCSE question is worth more than 25 marks.
+              marks:     q.marks > 25 ? 1 : (q.marks || 1),
+              hint:      q.topic || '',
+              hasImage:  q.has_image ?? false,
+              imageDesc: q.image_desc ?? null,
             }));
             setQuestions(dbQs);
             setAnswers(dbQs.map(() => ''));
@@ -709,7 +856,7 @@ export default function ExamPaperPage({
 
               {/* PDF page thumbnails — scroll horizontally, click to expand inline */}
               {paperDbId && pageCount > 0 && (
-                <div className="border-b border-gray-200 px-8 py-5 bg-gray-50" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <div id="page-strip" className="border-b border-gray-200 px-8 py-5 bg-gray-50" style={{ fontFamily: 'Arial, sans-serif' }}>
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-black uppercase tracking-wider text-black">
                       Paper pages <span className="text-gray-500 font-normal normal-case">· click to enlarge for figures &amp; diagrams</span>
@@ -770,6 +917,9 @@ export default function ExamPaperPage({
               <div className="px-8 py-6 space-y-0">
                 {questions.map((q, i) => {
                   const qType = detectAnswerType(q.question);
+                  // Pre-parse MCQ so we can fall back to written if options are missing
+                  const mcqParsed = qType === 'mcq' ? parseMCQ(q.question) : null;
+                  const showAsMcq = mcqParsed !== null && mcqParsed.options.length >= 2;
                   return (
                     <div key={i} className="py-5 border-b border-gray-200 last:border-b-0">
                       {/* Question row: number | text | marks */}
@@ -788,26 +938,57 @@ export default function ExamPaperPage({
                             </p>
                           )}
 
-                          {/* Question text — for MCQ the stem is rendered in the answer block */}
-                          {qType !== 'mcq' && (
+                          {/* Question text — hidden for MCQ (stem shown in answer block instead).
+                              Shown when: not MCQ, OR MCQ detected but options couldn't be parsed. */}
+                          {!showAsMcq && (
                             <div className="text-sm text-black leading-relaxed mb-4 prose prose-sm max-w-none prose-p:my-0">
                               <MessageContent content={q.question} />
                             </div>
                           )}
 
+                          {/* Inline figure callout — shown when DB flags has_image = true */}
+                          {q.hasImage && (
+                            <div className="mb-4 flex items-start gap-2.5 p-3 border border-amber-300 bg-amber-50 rounded" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              <span className="text-amber-500 text-base shrink-0 mt-0.5">📊</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-black text-amber-800 text-[11px] uppercase tracking-wide mb-0.5">Figure / Diagram Required</p>
+                                {q.imageDesc && (
+                                  <p className="text-amber-700 text-xs leading-relaxed mb-1">{q.imageDesc}</p>
+                                )}
+                                <div className="flex flex-wrap gap-3">
+                                  {paperDbId && pageCount > 0 && (
+                                    <button
+                                      onClick={() => document.getElementById('page-strip')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                                      className="text-[11px] text-indigo-600 hover:text-indigo-800 underline bg-transparent border-none cursor-pointer p-0"
+                                    >
+                                      ↑ View page thumbnails
+                                    </button>
+                                  )}
+                                  {driveFileId && (
+                                    <button
+                                      onClick={() => setPdfPanelOpen(true)}
+                                      className="text-[11px] text-indigo-600 hover:text-indigo-800 underline bg-transparent border-none cursor-pointer p-0"
+                                    >
+                                      Open full PDF →
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Answer area — type depends on question content */}
                           {(() => {
-                            if (qType === 'mcq') {
-                              const { stem, options } = parseMCQ(q.question);
+                            if (showAsMcq && mcqParsed) {
                               return (
                                 <>
-                                  {stem && (
+                                  {mcqParsed.stem && (
                                     <div className="text-sm text-black leading-relaxed mb-3 prose prose-sm max-w-none prose-p:my-0">
-                                      <MessageContent content={stem} />
+                                      <MessageContent content={mcqParsed.stem} />
                                     </div>
                                   )}
                                   <MCQBox
-                                    options={options}
+                                    options={mcqParsed.options}
                                     selected={answers[i]}
                                     onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
                                   />
@@ -993,6 +1174,8 @@ export default function ExamPaperPage({
               {questions.map((q, i) => {
                 const userAnswer = answers[i];
                 const qType = detectAnswerType(q.question);
+                const resMcqParsed = qType === 'mcq' ? parseMCQ(q.question) : null;
+                const showAsMcqRes = resMcqParsed !== null && resMcqParsed.options.length >= 2;
                 const isAttempted = qType === 'drawing'
                   ? userAnswer.startsWith('data:')
                   : userAnswer.trim().length > 0;
@@ -1012,6 +1195,17 @@ export default function ExamPaperPage({
                           <MessageContent content={q.question} />
                         </div>
 
+                        {/* Figure callout in results view */}
+                        {q.hasImage && (
+                          <div className="flex items-start gap-2 p-2.5 border border-amber-200 bg-amber-50 rounded text-xs" style={{ fontFamily: 'Arial, sans-serif' }}>
+                            <span className="text-amber-500 shrink-0">📊</span>
+                            <div>
+                              <span className="font-bold text-amber-700">Figure required</span>
+                              {q.imageDesc && <span className="text-amber-600 ml-1">— {q.imageDesc}</span>}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Student answer */}
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ fontFamily: 'Arial, sans-serif', color: isAttempted ? '#059669' : '#9ca3af' }}>
@@ -1025,10 +1219,12 @@ export default function ExamPaperPage({
                                 </div>
                               );
                             }
-                            if (qType === 'mcq') {
+                            if (showAsMcqRes && resMcqParsed) {
+                              const selectedOpt = resMcqParsed.options.find(o => o.letter === userAnswer);
                               return (
-                                <div className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-gray-800">
-                                  Selected: {userAnswer}
+                                <div className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-gray-800">
+                                  <span className="font-black">{userAnswer}</span>
+                                  {selectedOpt && <span className="text-gray-700 ml-2">— {selectedOpt.text}</span>}
                                 </div>
                               );
                             }
@@ -1051,10 +1247,17 @@ export default function ExamPaperPage({
                         {isRevealed ? (
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1.5" style={{ fontFamily: 'Arial, sans-serif' }}>
-                              Model answer
+                              {showAsMcqRes ? 'Correct answer' : 'Model answer'}
                             </p>
                             <div className="border-l-4 border-indigo-400 bg-indigo-50 px-4 py-3 text-sm text-gray-800 leading-relaxed">
-                              <MessageContent content={q.answer} />
+                              {showAsMcqRes && resMcqParsed ? (() => {
+                                // Normalise: extract first A-D letter from the mark scheme answer
+                                const correctLetter = q.answer.trim().toUpperCase().match(/[A-D]/)?.[0] ?? '';
+                                const correctOpt = resMcqParsed.options.find(o => o.letter === correctLetter);
+                                return correctLetter
+                                  ? <span><strong>{correctLetter}</strong>{correctOpt && <span className="text-gray-600 ml-2">— {correctOpt.text}</span>}</span>
+                                  : <MessageContent content={q.answer} />;
+                              })() : <MessageContent content={q.answer} />}
                             </div>
                           </div>
                         ) : (

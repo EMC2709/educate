@@ -1,5 +1,6 @@
 import type { FeedbackResult } from '@/types';
 import { MessageContent } from '@/components/ui/MessageContent';
+import { Confetti } from '@/components/ui/Confetti';
 
 interface FeedbackPanelProps {
   feedback: FeedbackResult;
@@ -22,10 +23,11 @@ export function FeedbackPanel({ feedback, maxMarks, questionType, onExplain }: F
 
   return (
     <div
-      className={`rounded-xl p-5 mb-4 border ${
+      className={`relative rounded-xl p-5 mb-4 border ${
         isCorrect ? 'bg-emerald-500/10 border-emerald-500' : 'bg-rose-500/10 border-rose-500'
       }`}
     >
+      <Confetti active={isCorrect} />
       <div className="flex items-center gap-2.5 mb-3">
         <span className="text-xl">{isCorrect ? '✅' : '❌'}</span>
         <span className={`font-bold text-base ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}`}>

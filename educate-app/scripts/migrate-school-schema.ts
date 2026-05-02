@@ -40,9 +40,10 @@ async function main() {
     sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'student' CHECK (role IN ('student','teacher','school_admin','super_admin'))`,
     sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS year_group INTEGER CHECK (year_group BETWEEN 6 AND 13)`,
     sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS google_classroom_id TEXT`,
+    sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS username TEXT UNIQUE`,
   ];
   await Promise.all(profileAlters);
-  console.log('  + profiles columns (org_id, role, year_group, google_classroom_id)');
+  console.log('  + profiles columns (org_id, role, year_group, google_classroom_id, username)');
 
   // ── classes ────────────────────────────────────────────────────
   await sql`
@@ -55,10 +56,13 @@ async function main() {
       year_group          INTEGER,
       exam_type           TEXT,
       google_classroom_id TEXT,
+      join_code           TEXT UNIQUE,
       created_at          TIMESTAMPTZ DEFAULT now()
     )
   `;
-  console.log('  + classes table');
+  // Add join_code if table already existed without it
+  await sql`ALTER TABLE classes ADD COLUMN IF NOT EXISTS join_code TEXT UNIQUE`;
+  console.log('  + classes table (+ join_code column)');
 
   // ── class_members ──────────────────────────────────────────────
   await sql`
@@ -118,6 +122,8 @@ async function main() {
     sql`CREATE INDEX IF NOT EXISTS assignment_progress_assign_idx ON assignment_progress (assignment_id)`,
     sql`CREATE INDEX IF NOT EXISTS assignment_progress_student_idx ON assignment_progress (student_id)`,
     sql`CREATE INDEX IF NOT EXISTS profiles_org_idx              ON profiles (org_id)`,
+    sql`CREATE INDEX IF NOT EXISTS classes_join_code_idx         ON classes (join_code)`,
+    sql`CREATE INDEX IF NOT EXISTS profiles_username_idx         ON profiles (LOWER(username))`,
   ];
   await Promise.all(indexes);
   console.log('  + Indexes (8)\n');
