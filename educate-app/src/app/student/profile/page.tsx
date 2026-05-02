@@ -140,6 +140,21 @@ export default function StudentProfilePage() {
           <p className="text-neutral-500 text-xs mt-2">{progressPct}% to next level</p>
         </div>
 
+        {/* My Classes shortcut */}
+        <Link
+          href="/student/classes"
+          className="flex items-center justify-between gap-3 bg-neutral-900 border border-neutral-800 hover:border-indigo-500/40 rounded-2xl p-5 no-underline transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🏫</span>
+            <div>
+              <p className="text-white font-semibold text-sm">My Classes</p>
+              <p className="text-neutral-500 text-xs">View classes &amp; assignments from your teacher</p>
+            </div>
+          </div>
+          <span className="text-neutral-600 group-hover:text-neutral-400 transition-colors">→</span>
+        </Link>
+
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 text-center">
