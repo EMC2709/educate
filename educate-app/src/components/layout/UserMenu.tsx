@@ -52,6 +52,14 @@ export function UserMenu() {
               <p className="text-sm font-semibold text-white m-0 truncate">{user.fullName}</p>
               <p className="text-xs text-neutral-400 m-0 truncate">{user.primaryEmailAddress?.emailAddress}</p>
             </div>
+            <Link
+              href="/student/classes"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-neutral-300 no-underline hover:bg-neutral-700 transition-colors"
+            >
+              <span>🏫</span> My Classes
+            </Link>
+            <div className="border-t border-neutral-700" />
             <button
               onClick={() => { setOpen(false); signOut({ redirectUrl: '/' }); }}
               className="w-full text-left px-4 py-2.5 text-sm text-neutral-300 bg-transparent border-none cursor-pointer hover:bg-neutral-700 transition-colors"
