@@ -242,4 +242,193 @@ export const mathematicsSubtopics: Record<string, Record<string, SubtopicContent
       ],
     },
   },
+  "Ratio & Proportion": {
+    "Ratio & Sharing": {
+      short: [
+        { question: "Simplify the ratio 36 : 48.", answer: "HCF of 36 and 48 is 12. 36 \u00f7 12 = 3, 48 \u00f7 12 = 4. Simplified ratio = **3 : 4**", marks: 1, hint: "Divide both parts by their highest common factor" },
+        { question: "Divide \u00a3120 in the ratio 3 : 5.", answer: "Total parts = 3 + 5 = 8. One part = \u00a3120 \u00f7 8 = \u00a315. Shares: 3 \u00d7 \u00a315 = **\u00a345** and 5 \u00d7 \u00a315 = **\u00a375**", marks: 2, hint: "Find the total number of parts, then calculate one part\u2019s value" },
+      ],
+      mid: [
+        { question: "Two alloys are mixed in the ratio 2 : 3 by mass to make 500g of a mixture. Alloy A costs \u00a38 per gram and Alloy B costs \u00a35 per gram. Find the total cost of the mixture.", answer: "Total parts = 5. Alloy A = (2/5) \u00d7 500 = 200g. Alloy B = (3/5) \u00d7 500 = 300g. Cost = 200 \u00d7 \u00a38 + 300 \u00d7 \u00a35 = \u00a31600 + \u00a31500 = **\u00a33100**", marks: 4, hint: "Find the mass of each alloy first, then multiply by the cost per gram" },
+      ],
+      long: [
+        { question: "The angles in a triangle are in the ratio 2 : 3 : 7. (a) Find each angle. (b) Show that the triangle is obtuse. (c) Find the ratio of the smallest angle to the largest, giving your answer in its simplest form.", answer: "(a) Total parts = 12. One part = 180\u00b0 \u00f7 12 = 15\u00b0. Angles: 2\u00d715 = **30\u00b0**, 3\u00d715 = **45\u00b0**, 7\u00d715 = **105\u00b0**. (b) The largest angle is 105\u00b0 > 90\u00b0, so the triangle is **obtuse**. (c) Smallest : Largest = 30 : 105. HCF = 15. Simplest form = **2 : 7**", marks: 5, hint: "Sum of angles in a triangle = 180\u00b0. Divide by total parts to find one part\u2019s value." },
+      ],
+      flashcard: [
+        { term: "Simplifying Ratios", definition: "Divide all parts of the ratio by their highest common factor (HCF). The ratio remains equivalent but in its lowest terms.", example: "24 : 36 \u2192 HCF = 12 \u2192 2 : 3" },
+        { term: "Dividing in a Given Ratio", definition: "Find the total number of parts. Divide the whole amount by total parts to find one part. Multiply each ratio value by one part.", example: "Share \u00a3200 in 3:7 \u2192 10 parts \u2192 1 part = \u00a320 \u2192 shares are \u00a360 and \u00a3140" },
+        { term: "Equivalent Ratios", definition: "Ratios are equivalent if one can be obtained from the other by multiplying or dividing all parts by the same number.", example: "1 : 4 = 3 : 12 = 5 : 20 (all equivalent)" },
+      ],
+    },
+    "Direct & Inverse Proportion": {
+      short: [
+        { question: "y is directly proportional to x. When x = 5, y = 20. Find y when x = 8.", answer: "y = kx \u2192 20 = 5k \u2192 k = 4. When x = 8: y = 4 \u00d7 8 = **32**", marks: 2, hint: "Write y = kx, find k using the given values, then substitute" },
+        { question: "y is inversely proportional to x. When x = 3, y = 12. Find y when x = 9.", answer: "y = k/x \u2192 12 = k/3 \u2192 k = 36. When x = 9: y = 36/9 = **4**", marks: 2, hint: "Write y = k/x, find k, then substitute x = 9" },
+      ],
+      mid: [
+        { question: "The time T hours to fill a tank is inversely proportional to the number of pumps n used. With 4 pumps the tank fills in 6 hours. (a) Find an equation for T in terms of n. (b) How long with 8 pumps? (c) How many pumps are needed to fill it in 2 hours?", answer: "T = k/n \u2192 6 = k/4 \u2192 k = 24. (a) **T = 24/n**. (b) T = 24/8 = **3 hours**. (c) 2 = 24/n \u2192 n = **12 pumps**", marks: 4, hint: "Form T = k/n, find k from the given information, then answer each part" },
+      ],
+      long: [
+        { question: "The resistance R of a wire is directly proportional to its length L and inversely proportional to the square of its diameter d. A wire of length 2m and diameter 3mm has resistance 4\u03a9. (a) Write a formula for R. (b) Find R for a wire of length 5m and diameter 1.5mm. (c) What diameter gives R = 9\u03a9 for a 3m wire?", answer: "R = kL/d\u00b2 \u2192 4 = k\u00d72/9 \u2192 k = 18. (a) **R = 18L/d\u00b2**. (b) R = 18\u00d75/1.5\u00b2 = 90/2.25 = **40\u03a9**. (c) 9 = 18\u00d73/d\u00b2 \u2192 d\u00b2 = 6 \u2192 d = \u221a6 \u2248 **2.45mm**", marks: 6, hint: "Write R = kL/d\u00b2, find k, then use the formula for each part. Square the diameter carefully." },
+      ],
+      flashcard: [
+        { term: "Direct Proportion", definition: "y \u221d x means y = kx for some constant k (the constant of proportionality). As x increases, y increases in the same ratio. Graph is a straight line through the origin.", example: "Cost C \u221d weight w: C = 2.50w. 4kg costs \u00a310." },
+        { term: "Inverse Proportion", definition: "y \u221d 1/x means y = k/x for some constant k. As x increases, y decreases. Product xy is always constant. Graph is a reciprocal curve.", example: "Speed s \u221d 1/time t: s = 120/t. At 60mph takes 2 hours." },
+      ],
+    },
+    "Map Scales & Speed": {
+      short: [
+        { question: "A map has scale 1 : 50 000. Two towns are 6cm apart on the map. Find the real distance in km.", answer: "Real distance = 6 \u00d7 50 000 = 300 000 cm = 3000 m = **3 km**", marks: 2, hint: "Multiply the map distance by the scale factor, then convert units" },
+        { question: "A car travels 156 km in 2 hours 36 minutes. Calculate its average speed in km/h.", answer: "Time = 2 hours 36 min = 2.6 hours. Speed = 156 \u00f7 2.6 = **60 km/h**", marks: 2, hint: "Convert minutes to a decimal fraction of an hour before dividing" },
+      ],
+      mid: [
+        { question: "A cyclist travels at 15 km/h for 40 minutes, then at 20 km/h for 1 hour 15 minutes. Find the total distance travelled.", answer: "Leg 1: time = 40/60 = 2/3 h. Distance = 15 \u00d7 2/3 = 10 km. Leg 2: time = 1.25 h. Distance = 20 \u00d7 1.25 = 25 km. Total = **35 km**", marks: 3, hint: "Calculate each leg separately using distance = speed \u00d7 time, then add" },
+      ],
+      long: [
+        { question: "A scale drawing of a room uses scale 1 : 40. On the drawing the room is 8.5cm long and 6.2cm wide. (a) Find the real dimensions of the room. (b) Calculate the real area in m\u00b2. (c) Carpet costs \u00a318.50 per m\u00b2. Find the cost to carpet the room.", answer: "(a) Length = 8.5 \u00d7 40 = 340 cm = **3.4 m**. Width = 6.2 \u00d7 40 = 248 cm = **2.48 m**. (b) Area = 3.4 \u00d7 2.48 = **8.432 m\u00b2**. (c) Cost = 8.432 \u00d7 \u00a318.50 = **\u00a3155.99**", marks: 5, hint: "Multiply drawing dimensions by the scale factor. Convert to metres before finding area." },
+      ],
+      flashcard: [
+        { term: "Map Scale", definition: "A ratio comparing map distance to real distance. Scale 1 : n means 1 unit on the map = n units in reality. Multiply map measurement by n to find real distance.", example: "Scale 1:25000. 4cm on map = 4 \u00d7 25000 = 100000cm = 1km" },
+        { term: "Speed, Distance, Time", definition: "Speed = Distance \u00f7 Time. Distance = Speed \u00d7 Time. Time = Distance \u00f7 Speed. Units must be consistent (e.g. km and hours give km/h).", example: "180km at 60km/h: Time = 180 \u00f7 60 = 3 hours" },
+      ],
+    },
+  },
+  "Sequences & Series": {
+    "Linear & Quadratic Sequences": {
+      short: [
+        { question: "Find the nth term of the sequence: 5, 8, 11, 14, 17, ...", answer: "Common difference = 3. nth term = 3n + 2. Check: n=1 \u2192 5 \u2713, n=2 \u2192 8 \u2713. **nth term = 3n + 2**", marks: 2, hint: "Find the common difference \u2014 this is the coefficient of n. Subtract it from the first term to find the constant." },
+        { question: "Is 98 a term in the sequence with nth term 4n \u2212 2? Show working.", answer: "4n \u2212 2 = 98 \u2192 4n = 100 \u2192 n = 25. Since n = 25 is a positive integer, **yes, 98 is the 25th term**.", marks: 2, hint: "Set the nth term formula equal to 98 and solve for n. Check n is a positive whole number." },
+      ],
+      mid: [
+        { question: "A sequence begins: 3, 8, 15, 24, 35, ... (a) Find the second differences. (b) Hence find the nth term formula.", answer: "(a) First differences: 5, 7, 9, 11. Second differences: 2, 2, 2 (constant) \u2014 confirms quadratic. (b) an\u00b2 + bn + c. a = 2/2 = 1. For n=1: 1+b+c=3 \u2192 b+c=2. For n=2: 4+2b+c=8 \u2192 2b+c=4. Subtracting: b=2, c=0. **nth term = n\u00b2 + 2n**. Check: 1+2=3 \u2713, 4+4=8 \u2713", marks: 4, hint: "Constant second differences confirm a quadratic. The coefficient of n\u00b2 is half the second difference." },
+      ],
+      long: [
+        { question: "The nth term of a sequence is n\u00b2 \u2212 3n + 5. (a) Find the first four terms. (b) Show that no term in the sequence equals zero. (c) Find the value of n for which the nth term first exceeds 100.", answer: "(a) n=1: 1\u22123+5=**3**. n=2: 4\u22126+5=**3**. n=3: 9\u22129+5=**5**. n=4: 16\u221212+5=**9**. (b) n\u00b2\u22123n+5=0 has discriminant 9\u221220=\u221211 < 0, so no real solutions \u2014 no term equals zero. (c) n\u00b2\u22123n+5>100 \u2192 n\u00b2\u22123n\u221295>0. Roots: n=(3\u00b1\u221a389)/2 \u2248 (3\u00b119.72)/2. Positive root \u2248 11.36. So **n=12** is the first integer where the term exceeds 100. Check: 144\u221236+5=113 > 100 \u2713", marks: 6, hint: "For part (b) use the discriminant. For part (c) solve the inequality and round up to the nearest integer." },
+      ],
+      flashcard: [
+        { term: "nth Term of Linear Sequence", definition: "For a sequence with common difference d and first term a\u2081: nth term = dn + (a\u2081 \u2212 d). The coefficient of n equals the common difference.", example: "Sequence 7, 10, 13, 16: d=3, nth term = 3n + 4" },
+        { term: "Identifying Quadratic Sequences", definition: "If first differences are not constant but second differences are constant, the sequence is quadratic. The coefficient of n\u00b2 = (second difference) \u00f7 2.", example: "Sequence 2, 5, 10, 17: first diff 3,5,7; second diff 2,2 \u2192 coefficient of n\u00b2 = 1" },
+        { term: "nth Term of Quadratic Sequence", definition: "Form an\u00b2 + bn + c. Use a = (second difference)/2, then substitute known terms to find b and c using simultaneous equations.", example: "Sequence 1, 4, 9, 16: second diff = 2, a=1, b=0, c=0 \u2192 nth term = n\u00b2" },
+      ],
+    },
+    "Geometric Sequences": {
+      short: [
+        { question: "A geometric sequence has first term 3 and common ratio 2. Write the first five terms and state the nth term formula.", answer: "Terms: **3, 6, 12, 24, 48**. nth term = 3 \u00d7 2^(n\u22121)", marks: 2, hint: "Multiply each term by the common ratio. General formula: first term \u00d7 r^(n\u22121)" },
+        { question: "Find the common ratio of the geometric sequence: 500, 100, 20, 4, ...", answer: "r = 100/500 = 1/5. Check: 20/100 = 1/5 \u2713. **Common ratio = 0.2 (or 1/5)**", marks: 2, hint: "Divide any term by the previous term to find the common ratio" },
+      ],
+      mid: [
+        { question: "A bacteria colony starts with 200 cells and doubles every hour. (a) Write the nth term (where n=1 at t=0 hours). (b) How many cells after 8 hours? (c) After how many hours does the count first exceed 50 000?", answer: "(a) nth term = 200 \u00d7 2^(n\u22121). At t=0 hours, n=1: 200. (b) At 8 hours, n=9: 200 \u00d7 2\u2078 = 200 \u00d7 256 = **51 200 cells**. (c) 200 \u00d7 2^(n\u22121) > 50000 \u2192 2^(n\u22121) > 250 \u2192 (n\u22121) > log\u2082250 \u2248 7.97 \u2192 n \u2265 9 \u2192 t = n\u22121 = **8 hours**", marks: 4, hint: "Set up nth term = 200 \u00d7 2^(n\u22121). For part (c) take logs or try values." },
+      ],
+      long: [
+        { question: "A car is worth \u00a324 000 when new. Its value depreciates by 15% each year. (a) Write a formula for its value V after n years. (b) Find the value after 5 years to the nearest pound. (c) In which year does its value first drop below \u00a310 000? (d) Show that its value never reaches zero.", answer: "(a) **V = 24000 \u00d7 0.85\u207f**. (b) V = 24000 \u00d7 0.85\u2075 = 24000 \u00d7 0.4437 = **\u00a310 649**. (c) 24000 \u00d7 0.85\u207f < 10000 \u2192 0.85\u207f < 5/12. Try n=5: 0.4437 > 0.4167. n=6: 0.85\u2076 = 0.3771 < 0.4167 \u2192 value drops below \u00a310 000 in **year 6**. (d) 0.85\u207f > 0 for all finite n since 0.85 > 0, so V > 0 for all n \u2014 the value never reaches exactly zero.", marks: 7, hint: "Depreciation by 15% means multiply by 0.85 each year. Use trial values or logarithms for part (c)." },
+      ],
+      flashcard: [
+        { term: "Geometric Sequence", definition: "A sequence where each term is found by multiplying the previous term by a fixed number called the common ratio r. nth term = ar^(n\u22121) where a is the first term.", example: "a=5, r=3: sequence is 5, 15, 45, 135. nth term = 5 \u00d7 3^(n\u22121)" },
+        { term: "Growth & Decay", definition: "Exponential growth: multiply by r > 1 repeatedly. Exponential decay: multiply by 0 < r < 1 repeatedly. Formula: Amount = Initial \u00d7 r\u207f after n steps.", example: "\u00a31000 at 4% interest: after n years = 1000 \u00d7 1.04\u207f" },
+      ],
+    },
+  },
+  "Graphs & Functions": {
+    "Straight Line Graphs": {
+      short: [
+        { question: "Find the gradient and y-intercept of the line 3y \u2212 6x = 9.", answer: "Rearrange: 3y = 6x + 9 \u2192 y = 2x + 3. **Gradient = 2, y-intercept = 3**", marks: 2, hint: "Rearrange into y = mx + c form. m is the gradient, c is the y-intercept." },
+        { question: "Find the equation of the line passing through (2, 5) and (6, 13).", answer: "Gradient = (13\u22125)/(6\u22122) = 8/4 = 2. Using y\u22125 = 2(x\u22122): y = 2x + 1. **y = 2x + 1**", marks: 2, hint: "Calculate gradient = (y\u2082\u2212y\u2081)/(x\u2082\u2212x\u2081), then substitute one point into y = mx + c" },
+      ],
+      mid: [
+        { question: "Line L\u2081 has equation y = 3x \u2212 4. Line L\u2082 is perpendicular to L\u2081 and passes through (6, 1). Find the equation of L\u2082 and the coordinates where L\u2082 crosses the x-axis.", answer: "Gradient of L\u2081 = 3. Perpendicular gradient = \u22121/3. L\u2082: y \u2212 1 = \u2212(1/3)(x \u2212 6) \u2192 y = \u2212x/3 + 3. x-axis: y=0 \u2192 x = 9. **L\u2082: y = \u2212x/3 + 3. Crosses x-axis at (9, 0)**", marks: 4, hint: "Perpendicular gradient = \u22121/m. Substitute the point to find c, then set y=0 for the x-intercept." },
+      ],
+      long: [
+        { question: "Triangle ABC has vertices A(1, 2), B(5, 4) and C(3, 8). (a) Find the equations of sides AB and BC. (b) Show that AB and BC are perpendicular. (c) Find the midpoint M of AC and the equation of the line through M parallel to AB.", answer: "(a) AB: gradient = (4\u22122)/(5\u22121) = 1/2. y\u22122 = (1/2)(x\u22121) \u2192 **y = x/2 + 3/2**. BC: gradient = (8\u22124)/(3\u22125) = 4/(\u22122) = \u22122. y\u22124 = \u22122(x\u22125) \u2192 **y = \u22122x + 14**. (b) Gradient AB \u00d7 Gradient BC = (1/2) \u00d7 (\u22122) = \u22121 \u2192 **perpendicular** \u2713. (c) M = ((1+3)/2, (2+8)/2) = **(2, 5)**. Parallel to AB so gradient = 1/2. y \u2212 5 = (1/2)(x \u2212 2) \u2192 **y = x/2 + 4**", marks: 6, hint: "Use gradient formula for each side. Two lines are perpendicular if m\u2081 \u00d7 m\u2082 = \u22121. Midpoint = average of coordinates." },
+      ],
+      flashcard: [
+        { term: "y = mx + c", definition: "Equation of a straight line. m = gradient (steepness and direction). c = y-intercept (where line crosses y-axis). Positive m slopes upward; negative m slopes downward.", example: "y = 3x \u2212 2: gradient 3, y-intercept \u22122. Crosses y-axis at (0, \u22122)." },
+        { term: "Gradient Between Two Points", definition: "Gradient = (y\u2082 \u2212 y\u2081) / (x\u2082 \u2212 x\u2081). Measures rise over run. Positive = upward slope. Zero = horizontal. Undefined = vertical.", example: "Points (1,3) and (4,9): gradient = (9\u22123)/(4\u22121) = 6/3 = 2" },
+        { term: "Parallel & Perpendicular Lines", definition: "Parallel lines have equal gradients. Perpendicular lines have gradients whose product is \u22121 (negative reciprocal). If m\u2081 = 3, perpendicular gradient m\u2082 = \u22121/3.", example: "y=2x+1 and y=2x\u22125 are parallel. y=2x+1 and y=\u2212x/2+3 are perpendicular." },
+      ],
+    },
+    "Curved Graphs & Transformations": {
+      short: [
+        { question: "Sketch the graph y = x\u00b2 \u2212 4, labelling the y-intercept, x-intercepts and the vertex.", answer: "y-intercept: (0, \u22124). x-intercepts: x\u00b2=4 \u2192 x=\u00b12, so (\u22122, 0) and (2, 0). Vertex (minimum): (0, \u22124). U-shaped parabola symmetric about the y-axis.", marks: 2, hint: "Set x=0 for y-intercept, set y=0 for x-intercepts, vertex is the turning point" },
+        { question: "The graph of y = f(x) is translated to give y = f(x \u2212 3) + 2. Describe the transformation.", answer: "Translation by the vector (3, 2) \u2014 the graph moves **3 units to the right** and **2 units up**.", marks: 2, hint: "f(x \u2212 a) shifts right by a; f(x) + b shifts up by b" },
+      ],
+      mid: [
+        { question: "Given f(x) = x\u00b2 + 2x \u2212 3, sketch y = f(x) and y = \u2212f(x) on the same axes, labelling all intercepts and turning points.", answer: "f(x): roots at x=1 and x=\u22123 (factorise: (x+3)(x\u22121)=0). Vertex: complete square \u2192 (x+1)\u00b2\u22124, turning point (\u22121, \u22124). y-intercept (0, \u22123). \u2212f(x) reflects in x-axis: roots same at x=1 and x=\u22123, turning point (\u22121, **4**), y-intercept (0, **3**). Upside-down parabola.", marks: 4, hint: "Factorise f(x) for roots, complete the square for vertex. \u2212f(x) reflects every y-value through x-axis." },
+      ],
+      long: [
+        { question: "The function f(x) = 2^x is defined for all real x. (a) Sketch the graph, labelling the y-intercept and one other point. (b) Describe the graph of y = 2^(x+1) \u2212 3 as a transformation of y = 2^x. (c) Write down the equation of the asymptote of y = 2^(x+1) \u2212 3. (d) Solve 2^(x+1) \u2212 3 = 13, giving an exact answer.", answer: "(a) y-intercept (0, 1); passes through (1, 2). Exponential growth curve approaching but never reaching y=0 as x\u2192\u2212\u221e. (b) Translation by vector (\u22121, \u22123): **1 unit left and 3 units down**. (c) Asymptote: **y = \u22123**. (d) 2^(x+1) = 16 \u2192 2^(x+1) = 2\u2074 \u2192 x+1 = 4 \u2192 **x = 3**", marks: 6, hint: "y = 2^x has asymptote y=0. Translations shift the whole graph including the asymptote. For part (d) write 16 as a power of 2." },
+      ],
+      flashcard: [
+        { term: "Graph Transformations", definition: "y = f(x+a): shift left by a. y = f(x\u2212a): shift right by a. y = f(x)+b: shift up by b. y = f(x)\u2212b: shift down by b. y = \u2212f(x): reflect in x-axis. y = f(\u2212x): reflect in y-axis. y = af(x): stretch vertically by factor a.", example: "y=(x\u22122)\u00b2+3 is y=x\u00b2 shifted right 2 and up 3. Vertex at (2,3)." },
+        { term: "Key Curve Shapes", definition: "Quadratic (y=x\u00b2): U-shape. Cubic (y=x\u00b3): S-shape through origin. Reciprocal (y=1/x): two branches, asymptotes at x=0 and y=0. Exponential (y=a^x): always positive, y-intercept at 1.", example: "y=1/x passes through (1,1) and (\u22121,\u22121). Never touches the axes." },
+      ],
+    },
+    "Distance-Time & Velocity-Time Graphs": {
+      short: [
+        { question: "A distance-time graph shows a straight line from (0, 0) to (4, 120). Find the speed.", answer: "Speed = gradient = (120 \u2212 0) / (4 \u2212 0) = **30 km/h**", marks: 1, hint: "Speed = gradient of a distance-time graph" },
+        { question: "On a velocity-time graph, a vehicle accelerates uniformly from 10 m/s to 34 m/s in 8 seconds. Find the acceleration.", answer: "Acceleration = gradient = (34 \u2212 10) / 8 = 24/8 = **3 m/s\u00b2**", marks: 2, hint: "Acceleration = gradient of a velocity-time graph" },
+      ],
+      mid: [
+        { question: "A velocity-time graph shows: 0\u22125s constant acceleration from 0 to 20 m/s; 5\u221215s constant velocity 20 m/s; 15\u221220s uniform deceleration to rest. (a) Find the acceleration in the first 5s. (b) Find the total distance travelled.", answer: "(a) a = (20 \u2212 0)/5 = **4 m/s\u00b2**. (b) Area under graph = triangle + rectangle + triangle. Triangle 1: \u00bd\u00d75\u00d720 = 50m. Rectangle: 10\u00d720 = 200m. Triangle 2: \u00bd\u00d75\u00d720 = 50m. Total = **300m**", marks: 4, hint: "Acceleration = gradient. Distance = area under the velocity-time graph (triangles and rectangles)." },
+      ],
+      long: [
+        { question: "A train leaves station A at rest and travels to station B. Its velocity-time graph has the following sections: accelerates uniformly at 0.5 m/s\u00b2 for 60s; travels at constant velocity for 5 minutes; decelerates uniformly to rest in 40s. (a) Find the maximum velocity. (b) Calculate the total distance A to B. (c) Find the average speed for the whole journey.", answer: "(a) v = u + at = 0 + 0.5 \u00d7 60 = **30 m/s**. (b) Area 1 (triangle): \u00bd\u00d760\u00d730 = 900m. Area 2 (rectangle): 300\u00d730 = 9000m. Area 3 (triangle): \u00bd\u00d740\u00d730 = 600m. Total = **10 500m (10.5km)**. (c) Total time = 60+300+40 = 400s. Average speed = 10500 \u00f7 400 = **26.25 m/s**", marks: 6, hint: "Sketch the graph first. Maximum velocity reached after acceleration phase. Total distance = total area. Average speed = total distance \u00f7 total time." },
+      ],
+      flashcard: [
+        { term: "Distance-Time Graphs", definition: "Gradient = speed. Steeper gradient = faster speed. Horizontal line = stationary. Negative gradient = returning to start. Curved section = changing speed (acceleration/deceleration).", example: "Line from (0,0) to (3, 60): speed = 60\u00f73 = 20 m/s" },
+        { term: "Velocity-Time Graphs", definition: "Gradient = acceleration (positive = speeding up, negative = slowing down). Area under graph = distance travelled. Horizontal line = constant velocity (zero acceleration).", example: "Triangle from 0 to 10s reaching 20m/s: distance = \u00bd\u00d710\u00d720 = 100m" },
+      ],
+    },
+  },
+  "Vectors": {
+    "Vector Arithmetic": {
+      short: [
+        { question: "Vector **a** = (3, \u22121) and vector **b** = (\u22122, 5). Find **a** + 2**b** as a column vector.", answer: "2**b** = (\u22124, 10). **a** + 2**b** = (3 + (\u22124), \u22121 + 10) = **(\u22121, 9)**", marks: 2, hint: "Multiply b by 2 first, then add component by component" },
+        { question: "Find the magnitude of the vector **v** = (5, \u221212).", answer: "|**v**| = \u221a(5\u00b2 + (\u221212)\u00b2) = \u221a(25 + 144) = \u221a169 = **13**", marks: 2, hint: "Magnitude = \u221a(x\u00b2 + y\u00b2) using Pythagoras\u2019 theorem" },
+      ],
+      mid: [
+        { question: "OABC is a parallelogram. OA = **a** and OC = **c**. M is the midpoint of AB. (a) Write OB in terms of **a** and **c**. (b) Write OM in terms of **a** and **c**.", answer: "(a) OB = OA + AB = OA + OC = **a + c**. (b) AM = \u00bdAB = \u00bd**c** (since AB = OC = **c** in a parallelogram). OM = OA + AM = **a** + \u00bd**c**", marks: 4, hint: "In a parallelogram, opposite sides are equal vectors. Find a path from O to each point using the given vectors." },
+      ],
+      long: [
+        { question: "OPQ is a triangle. OP = **p** and OQ = **q**. R is the point on PQ such that PR : RQ = 2 : 1. S is the midpoint of OQ. (a) Find OR in terms of **p** and **q**. (b) Find SR in terms of **p** and **q**. (c) Show that O, S and R are not collinear.", answer: "(a) PR/PQ = 2/3. OR = OP + PR = **p** + (2/3)(OQ \u2212 OP) = **p** + (2/3)(**q** \u2212 **p**) = (1/3)**p** + (2/3)**q**. (b) OS = \u00bd**q**. SR = OR \u2212 OS = (1/3)**p** + (2/3)**q** \u2212 \u00bd**q** = (1/3)**p** + (1/6)**q**. (c) If collinear, SR = k \u00d7 OS for some scalar k. SR = (1/3)**p** + (1/6)**q**. OS = \u00bd**q**. For collinearity need coefficient of **p** = 0, but (1/3) \u2260 0. Therefore **O, S and R are not collinear**.", marks: 6, hint: "Use vector path: OR = OP + (2/3)PQ. For collinearity, one vector must be a scalar multiple of the other \u2014 check if this is possible." },
+      ],
+      flashcard: [
+        { term: "Column Vector Notation", definition: "A vector is written as a column: (x, y) where x is the horizontal component and y is the vertical component. Adding vectors: add components separately. Scalar multiplication: multiply each component.", example: "(2, 3) + (\u22121, 4) = (1, 7). 3\u00d7(2, 1) = (6, 3)" },
+        { term: "Magnitude of a Vector", definition: "For vector **v** = (x, y): |**v**| = \u221a(x\u00b2 + y\u00b2). This is the length of the vector, found using Pythagoras\u2019 theorem.", example: "**v** = (\u22123, 4): |**v**| = \u221a(9+16) = \u221a25 = 5" },
+      ],
+    },
+  },
+  "3D Geometry": {
+    "Volume & Surface Area of 3D Shapes": {
+      short: [
+        { question: "A cylinder has radius 4cm and height 10cm. Find (a) its volume and (b) its curved surface area. Give answers in terms of \u03c0.", answer: "(a) V = \u03c0r\u00b2h = \u03c0 \u00d7 16 \u00d7 10 = **160\u03c0 cm\u00b3**. (b) Curved SA = 2\u03c0rh = 2 \u00d7 \u03c0 \u00d7 4 \u00d7 10 = **80\u03c0 cm\u00b2**", marks: 2, hint: "Volume of cylinder = \u03c0r\u00b2h. Curved surface area = 2\u03c0rh (the rectangle that wraps around)." },
+        { question: "A sphere has radius 6cm. Find its volume to 1 decimal place.", answer: "V = (4/3)\u03c0r\u00b3 = (4/3) \u00d7 \u03c0 \u00d7 216 = 288\u03c0 \u2248 **904.8 cm\u00b3**", marks: 2, hint: "Volume of sphere = (4/3)\u03c0r\u00b3" },
+      ],
+      mid: [
+        { question: "A cone has base radius 5cm and slant height 13cm. Find (a) the perpendicular height, (b) the volume, (c) the total surface area. Give answers to 3 significant figures.", answer: "(a) h = \u221a(13\u00b2 \u2212 5\u00b2) = \u221a(169 \u2212 25) = \u221a144 = **12 cm**. (b) V = (1/3)\u03c0r\u00b2h = (1/3)\u03c0\u00d725\u00d712 = 100\u03c0 \u2248 **314 cm\u00b3**. (c) Total SA = \u03c0r\u00b2 + \u03c0rl = \u03c0\u00d725 + \u03c0\u00d75\u00d713 = 25\u03c0 + 65\u03c0 = 90\u03c0 \u2248 **283 cm\u00b2**", marks: 4, hint: "Use Pythagoras to find perpendicular height from slant height. Total SA = base area + curved surface area = \u03c0r\u00b2 + \u03c0rl." },
+      ],
+      long: [
+        { question: "A solid is made by placing a hemisphere of radius 4cm on top of a cylinder of radius 4cm and height 9cm. (a) Find the total volume of the solid. (b) Find the total surface area of the solid. Give answers in terms of \u03c0.", answer: "(a) V cylinder = \u03c0\u00d716\u00d79 = 144\u03c0. V hemisphere = (1/2)\u00d7(4/3)\u03c0\u00d764 = 128\u03c0/3. Total V = 144\u03c0 + 128\u03c0/3 = 432\u03c0/3 + 128\u03c0/3 = **560\u03c0/3 cm\u00b3** \u2248 587 cm\u00b3. (b) SA includes: top curved surface of hemisphere = 2\u03c0r\u00b2 = 32\u03c0. Curved surface of cylinder = 2\u03c0rh = 72\u03c0. Base circle of cylinder = \u03c0r\u00b2 = 16\u03c0. Total SA = 32\u03c0 + 72\u03c0 + 16\u03c0 = **120\u03c0 cm\u00b2** \u2248 377 cm\u00b2", marks: 6, hint: "The circular face where hemisphere meets cylinder is internal \u2014 exclude it from surface area. Include base of cylinder and curved hemisphere top." },
+      ],
+      flashcard: [
+        { term: "Volume Formulas", definition: "Cuboid: l\u00d7w\u00d7h. Prism: area of cross-section \u00d7 length. Cylinder: \u03c0r\u00b2h. Cone: (1/3)\u03c0r\u00b2h. Sphere: (4/3)\u03c0r\u00b3. Pyramid: (1/3) \u00d7 base area \u00d7 height.", example: "Cone r=3, h=4: V = (1/3)\u03c0\u00d79\u00d74 = 12\u03c0 \u2248 37.7 cm\u00b3" },
+        { term: "Surface Area Formulas", definition: "Cylinder: 2\u03c0r\u00b2 + 2\u03c0rh (two circles + curved surface). Cone: \u03c0r\u00b2 + \u03c0rl where l = slant height. Sphere: 4\u03c0r\u00b2.", example: "Sphere r=5: SA = 4\u03c0\u00d725 = 100\u03c0 \u2248 314 cm\u00b2" },
+      ],
+    },
+    "3D Pythagoras & Trigonometry": {
+      short: [
+        { question: "Find the length of the space diagonal of a cuboid with dimensions 3cm \u00d7 4cm \u00d7 12cm.", answer: "Face diagonal: d\u2081 = \u221a(3\u00b2 + 4\u00b2) = \u221a25 = 5cm. Space diagonal: d = \u221a(5\u00b2 + 12\u00b2) = \u221a(25 + 144) = \u221a169 = **13 cm**", marks: 3, hint: "Use Pythagoras twice: first across a face, then use that diagonal with the third dimension" },
+        { question: "A vertical mast of height 8m stands on horizontal ground. A wire runs from the top of the mast to a point 6m from the base. Find the angle the wire makes with the ground to 1 decimal place.", answer: "tan \u03b8 = opposite/adjacent = 8/6. \u03b8 = tan\u207b\u00b9(8/6) = tan\u207b\u00b9(1.333) \u2248 **53.1\u00b0**", marks: 2, hint: "Draw the right-angled triangle. The angle at the ground uses opposite = 8m, adjacent = 6m." },
+      ],
+      mid: [
+        { question: "A square-based pyramid has base side 10cm and all slant edges of length 13cm. Find (a) the height of the pyramid, (b) the angle that a slant edge makes with the base.", answer: "(a) Half-diagonal of base = (10\u221a2)/2 = 5\u221a2 cm. h = \u221a(13\u00b2 \u2212 (5\u221a2)\u00b2) = \u221a(169 \u2212 50) = \u221a119 \u2248 **10.91 cm**. (b) cos \u03b8 = adjacent/hypotenuse = 5\u221a2/13. \u03b8 = cos\u207b\u00b9(5\u221a2/13) \u2248 cos\u207b\u00b9(0.5440) \u2248 **57.0\u00b0**", marks: 4, hint: "The slant edge goes from a base corner to the apex. Find the distance from the centre of the base to a corner first." },
+      ],
+      long: [
+        { question: "ABCDE is a square-based pyramid where ABCD is the horizontal base with AB = 8cm. E is the apex directly above the centre of the base, with height EF = 6cm (F = centre of ABCD). (a) State EF. (b) Find the angle EAF. (c) Find the slant height from the midpoint of AB to E. (d) Find the angle the slant face makes with the base.", answer: "(a) EF = **6cm**. (b) AF = half diagonal of base = (8\u221a2)/2 = 4\u221a2 cm \u2248 5.657cm. tan\u2220EAF = EF/AF = 6/(4\u221a2) \u2192 \u2220EAF = tan\u207b\u00b9(6/4\u221a2) \u2248 tan\u207b\u00b9(1.0607) \u2248 **46.7\u00b0**. (c) M = midpoint of AB. FM = 4cm (half of 8cm). Slant height ME = \u221a(4\u00b2 + 6\u00b2) = \u221a52 = 2\u221a13 \u2248 **7.21 cm**. (d) Angle = tan\u207b\u00b9(EF/FM) = tan\u207b\u00b9(6/4) \u2248 **56.3\u00b0**", marks: 6, hint: "Draw separate 2D right-angled triangles for each part. For (b) use the diagonal of the base; for (c) use the perpendicular from the centre to a side edge." },
+      ],
+      flashcard: [
+        { term: "3D Pythagoras", definition: "Space diagonal of a cuboid: d = \u221a(l\u00b2 + w\u00b2 + h\u00b2). Applied in two steps: find a face diagonal using a\u00b2 + b\u00b2, then combine with the third dimension.", example: "Cuboid 2\u00d76\u00d73: face diag = \u221a(4+36) = \u221a40. Space diag = \u221a(40+9) = 7" },
+        { term: "Angles in 3D Shapes", definition: "Identify the correct right-angled triangle within the 3D shape. The angle between a line and a plane is measured at the point where the line meets the plane, using the projection of the line onto the plane as the adjacent side.", example: "Angle of slant edge to base: use distance from base corner to foot of perpendicular as adjacent, height as opposite." },
+      ],
+    },
+  },
 };

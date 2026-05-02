@@ -5,6 +5,8 @@ import { PAST_PAPER_BANK } from '@/data/past-paper-bank';
 import { SUBTOPIC_BANK } from '@/data/subtopic-bank';
 import { MCQ_BANK } from '@/data/mcq-bank';
 import { shuffle } from '@/lib/shuffle';
+import { anthropic } from '@/lib/anthropic';
+import { generateMCQPrompt } from '@/lib/prompts';
 import type { Question, Flashcard } from '@/types';
 
 const schema = z.object({
@@ -66,6 +68,31 @@ export async function POST(request: Request) {
       const mcqQs = MCQ_BANK[subject];
       if (mcqQs && mcqQs.length > 0) {
         return NextResponse.json({ mcqQuestions: shuffle(mcqQs).slice(0, 10) });
+      }
+      // AI fallback for subjects not in the static bank
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (apiKey && apiKey !== 'your-api-key-here') {
+        try {
+          const prompt = generateMCQPrompt(subject, parsedBody.board, focusStr ?? null);
+          const message = await anthropic.messages.create({
+            model: 'claude-3-5-haiku-20241022',
+            max_tokens: 2000,
+            messages: [{ role: 'user', content: prompt }],
+          });
+          const raw = message.content
+            .map(b => (b.type === 'text' ? b.text : ''))
+            .join('')
+            .trim();
+          const jsonMatch = raw.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return NextResponse.json({ mcqQuestions: parsed.slice(0, 10) });
+            }
+          }
+        } catch (aiError) {
+          console.error('AI MCQ generation failed:', aiError);
+        }
       }
       return NextResponse.json({ mcqQuestions: [] });
     }

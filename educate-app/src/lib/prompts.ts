@@ -45,6 +45,29 @@ Respond ONLY with a valid JSON array — no markdown, no backticks, no preamble,
 [{"term":"Key term","definition":"Clear GCSE-level definition (2-3 sentences)","example":"Brief example or null"}]`;
 }
 
+export function generateMCQPrompt(
+  subject: string,
+  board: string,
+  focusStr: string | null
+): string {
+  const focusLine = focusStr
+    ? `IMPORTANT: Every question MUST be specifically about these topics ONLY: ${focusStr}.`
+    : '';
+
+  return `You are a GCSE ${subject} examiner for ${board}. Generate exactly 10 multiple choice questions at GCSE level. ${focusLine}
+
+Each question must have exactly 4 options (A, B, C, D) with only one correct answer.
+
+Respond ONLY with a valid JSON array — no markdown, no backticks, no preamble:
+[{"question":"Question text","options":["Option A","Option B","Option C","Option D"],"answer":0,"explanation":"Why the correct answer is right and why others are wrong","topic":"Topic name"}]
+
+Rules:
+- "answer" is the 0-based index of the correct option (0=A, 1=B, 2=C, 3=D)
+- Make distractors plausible — not obviously wrong
+- Cover a range of different topics within ${subject}
+- Questions should test understanding, not just rote memorisation`;
+}
+
 export function checkAnswerPrompt(
   subject: string,
   board: string,
@@ -55,7 +78,7 @@ export function checkAnswerPrompt(
   marks: number
 ): string {
   if (questionType === 'past-paper') {
-    return `You are a GCSE ${subject} (${board}) examiner marking a past paper essay question worth ${marks} marks.
+    return `You are a fair GCSE ${subject} (${board}) examiner marking a past paper essay question worth ${marks} marks.
 
 QUESTION: ${question}
 
@@ -63,16 +86,18 @@ MARK SCHEME: ${modelAnswer}
 
 STUDENT ANSWER: ${userAnswer}
 
-Mark this response using a levels-based approach as a real examiner would. Identify which level the response falls into, what it does well, and what is missing. Award marks proportionally.
+MARKING PRINCIPLES — follow these strictly:
+- The mark scheme is a GUIDE, not a word-for-word script. Award marks for understanding shown.
+- Accept paraphrasing, synonyms, and alternative correct phrasings freely.
+- If the student clearly understands a concept, award the mark even if their wording differs from the mark scheme.
+- Use a levels-based approach. Be fair and give the student the benefit of the doubt when their meaning is clear.
 
 Set "correct" to true if the student scored 50% or more of the available marks.
-
-In the "feedback" field (3-5 sentences): state the level awarded, specific strengths (quoting the student's response where relevant), and specific improvements needed with reference to the mark scheme criteria.
-
-In the "modelAnswer" field: reproduce the mark scheme content from above verbatim, clearly formatted with each key point on a new line using **bold** for level descriptors.
+In "feedback" (3-5 sentences): state the level awarded, specific strengths (quote the student where relevant), and specific gaps with reference to the mark scheme.
+In "modelAnswer": reproduce the mark scheme formatted clearly with **bold** for level descriptors.
 
 Respond ONLY with valid JSON, no backticks:
-{"correct":true or false,"marksAwarded":number,"feedback":"Level X awarded. [Specific strengths]. [Specific gaps with reference to mark scheme].","modelAnswer":"[Mark scheme content formatted clearly]"}`;
+{"correct":true or false,"marksAwarded":number,"feedback":"Level X awarded. [Strengths]. [Gaps].","modelAnswer":"[Mark scheme formatted clearly]"}`;
   }
 
   const typeLabel: Record<string, string> = {
@@ -81,15 +106,57 @@ Respond ONLY with valid JSON, no backticks:
     long: 'extended response (6-8 marks)',
   };
 
-  return `You are a GCSE ${subject} (${board}) examiner.
+  // Detect command word from the question text to tailor marking guidance
+  const qLower = question.toLowerCase();
+  type CommandKey = 'calculate' | 'state' | 'describe' | 'explain' | 'evaluate' | 'compare' | 'suggest' | 'sketch' | 'plot' | 'write' | 'balance' | 'default';
+  const commandWord: CommandKey = qLower.match(/\bcalculate\b|\bwork out\b|\bfind\b|\bcompute\b/) ? 'calculate'
+    : qLower.match(/\bstate\b|\bname\b|\bidentify\b|\blist\b/) ? 'state'
+    : qLower.match(/\bdescribe\b/) ? 'describe'
+    : qLower.match(/\bexplain\b/) ? 'explain'
+    : qLower.match(/\bevaluate\b|\bdiscuss\b|\bassess\b/) ? 'evaluate'
+    : qLower.match(/\bcompare\b/) ? 'compare'
+    : qLower.match(/\bsuggest\b/) ? 'suggest'
+    : qLower.match(/\bsketch\b|\bplot\b|\bdraw\b/) ? 'sketch'
+    : qLower.match(/\bwrite\b/) ? 'write'
+    : qLower.match(/\bbalance\b/) ? 'balance'
+    : 'default';
+
+  const commandGuidance: Record<CommandKey, string> = {
+    calculate: '- CALCULATE questions: check method (working shown), correct substitution, correct answer with units. Award method marks even if arithmetic is wrong. Do NOT penalise for missing units if the value is correct.',
+    state:     '- STATE/NAME/IDENTIFY questions: award marks for the correct fact only. No explanation required. Single key word or phrase is sufficient.',
+    describe:  '- DESCRIBE questions: award marks for what is observed or what happens. No explanation of why required. Look for correct factual points, not reasoning.',
+    explain:   '- EXPLAIN questions: each mark requires a cause AND its effect/reason. "because", "so", "therefore" language expected. Award each linked cause-effect pair as 1 mark.',
+    evaluate:  '- EVALUATE questions: award marks for: evidence/data cited, valid strength identified, valid limitation identified, balanced judgement or conclusion. A one-sided answer cannot get full marks.',
+    compare:   '- COMPARE questions: marks require explicit comparison of BOTH items for each point. Simply describing one item without reference to the other scores 0 per point.',
+    suggest:   '- SUGGEST questions: accept any scientifically valid and logical answer not contradicted by the question. Award marks for plausible, reasoned suggestions.',
+    sketch:    '- SKETCH/PLOT/DRAW questions: describe in feedback what a correct sketch would show. Award marks for correct shape, labels, and any specific required features.',
+    write:     '- WRITE questions: check accuracy of chemical formulae, equations, or expressions. Award marks for each correct component.',
+    balance:   '- BALANCE questions: check that atoms of each element are equal on both sides. Award method marks for correct coefficients on at least one side.',
+    default:   '- Award marks for correct understanding shown in any form. Accept paraphrasing and alternative correct phrasings freely.',
+  };
+
+  return `You are a fair GCSE ${subject} (${board}) examiner.
 Question type: ${typeLabel[questionType] || questionType}
+Command word detected: ${commandWord.toUpperCase()}
 Question: ${question}
-Model answer: ${modelAnswer}
+Mark scheme: ${modelAnswer}
 Student answer: ${userAnswer}
 Marks available: ${marks}
-Assess rigorously. In the feedback and modelAnswer fields, use LaTeX for any mathematical expressions: $formula$ for inline, $$formula$$ for display math. Use **bold** for key terms.
+
+MARKING PRINCIPLES — follow these strictly:
+- The mark scheme is a GUIDE. Award marks for correct understanding, NOT for matching specific words.
+- Accept paraphrasing, synonyms, and alternative phrasings freely.
+- If the student demonstrates they understand the concept, give the mark even if their wording differs.
+- Be generous: give the benefit of the doubt when the student's meaning is clearly correct.
+- For maths/science, accept any equivalent working or expression that reaches the right answer.
+- Use LaTeX for maths: $inline$ or $$display$$. Use **bold** for key terms.
+${commandGuidance[commandWord]}
+
+In "feedback" (2-3 sentences): quote what the student got right, then say specifically what to add for full marks. If the command word is EXPLAIN, tell the student which cause-effect links they made and which they missed.
+In "modelAnswer": write the ideal answer with LaTeX maths where relevant.
+
 Respond ONLY with valid JSON, no backticks:
-{"correct":true or false,"marksAwarded":number,"feedback":"2-3 sentence specific feedback with LaTeX math where relevant","modelAnswer":"Ideal answer with LaTeX math where relevant"}`;
+{"correct":true or false,"marksAwarded":number,"feedback":"...","modelAnswer":"..."}`;
 }
 
 export function chatSystemPrompt(subject: string | null, board: string | null): string {

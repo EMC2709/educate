@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { neon } from '@neondatabase/serverless';
 
 /**
  * Routes where the middleware enforces extra role checks.
@@ -13,6 +14,17 @@ const isTeacherRoute = createRouteMatcher([
   '/api/assignments(.*)',
 ]);
 
+/** Fetch role directly from the database — avoids relying on Clerk JWT template config. */
+async function getRoleFromDb(userId: string): Promise<string> {
+  try {
+    const sql = neon(process.env.DATABASE_URL!);
+    const rows = await sql`SELECT role FROM profiles WHERE user_id = ${userId} LIMIT 1`;
+    return (rows[0] as { role?: string } | undefined)?.role ?? 'student';
+  } catch {
+    return 'student';
+  }
+}
+
 export default clerkMiddleware(async (auth, req) => {
   // Only enforce role-based checks on the sensitive paths.
   // All other routes are left untouched — they handle auth internally.
@@ -20,7 +32,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
 
   // Not signed in — redirect to login for pages, 401 for API calls
   if (!userId) {
@@ -32,8 +44,8 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(signIn);
   }
 
-  // Signed in — check role from Clerk public metadata
-  const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? '';
+  // Signed in — fetch role from DB (reliable, no Clerk JWT template required)
+  const role = await getRoleFromDb(userId);
 
   if (isAdminRoute(req) && role !== 'super_admin') {
     if (req.nextUrl.pathname.startsWith('/api/')) {

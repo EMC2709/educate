@@ -13,6 +13,13 @@ export interface Question {
   calculator?: boolean;
   /** True if this question relates to a required practical. */
   required_practical?: boolean;
+  /**
+   * Content verification status.
+   * true  = human-reviewed, factually checked.
+   * false = AI-generated, not yet reviewed (shows warning badge).
+   * absent/undefined = same as false (unverified by default).
+   */
+  verified?: boolean;
 }
 
 export interface Flashcard {
@@ -23,6 +30,8 @@ export interface Flashcard {
   topic?: string;
   /** Boards this flashcard is specific to. Absent = all boards. */
   boards?: ('AQA' | 'Edexcel' | 'OCR' | 'WJEC')[];
+  /** Content verification status — same semantics as Question.verified */
+  verified?: boolean;
 }
 
 export interface SubjectBank {
