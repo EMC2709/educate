@@ -8,11 +8,9 @@ import { neon } from '@neondatabase/serverless';
  * auth() guard so there is no need to duplicate the check here.
  */
 const isAdminRoute   = createRouteMatcher(['/admin(.*)', '/api/admin(.*)']);
-const isTeacherRoute = createRouteMatcher([
-  '/teacher(.*)',
-  '/api/classes(.*)',
-  '/api/assignments(.*)',
-]);
+// Only guard teacher UI pages here — individual API routes handle their own role checks,
+// which allows students to use /api/classes/join, GET /api/classes, GET /api/assignments etc.
+const isTeacherRoute = createRouteMatcher(['/teacher(.*)']);
 
 /** Fetch role directly from the database — avoids relying on Clerk JWT template config. */
 async function getRoleFromDb(userId: string): Promise<string> {
