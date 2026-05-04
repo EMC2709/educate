@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
@@ -46,6 +46,146 @@ const SUBJECT_ICONS: Record<string, string> = {
   'Food Preparation & Nutrition': '\u{1F373}',
   'Graphic Communication': '\u{1F4D0}',
 };
+
+// ── Subject Carousel ──────────────────────────────────────────────────────────
+
+function SubjectCarousel({ subjects }: { subjects: { subject: string; board: string }[] }) {
+  const [page, setPage]     = useState(0);
+  const [dir, setDir]       = useState<1 | -1>(1);   // 1 = forward, -1 = backward
+  const [animating, setAnimating] = useState(false);
+  const touchX = useRef<number | null>(null);
+
+  const PER_PAGE = 3; // 3 cards per page on all screen sizes
+  const total    = Math.ceil(subjects.length / PER_PAGE);
+
+  const go = useCallback((delta: 1 | -1) => {
+    if (animating) return;
+    setDir(delta);
+    setAnimating(true);
+    setTimeout(() => {
+      setPage(p => (p + delta + total) % total);
+      setAnimating(false);
+    }, 260);
+  }, [animating, total]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchX.current;
+    touchX.current = null;
+    if (Math.abs(dx) < 40) return;
+    go(dx < 0 ? 1 : -1);
+  };
+
+  const visible = subjects.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
+
+  return (
+    <div className="select-none">
+      {/* Label + arrows */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Your Subjects</span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => go(-1)}
+            className="w-7 h-7 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 text-xs cursor-pointer transition-colors flex items-center justify-center"
+            aria-label="Previous subjects"
+          >
+            ‹
+          </button>
+          <span className="text-[10px] text-neutral-600 w-10 text-center tabular-nums">
+            {page + 1} / {total}
+          </span>
+          <button
+            onClick={() => go(1)}
+            className="w-7 h-7 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 text-xs cursor-pointer transition-colors flex items-center justify-center"
+            aria-label="Next subjects"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      {/* Cards */}
+      <div
+        className="overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        <div
+          className="grid grid-cols-3 gap-3"
+          style={{
+            opacity: animating ? 0 : 1,
+            transform: animating
+              ? `translateX(${dir * -18}px)`
+              : 'translateX(0)',
+            transition: animating
+              ? 'none'
+              : 'opacity 0.26s ease, transform 0.26s ease',
+          }}
+        >
+          {visible.map(({ subject, board }) => {
+            const boardCfg = EXAM_BOARDS[board];
+            const accent   = boardCfg?.accent ?? '#6366f1';
+            return (
+              <Link
+                key={`${board}-${subject}`}
+                href={`/${board}/${encodeURIComponent(subject)}`}
+                className="no-underline"
+              >
+                <div
+                  className="bg-neutral-900 border-2 rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:-translate-y-1 flex flex-col items-center text-center min-h-[110px] justify-center"
+                  style={{ borderColor: '#2a2a2a' }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = accent;
+                    e.currentTarget.style.backgroundColor = `${accent}12`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = '#2a2a2a';
+                    e.currentTarget.style.backgroundColor = '';
+                  }}
+                >
+                  <span className="text-2xl mb-2">{SUBJECT_ICONS[subject] ?? '📖'}</span>
+                  <span className="text-xs font-semibold text-white leading-tight">{subject}</span>
+                  <span
+                    className="text-[9px] mt-1.5 px-2 py-0.5 rounded-md font-bold"
+                    style={{ color: accent, backgroundColor: `${accent}22` }}
+                  >
+                    {board}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+          {/* Placeholder cards so row is always full */}
+          {Array.from({ length: PER_PAGE - visible.length }).map((_, i) => (
+            <div key={`empty-${i}`} className="rounded-2xl min-h-[110px]" />
+          ))}
+        </div>
+      </div>
+
+      {/* Dot indicators */}
+      {total > 1 && (
+        <div className="flex justify-center gap-1.5 mt-3">
+          {Array.from({ length: total }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => { setDir(i > page ? 1 : -1); setPage(i); }}
+              className="rounded-full transition-all duration-200 cursor-pointer border-none"
+              style={{
+                width: i === page ? 20 : 6,
+                height: 6,
+                backgroundColor: i === page ? '#6366f1' : '#333',
+              }}
+              aria-label={`Go to page ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function HomePage() {
   const { isSignedIn, isLoaded, user } = useUser();
@@ -194,39 +334,8 @@ export default function HomePage() {
             <ExamCountdownWidget />
             <WeeklyChallengesWidget />
 
-            {/* Subject cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-              {subjects.map(({ subject, board }) => {
-                const boardCfg = EXAM_BOARDS[board];
-                const accent = boardCfg?.accent ?? '#6366f1';
-                return (
-                  <Link
-                    key={`${board}-${subject}`}
-                    href={`/${board}/${encodeURIComponent(subject)}`}
-                    className="no-underline"
-                  >
-                    <div
-                      className="bg-neutral-900 border-2 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-200 hover:-translate-y-1 flex flex-col items-center text-center min-h-[120px] justify-center"
-                      style={{ borderColor: '#2a2a2a' }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.borderColor = accent;
-                        e.currentTarget.style.backgroundColor = `${accent}10`;
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.borderColor = '#2a2a2a';
-                        e.currentTarget.style.backgroundColor = '';
-                      }}
-                    >
-                      <span className="text-2xl sm:text-3xl mb-2">{SUBJECT_ICONS[subject] ?? '\u{1F4D6}'}</span>
-                      <span className="text-sm font-semibold text-white leading-tight">{subject}</span>
-                      <span className="text-[10px] mt-1.5 px-2 py-0.5 rounded-md font-medium" style={{ color: accent, backgroundColor: `${accent}22` }}>
-                        {board}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+            {/* Subject carousel */}
+            <SubjectCarousel subjects={subjects} />
 
             {/* Today's Sessions from timetable */}
             <TodaySessions subjects={subjects} />
