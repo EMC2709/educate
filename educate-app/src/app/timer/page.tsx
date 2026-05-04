@@ -51,12 +51,12 @@ export default function TimerPage() {
     const entry = subjects.find(s => s.subject === selected);
     if (!entry) return;
     start(entry.subject, entry.board, workMins, breakMins);
-    // Navigate straight to the quiz for this subject
-    router.push(`/${encodeURIComponent(entry.board)}/${encodeURIComponent(entry.subject)}/quiz`);
+    // Take them to the subject page to pick question type + topics
+    router.push(`/${encodeURIComponent(entry.board)}/${encodeURIComponent(entry.subject)}`);
   };
 
   const handleGoToQuiz = () => {
-    router.push(`/${encodeURIComponent(activeBoard)}/${encodeURIComponent(activeSubject)}/quiz`);
+    router.push(`/${encodeURIComponent(activeBoard)}/${encodeURIComponent(activeSubject)}`);
   };
 
   return (
@@ -82,7 +82,7 @@ export default function TimerPage() {
                   onClick={handleGoToQuiz}
                   className="px-3 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-semibold cursor-pointer hover:bg-indigo-500/30 transition-colors"
                 >
-                  Go to Quiz →
+                  Go to Subject →
                 </button>
                 <button
                   onClick={stop}
@@ -172,7 +172,7 @@ export default function TimerPage() {
             {phase !== 'idle' ? 'Timer already running' : 'Start Focusing →'}
           </button>
           <p className="text-neutral-600 text-xs text-center mt-2">
-            Timer stays visible while you revise — quiz opens automatically
+            Timer stays visible while you revise — choose your question type once you get there
           </p>
 
           {/* Stats */}
