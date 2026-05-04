@@ -85,9 +85,11 @@ export default function HomePage() {
             .then((profileData: { role?: string; org_id?: string | null } | null) => {
               if (!profileData) return;
               const role = profileData.role ?? 'student';
+              // Teachers/admins who already have subjects stay on the student home
+              // so they can use both sides of the app. Only redirect pure teachers
+              // (no subjects in cache) to their dashboard.
               if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
-                setRedirecting(true);
-                router.replace('/teacher');
+                // subjects are already loaded from cache — stay on home
                 return;
               }
               if (role === 'student' && profileData.org_id) {
@@ -124,12 +126,8 @@ export default function HomePage() {
       .then(r => r.ok ? r.json() : {})
       .then((profileData: { role?: string; org_id?: string | null }) => {
         const role = profileData.role ?? 'student';
+        const isTeacherRole = ['teacher', 'school_admin', 'super_admin'].includes(role);
 
-        if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
-          setRedirecting(true);
-          router.replace('/teacher');
-          return;
-        }
         if (role === 'student' && profileData.org_id) {
           setRedirecting(true);
           router.replace('/student');
@@ -140,15 +138,17 @@ export default function HomePage() {
           .then(r2 => r2.ok ? r2.json() : { subjects: [] })
           .then(data => {
             if (!data.subjects || data.subjects.length === 0) {
+              // Teacher with no subjects → send to teacher dashboard
+              // Student with no subjects → send to onboarding
               setRedirecting(true);
-              router.push('/onboarding');
+              router.push(isTeacherRole ? '/teacher' : '/onboarding');
             } else {
               setSubjects(data.subjects);
               localStorage.setItem('educate-user-subjects', JSON.stringify(data.subjects));
               setLoading(false);
             }
           })
-          .catch(() => { setRedirecting(true); router.push('/onboarding'); });
+          .catch(() => { setRedirecting(true); router.push(isTeacherRole ? '/teacher' : '/onboarding'); });
       })
       .catch(() => { setRedirecting(true); router.push('/onboarding'); });
   }, [isSignedIn, isLoaded, router]);
