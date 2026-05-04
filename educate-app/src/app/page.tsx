@@ -47,31 +47,28 @@ const SUBJECT_ICONS: Record<string, string> = {
   'Graphic Communication': '\u{1F4D0}',
 };
 
-// ── Subject Carousel ──────────────────────────────────────────────────────────
+// ── Subject Carousel (3-D Cover Flow) ────────────────────────────────────────
+
+const CARD_W = 140; // px — width of each card
+const OFFSETS: Record<number, { tx: number; ry: number; scale: number; opacity: number }> = {
+  [-2]: { tx: -170, ry:  62, scale: 0.55, opacity: 0.28 },
+  [-1]: { tx:  -92, ry:  48, scale: 0.76, opacity: 0.62 },
+  [0]:  { tx:    0, ry:   0, scale: 1.00, opacity: 1.00 },
+  [1]:  { tx:   92, ry: -48, scale: 0.76, opacity: 0.62 },
+  [2]:  { tx:  170, ry: -62, scale: 0.55, opacity: 0.28 },
+};
 
 function SubjectCarousel({ subjects }: { subjects: { subject: string; board: string }[] }) {
-  const [page, setPage]     = useState(0);
-  const [dir, setDir]       = useState<1 | -1>(1);   // 1 = forward, -1 = backward
-  const [animating, setAnimating] = useState(false);
+  const [active, setActive] = useState(0);
   const touchX = useRef<number | null>(null);
-
-  const PER_PAGE = 3; // 3 cards per page on all screen sizes
-  const total    = Math.ceil(subjects.length / PER_PAGE);
+  const total   = subjects.length;
 
   const go = useCallback((delta: 1 | -1) => {
-    if (animating) return;
-    setDir(delta);
-    setAnimating(true);
-    setTimeout(() => {
-      setPage(p => (p + delta + total) % total);
-      setAnimating(false);
-    }, 260);
-  }, [animating, total]);
+    setActive(p => (p + delta + total) % total);
+  }, [total]);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchX.current = e.touches[0].clientX;
-  };
-  const onTouchEnd = (e: React.TouchEvent) => {
+  const onTouchStart = (e: React.TouchEvent) => { touchX.current = e.touches[0].clientX; };
+  const onTouchEnd   = (e: React.TouchEvent) => {
     if (touchX.current === null) return;
     const dx = e.changedTouches[0].clientX - touchX.current;
     touchX.current = null;
@@ -79,110 +76,117 @@ function SubjectCarousel({ subjects }: { subjects: { subject: string; board: str
     go(dx < 0 ? 1 : -1);
   };
 
-  const visible = subjects.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
+  const activeSubject = subjects[active];
+  const accentColor   = EXAM_BOARDS[activeSubject?.board]?.accent ?? '#6366f1';
 
   return (
     <div className="select-none">
-      {/* Label + arrows */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Your Subjects</span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => go(-1)}
-            className="w-7 h-7 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 text-xs cursor-pointer transition-colors flex items-center justify-center"
-            aria-label="Previous subjects"
-          >
-            ‹
-          </button>
-          <span className="text-[10px] text-neutral-600 w-10 text-center tabular-nums">
-            {page + 1} / {total}
-          </span>
-          <button
-            onClick={() => go(1)}
-            className="w-7 h-7 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 text-xs cursor-pointer transition-colors flex items-center justify-center"
-            aria-label="Next subjects"
-          >
-            ›
-          </button>
-        </div>
-      </div>
-
-      {/* Cards */}
+      {/* 3-D stage */}
       <div
-        className="overflow-hidden"
+        className="relative flex items-center justify-center"
+        style={{ height: 220, perspective: '900px' }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <div
-          className="grid grid-cols-3 gap-3"
-          style={{
-            opacity: animating ? 0 : 1,
-            transform: animating
-              ? `translateX(${dir * -18}px)`
-              : 'translateX(0)',
-            transition: animating
-              ? 'none'
-              : 'opacity 0.26s ease, transform 0.26s ease',
-          }}
-        >
-          {visible.map(({ subject, board }) => {
-            const boardCfg = EXAM_BOARDS[board];
-            const accent   = boardCfg?.accent ?? '#6366f1';
-            return (
-              <Link
-                key={`${board}-${subject}`}
-                href={`/${board}/${encodeURIComponent(subject)}`}
-                className="no-underline"
-              >
-                <div
-                  className="bg-neutral-900 border-2 rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:-translate-y-1 flex flex-col items-center text-center min-h-[110px] justify-center"
-                  style={{ borderColor: '#2a2a2a' }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = accent;
-                    e.currentTarget.style.backgroundColor = `${accent}12`;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = '#2a2a2a';
-                    e.currentTarget.style.backgroundColor = '';
-                  }}
-                >
-                  <span className="text-2xl mb-2">{SUBJECT_ICONS[subject] ?? '📖'}</span>
-                  <span className="text-xs font-semibold text-white leading-tight">{subject}</span>
-                  <span
-                    className="text-[9px] mt-1.5 px-2 py-0.5 rounded-md font-bold"
-                    style={{ color: accent, backgroundColor: `${accent}22` }}
-                  >
-                    {board}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-          {/* Placeholder cards so row is always full */}
-          {Array.from({ length: PER_PAGE - visible.length }).map((_, i) => (
-            <div key={`empty-${i}`} className="rounded-2xl min-h-[110px]" />
-          ))}
-        </div>
+        {subjects.map(({ subject, board }, i) => {
+          // Normalise offset to range -floor(total/2)..+floor(total/2)
+          let norm = ((i - active) % total + total) % total;
+          if (norm > total / 2) norm -= total;
+
+          const slot = OFFSETS[Math.max(-2, Math.min(2, norm))];
+          const isActive = norm === 0;
+          const boardCfg = EXAM_BOARDS[board];
+          const accent   = boardCfg?.accent ?? '#6366f1';
+
+          // Hide cards beyond ±2 positions
+          if (Math.abs(norm) > 2) return null;
+
+          const card = (
+            <div
+              style={{
+                width: CARD_W,
+                height: 176,
+                background: isActive
+                  ? `linear-gradient(145deg, ${accent}33, ${accent}11)`
+                  : 'linear-gradient(145deg, #1e1e1e, #161616)',
+                border: `2px solid ${isActive ? accent : '#2a2a2a'}`,
+                borderRadius: 20,
+                boxShadow: isActive
+                  ? `0 24px 64px ${accent}44, 0 0 0 1px ${accent}22`
+                  : '0 8px 24px rgba(0,0,0,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: 16,
+                cursor: isActive ? 'pointer' : 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 32, marginBottom: 10 }}>{SUBJECT_ICONS[subject] ?? '📖'}</span>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: 12, lineHeight: 1.3, marginBottom: 8 }}>{subject}</span>
+              <span style={{
+                color: accent, background: `${accent}22`,
+                fontSize: 9, fontWeight: 800, padding: '2px 8px',
+                borderRadius: 6, letterSpacing: '0.04em',
+              }}>{board}</span>
+            </div>
+          );
+
+          return (
+            <div
+              key={`${board}-${subject}`}
+              onClick={() => !isActive && setActive(i)}
+              style={{
+                position: 'absolute',
+                transform: `translateX(${slot.tx}px) rotateY(${slot.ry}deg) scale(${slot.scale})`,
+                opacity: slot.opacity,
+                zIndex: 10 - Math.abs(norm),
+                transition: 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.45s ease',
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              {isActive
+                ? <Link href={`/${board}/${encodeURIComponent(subject)}`} className="no-underline">{card}</Link>
+                : card}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Dot indicators */}
-      {total > 1 && (
-        <div className="flex justify-center gap-1.5 mt-3">
-          {Array.from({ length: total }).map((_, i) => (
+      {/* Subject name + tap-to-open hint */}
+      <div className="text-center mt-2 mb-1">
+        <p className="text-sm font-bold text-white m-0">{activeSubject?.subject}</p>
+        <p className="text-[10px] text-neutral-600 m-0">Tap card to open · swipe or use arrows to browse</p>
+      </div>
+
+      {/* Arrow + dot controls */}
+      <div className="flex items-center justify-center gap-3 mt-3">
+        <button
+          onClick={() => go(-1)}
+          className="w-8 h-8 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white text-base cursor-pointer transition-colors flex items-center justify-center"
+        >‹</button>
+
+        <div className="flex gap-1.5">
+          {subjects.map((_, i) => (
             <button
               key={i}
-              onClick={() => { setDir(i > page ? 1 : -1); setPage(i); }}
-              className="rounded-full transition-all duration-200 cursor-pointer border-none"
+              onClick={() => setActive(i)}
+              className="rounded-full border-none cursor-pointer transition-all duration-300"
               style={{
-                width: i === page ? 20 : 6,
+                width: i === active ? 18 : 6,
                 height: 6,
-                backgroundColor: i === page ? '#6366f1' : '#333',
+                backgroundColor: i === active ? accentColor : '#333',
               }}
-              aria-label={`Go to page ${i + 1}`}
             />
           ))}
         </div>
-      )}
+
+        <button
+          onClick={() => go(1)}
+          className="w-8 h-8 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white text-base cursor-pointer transition-colors flex items-center justify-center"
+        >›</button>
+      </div>
     </div>
   );
 }
