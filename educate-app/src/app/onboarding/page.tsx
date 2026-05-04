@@ -104,7 +104,8 @@ export default function OnboardingPage() {
       .then(r => r.json())
       .then((d: { role?: string }) => {
         const role = d.role ?? 'student';
-        if (['teacher', 'school_admin', 'super_admin'].includes(role)) {
+        // Only auto-redirect teachers/admins when NOT in edit mode
+        if (!editMode && ['teacher', 'school_admin', 'super_admin'].includes(role)) {
           router.replace('/teacher');
           return;
         }
