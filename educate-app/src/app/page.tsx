@@ -231,20 +231,6 @@ export default function HomePage() {
             {/* Today's Sessions from timetable */}
             <TodaySessions subjects={subjects} />
 
-            {/* Free Practice Hub */}
-            <div className="mt-8 mb-4">
-              <Link href="/practice" className="no-underline block">
-                <div className="bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-purple-500/10 border border-indigo-500/25 rounded-2xl p-4 sm:p-5 flex items-center gap-4 hover:border-indigo-500/50 transition-all cursor-pointer">
-                  <span className="text-2xl sm:text-3xl">{'\u{1F4DD}'}</span>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-bold text-white m-0">Free Practice Hub</h3>
-                    <p className="text-neutral-400 text-xs m-0 truncate">Pick any subject &amp; practise from the question bank — 11+, GCSE, A-Level</p>
-                  </div>
-                  <span className="text-indigo-400 hidden sm:block font-bold">{'\u2192'}</span>
-                </div>
-              </Link>
-            </div>
-
             {/* Quick links */}
             <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <Link href="/timetable" className="no-underline flex-1">

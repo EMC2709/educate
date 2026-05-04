@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ChatProvider } from '@/context/ChatContext';
+import { TimerProvider } from '@/context/TimerContext';
 import { FloatingChat } from '@/components/layout/FloatingChat';
 import { CommandPalette } from '@/components/layout/CommandPalette';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ToastProvider>
             <FocusModeProvider>
               <ChatProvider>
+                <TimerProvider>
                 <ConditionalLayout>
                   {children}
                 </ConditionalLayout>
@@ -39,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <CommandPalette />
                 <CookieBanner />
                 <ServiceWorkerRegistration />
+                </TimerProvider>
               </ChatProvider>
             </FocusModeProvider>
           </ToastProvider>
