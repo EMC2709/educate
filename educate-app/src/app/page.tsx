@@ -107,15 +107,13 @@ function SubjectCarousel({ subjects }: { subjects: { subject: string; board: str
                 width: CARD_W,
                 height: 176,
                 background: isActive
-                  ? `linear-gradient(145deg, ${accent}44, ${accent}22)`
-                  : 'rgba(255,255,255,0.04)',
-                border: `2px solid ${isActive ? accent : 'rgba(255,255,255,0.10)'}`,
+                  ? `linear-gradient(145deg, ${accent}55, ${accent}2a)`
+                  : 'transparent',
+                border: `2px solid ${isActive ? accent : 'rgba(255,255,255,0.22)'}`,
                 borderRadius: 20,
                 boxShadow: isActive
                   ? `0 24px 64px ${accent}55, 0 0 0 1px ${accent}22`
                   : 'none',
-                backdropFilter: isActive ? 'none' : 'blur(6px)',
-                WebkitBackdropFilter: isActive ? 'none' : 'blur(6px)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -125,11 +123,11 @@ function SubjectCarousel({ subjects }: { subjects: { subject: string; board: str
                 cursor: 'pointer',
               }}
             >
-              <span style={{ fontSize: 32, marginBottom: 10, opacity: isActive ? 1 : 0.5 }}>{SUBJECT_ICONS[subject] ?? '📖'}</span>
-              <span style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.45)', fontWeight: 700, fontSize: 12, lineHeight: 1.3, marginBottom: 8 }}>{subject}</span>
+              <span style={{ fontSize: 32, marginBottom: 10, opacity: isActive ? 1 : 0.45 }}>{SUBJECT_ICONS[subject] ?? '📖'}</span>
+              <span style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.40)', fontWeight: 700, fontSize: 12, lineHeight: 1.3, marginBottom: 8 }}>{subject}</span>
               <span style={{
-                color: isActive ? accent : 'rgba(255,255,255,0.3)',
-                background: isActive ? `${accent}22` : 'rgba(255,255,255,0.06)',
+                color: isActive ? accent : 'rgba(255,255,255,0.28)',
+                background: isActive ? `${accent}22` : 'rgba(255,255,255,0.05)',
                 fontSize: 9, fontWeight: 800, padding: '2px 8px',
                 borderRadius: 6, letterSpacing: '0.04em',
               }}>{board}</span>
@@ -163,28 +161,12 @@ function SubjectCarousel({ subjects }: { subjects: { subject: string; board: str
         <p className="text-[10px] text-neutral-600 m-0">Tap card to open · swipe or use arrows to browse</p>
       </div>
 
-      {/* Arrow + dot controls */}
-      <div className="flex items-center justify-center gap-3 mt-3">
+      {/* Arrow controls */}
+      <div className="flex items-center justify-center gap-4 mt-3">
         <button
           onClick={() => go(-1)}
           className="w-8 h-8 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white text-base cursor-pointer transition-colors flex items-center justify-center"
         >‹</button>
-
-        <div className="flex gap-1">
-          {subjects.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActive(i)}
-              className="rounded-full border-none cursor-pointer transition-all duration-300"
-              style={{
-                width: i === active ? 12 : 4,
-                height: 4,
-                backgroundColor: i === active ? accentColor : '#444',
-              }}
-            />
-          ))}
-        </div>
-
         <button
           onClick={() => go(1)}
           className="w-8 h-8 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white text-base cursor-pointer transition-colors flex items-center justify-center"
