@@ -167,9 +167,19 @@ export default function OnboardingPage() {
 
   // ── filtered subject list ─────────────────────────────────────────────────
 
-  const filteredSubjects = search.trim()
-    ? ALL_SUBJECTS.filter(s => s.toLowerCase().includes(search.toLowerCase()))
-    : ALL_SUBJECTS;
+  const filteredSubjects = (() => {
+    const base = search.trim()
+      ? ALL_SUBJECTS.filter(s => s.toLowerCase().includes(search.toLowerCase()))
+      : ALL_SUBJECTS;
+
+    if (!isEditMode || search.trim()) return base;
+
+    // In edit mode (no active search): selected subjects bubble to the top
+    const selectedSubjectNames = new Set(selected.map(s => s.subject));
+    const pinned  = base.filter(s => selectedSubjectNames.has(s));
+    const rest    = base.filter(s => !selectedSubjectNames.has(s));
+    return [...pinned, rest.length > 0 ? '__divider__' : '', ...rest].filter(Boolean) as string[];
+  })();
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -365,6 +375,17 @@ export default function OnboardingPage() {
             {/* Subject rows */}
             <div className="space-y-1.5 max-h-[52vh] overflow-y-auto pr-1">
               {filteredSubjects.map(subject => {
+                // Divider between selected and unselected
+                if (subject === '__divider__') {
+                  return (
+                    <div key="__divider__" className="flex items-center gap-3 py-1">
+                      <div className="flex-1 h-px bg-neutral-800" />
+                      <span className="text-[10px] text-neutral-600 shrink-0">More subjects</span>
+                      <div className="flex-1 h-px bg-neutral-800" />
+                    </div>
+                  );
+                }
+
                 const boards = boardsForSubject(subject);
                 const anySelected = boards.some(b => isSubjectBoardSelected(subject, b));
                 return (
@@ -406,7 +427,7 @@ export default function OnboardingPage() {
                 );
               })}
 
-              {filteredSubjects.length === 0 && (
+              {filteredSubjects.filter(s => s !== '__divider__').length === 0 && (
                 <p className="text-neutral-600 text-sm text-center py-8">No subjects match &quot;{search}&quot;</p>
               )}
             </div>
