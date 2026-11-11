@@ -1,5 +1,7 @@
 -- Consolidated schema for educate (reconstructed from scripts/*.sql, scripts/migrate-*.ts,
 -- supabase-schema-game.sql and inline CREATE/ALTER statements in src/app/api/**)
+-- Apply to a fresh DB (idempotent): any Postgres client, or a Node script using @neondatabase/serverless
+-- (sql.query per statement) with DATABASE_URL_UNPOOLED. Keep this file in sync when adding tables/columns.
 
 CREATE TABLE IF NOT EXISTS organisations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
