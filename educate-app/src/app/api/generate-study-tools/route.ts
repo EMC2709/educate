@@ -46,7 +46,7 @@ Return ONLY a valid JSON array — no markdown, no explanation, no code fences. 
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2048,
       system:
         'You are a GCSE revision tool. Output ONLY a valid JSON array with no surrounding text, markdown, or code fences. Never add explanations before or after the JSON.',

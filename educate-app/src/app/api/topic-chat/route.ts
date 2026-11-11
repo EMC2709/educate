@@ -29,7 +29,7 @@ Keep responses focused and under 200 words unless a longer explanation is genuin
 
   try {
     const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 500,
       system,
       messages: coreMessages,
