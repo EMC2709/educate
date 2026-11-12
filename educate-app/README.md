@@ -36,4 +36,5 @@ Vercel project `educate`, deployed with `vercel deploy --prod` from `educate-app
 
 ## More
 - `CLAUDE.md`: full architecture, conventions, deployment details and the prioritised TODO list
+- `docs/HANDOVER-PAUL-2026-11-12.md`: 12 Nov 2026 session handover — next steps (Drive PDFs, deploy, DNS), platform state, and unpushed commits
 - `docs/HANDOVER-ETHAN.md`: April 2026 handover (historical; partly stale)

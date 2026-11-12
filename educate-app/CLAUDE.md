@@ -2,7 +2,8 @@
 
 # Educate: GCSE Revision Platform
 
-> Last reviewed: 11 Nov 2026. This file is the source of truth for AI coding sessions. Keep it current.
+> Last reviewed: 12 Nov 2026. This file is the source of truth for AI coding sessions. Keep it current.
+> For the 11-12 Nov session state, unpushed commits, and the exact next steps (Drive PDFs, deploy, DNS), see `docs/HANDOVER-PAUL-2026-11-12.md`.
 > **Never put secret values (keys, connection strings, passwords) in this file or any committed file.**
 
 ## What this project is
@@ -62,10 +63,11 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
       data/                      question-bank/, subtopic-bank/, mcq-bank/, past-paper-bank/, quotes/,
                                  exam-boards.ts, subject-topics.ts, topic-map.ts, past-papers-index.ts ...
       lib/                       db, roles, anthropic, prompts, xp, streak, achievements, banners,
-                                 spaced-repetition, rate-limit (in-memory), drive, pdf-render, progress ...
+                                 spaced-repetition, rate-limit (in-memory), drive, pdf-render, past-paper-match, progress ...
       types/index.ts
     db/schema.sql                Consolidated DB schema (see Database)
     scripts/                     One-off maintenance scripts (past-paper scraper, migrations, seeds, audits)
+    docs/HANDOVER-PAUL-2026-11-12.md  12 Nov 2026 session handover (next steps, platforms, unpushed commits)
     docs/HANDOVER-ETHAN.md       April 2026 handover (partly stale: shared DB/Clerk refs, old URL)
   educate-v4.jsx                 Original single-file prototype (reference only)
   *.md, *.pptx                   Market research, case study, pitch deck (not code)
@@ -76,7 +78,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - `chat` (streaming tutor, needs auth)
   - `check` (marking; AI only when signed in, otherwise deterministic)
   - `generate`, `generate-study-tools`, `topic-chat`, `topic-summary`, `revision-notes`
-- **Content:** `questions`, `past-papers`, `paper-page`, `paper-pagecount`, `download-paper` (DB `past_papers`/`questions` plus Google Drive)
+- **Content:** `questions`, `past-papers` (list, plus `?resolve=1` lookup by subject/sitting/paper/tier), `paper-pdf` (auth-only PDF stream), `paper-page`, `paper-pagecount`, `download-paper` (official board-URL proxy only — not Drive)
 - **Gamification:** `award-xp`, `save-result`, `achievements`, `leaderboard`, `marketplace`, `marketplace/equip`, `friends`, `game`, `quiz-history`
 - **Flashcards:** `flashcards/**`, `shared-flashcards/**` (including `clone`)
 - **Users:** `profile`, `user-subjects`, `parent-link`, `parent/[token]`
@@ -116,7 +118,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 npm ci                 # install
 npm run dev            # http://localhost:3000 (.claude/launch.json uses 3100)
 npm run build          # next build (TypeScript errors are IGNORED, see below)
-npm test               # vitest run (4 files / 26 tests, all passing)
+npm test               # vitest (includes src/lib/past-paper-match.test.ts, 5 tests, passing)
 npx tsc --noEmit -p .  # real type check: currently 56 errors
 vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linked project)
 ```
@@ -128,8 +130,11 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
   - `ANTHROPIC_API_KEY`
   - `NEXT_PUBLIC_APP_URL` (Production = https://educatethemasses.online)
-- **Not set yet:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (Classroom OAuth), `GOOGLE_CREDENTIALS_JSON`, `GOOGLE_TOKEN_JSON` (Drive access for past-paper PDFs).
+- **Not set yet:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (Classroom OAuth), `GOOGLE_CREDENTIALS_JSON` (Drive, required for `/api/paper-pdf` and `/api/paper-page`).
+  - Preferred: a Google **service account** JSON. `getDrive()` in `src/lib/drive.ts` detects `type: "service_account"` (or `client_email` + `private_key`) and does **not** need `GOOGLE_TOKEN_JSON`.
+  - User-OAuth fallback still accepts `GOOGLE_CREDENTIALS_JSON` + `GOOGLE_TOKEN_JSON` (from `scripts/auth-drive.ts`).
 - `GOOGLE_DRIVE_API_KEY`, mentioned in the old handover, is **not read by the app**.
+- Share Drive folder `1wTYT4FwqFLTuTcY_nc-UJM7pla5PbvW9` (owned by stuart.fosker@gmail.com; Paul is editor as paulmc18@gmail.com) with the service account as Viewer. Do **not** set "anyone with the link". Full steps: `docs/HANDOVER-PAUL-2026-11-12.md`.
 
 ## Deployment (Paul's own copy, set up 11 Nov 2026)
 - **Vercel:**
@@ -143,7 +148,9 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
     - CNAME `www` -> `7696e975a7890719.vercel-dns-016.com`
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod` from the local clone (`educate-app/` is linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
-- The old deployment `educate-app-zeta.vercel.app` (an older build, on a different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
+- As of 12 Nov evening, local `master` is **2 commits ahead** of `origin/master` (`71590c2` matching fix, live; `5d15b5c` PDF stream, not yet deployed). A patch is in `docs/educate-unpushed-12-nov.patch`. Do not force-push.
+- The old deployment `educate-app-zeta.vercel.app` (Ethan's original, different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
+- **Two Neon worlds:** Paul's project `shy-paper-14167641` is what educate-virid uses. Ethan's production papers live on `shiny-tooth-08089128` (via Ethan's Vercel `DATABASE_URL`), **not** in Neon org `org-curly-sound-07355255` (project `cool-snow-33977978` has no papers). Port 5432 often times out; use `@neondatabase/serverless` over HTTPS. Do not rotate the source DB password or copy PII.
 
 ## Conventions
 - TypeScript everywhere; path alias `@/` -> `src/`.
@@ -174,30 +181,30 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
    - swap in the pk_live/sk_live keys
    - use Paul's own Google OAuth client
    - recreate users, since a production instance starts empty
-4. **Past papers are empty in the new DB** (the old DB had 14,747 scraped papers). `/papers` and the past-paper APIs return nothing.
-   - The re-scrape is `scripts/process-past-papers.ts`. It needs `GOOGLE_CREDENTIALS_JSON` and `GOOGLE_TOKEN_JSON` (Drive) plus Anthropic credit (~$3–5+).
-   - Watch the 1 GB Neon free limit.
-5. **Google Classroom and Drive env vars are unset**, so Classroom sync and Drive PDFs don't work.
+4. **Past papers are in Paul's DB** (copied 12 Nov 2026 from Ethan's production Neon; verified equal): 26,231 papers, 584,732 questions, 0 orphans, 496 MB. Do not re-copy. Watch the 1 GB free limit.
+   - Practice matching was broken (year-only, no subject) and is **fixed and live** (`71590c2`, `src/lib/past-paper-match.ts`). It uses exam-code footers in question text because `year` / `paper_number` / tier are mostly null. Retest: AQA Maths Paper 1 Higher 2023 loads 37 Maths questions, 84 marks — not Combined Science. Details and caveats (enlarged paper chosen, OCR fallback, no GCSE_Edexcel rows) are in the 12 Nov handover.
+5. **Drive PDFs are the remaining gap.** Code to stream them to signed-in students is committed locally as `5d15b5c` (`GET /api/paper-pdf?id=<paperUuid>`, Clerk auth, no raw Drive file ids, iframe no longer points at drive.google.com) but **not deployed**. `GOOGLE_CREDENTIALS_JSON` is still unset. Follow the "Start here tonight" steps in `docs/HANDOVER-PAUL-2026-11-12.md`. Google Classroom OAuth vars are also still unset. Do not publish the folder as "anyone with the link".
 6. **New teachers must create a school** (organisation) at `/teacher` before they can create classes. Consider a smoother onboarding.
 7. **The privacy policy (`src/app/privacy/page.tsx`) says Supabase.** It should say Neon (EU/London), Clerk, Anthropic and Vercel.
 8. **There are 56 hidden TypeScript errors** (`ignoreBuildErrors: true`). Fix them, then remove the flag.
 9. **Stale docs:** `docs/HANDOVER-ETHAN.md` refers to the shared DB/Clerk, the old URL and `GOOGLE_DRIVE_API_KEY`. The GitHub repo description links the dead URL.
 10. **Content gaps:** some mastery pathways show "coming soon" (`app/mastery`). Request-time DDL in routes should move into `db/schema.sql`.
 
-## Feature status (Paul's deployment, verified 11 Nov 2026)
+## Feature status (Paul's deployment, verified 12 Nov 2026)
 - **Working:**
-  - home, `/login`
+  - home, `/login` (not `/sign-in`, which is 404)
   - guest quiz (`/AQA/Mathematics/quiz`)
-  - Clerk sign-in (via sign-in token)
+  - Clerk sign-in (dev instance; new-device email code)
   - profile/onboarding
-  - AI tutor chat (streaming)
-  - AI marking
+  - AI tutor chat (streaming) and AI marking
   - teacher dashboard ("Set up your school")
-- **Empty or unconfigured:** past papers, Google Classroom, Drive PDFs.
+  - **Past papers from the DB:** list API and practice matching (AQA Maths Paper 1 Higher and Foundation 2023 retested as Test Student)
+- **Coded, not live:** original PDF stream (`5d15b5c`) — needs service-account credentials on Vercel, then a prod deploy.
+- **Unconfigured:** Google Classroom, custom domain DNS (GoDaddy records are listed above, not yet applied).
 - **Not yet exercised on the new deployment:** games, marketplace, flashcards CRUD, assignments, parent link.
 
 ## Test accounts (existing users in the Clerk dev instance; profile rows seeded in the new DB)
 - Test Teacher: `testteacher@yopmail.com` (role teacher)
 - Test Student: `teststudent11@yopmail.com` (role student, no org)
 - Passwords are NOT stored here. yopmail inboxes are public, so don't use these accounts for anything sensitive.
-- `scripts/seed-test-users.ts` reuses existing Clerk users and upserts their profiles.
+- `scripts/seed-test-users.ts` reuses existing Clerk users and upserts their profiles. Its console.log / header comments that print `Test1234!` are **stale and wrong** — use the password actually passed to `findOrCreateUser` in that script (also noted in `/workspace/educate-test-accounts.txt` on the Grok Bot computer).
