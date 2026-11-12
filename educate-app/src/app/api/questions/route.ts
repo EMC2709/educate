@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT qs.id, qs.question_number, qs.question_text, qs.marks, qs.topic,
                qs.has_image, qs.image_desc, qs.difficulty,
-               pp.subject, pp.exam_type, pp.country, pp.year, pp.title, pp.drive_file_id,
+               pp.subject, pp.exam_type, pp.country, pp.year, pp.title, pp.drive_file_id, qs.paper_id,
                ts_rank(to_tsvector('english', coalesce(qs.question_text,'') || ' ' || coalesce(qs.topic,'')),
                        plainto_tsquery('english', ${q})) AS rank
         FROM questions qs
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT qs.id, qs.question_number, qs.question_text, qs.marks, qs.topic,
                qs.has_image, qs.image_desc, qs.difficulty,
-               pp.subject, pp.exam_type, pp.country, pp.year, pp.title, pp.drive_file_id
+               pp.subject, pp.exam_type, pp.country, pp.year, pp.title, pp.drive_file_id, qs.paper_id
         FROM questions qs
         JOIN past_papers pp ON pp.id = qs.paper_id
         WHERE pp.subject = ${subject}
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT qs.id, qs.question_number, qs.question_text, qs.marks, qs.topic,
                qs.has_image, qs.image_desc, qs.difficulty,
-               pp.subject, pp.exam_type, pp.country, pp.year, pp.title, pp.drive_file_id
+               pp.subject, pp.exam_type, pp.country, pp.year, pp.title, pp.drive_file_id, qs.paper_id
         FROM questions qs
         JOIN past_papers pp ON pp.id = qs.paper_id
         WHERE pp.subject = ${subject}

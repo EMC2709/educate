@@ -13,6 +13,8 @@ export interface Question {
   year: number | null;
   title: string | null;
   drive_file_id: string | null;
+  /** past_papers.id — used for the authenticated same-origin PDF stream */
+  paper_id?: string | null;
 }
 
 interface Props {
@@ -72,9 +74,9 @@ export function QuestionCard({ question, index, total, onMarkDone, isDone }: Pro
 
       {/* Footer actions */}
       <div className="px-6 py-4 border-t border-neutral-800 flex items-center justify-between gap-3">
-        {question.drive_file_id ? (
+        {question.paper_id && question.drive_file_id ? (
           <a
-            href={`/api/download-paper?fileId=${question.drive_file_id}`}
+            href={`/api/paper-pdf?id=${encodeURIComponent(question.paper_id)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-neutral-500 hover:text-neutral-300 no-underline transition-colors"

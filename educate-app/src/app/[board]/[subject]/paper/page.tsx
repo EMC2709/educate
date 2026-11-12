@@ -1067,8 +1067,10 @@ export default function ExamPaperPage({
           </div>
         </div>
 
-        {/* PDF Reference Drawer — original paper pages for figures/diagrams */}
-        {driveFileId && (
+        {/* PDF Reference Drawer — original paper pages for figures/diagrams.
+            Streamed same-origin via /api/paper-pdf (Clerk auth) so students
+            never need Google Drive access. */}
+        {driveFileId && paperDbId && (
           <div
             className={`fixed top-0 right-0 h-screen bg-neutral-900 border-l border-neutral-800 shadow-2xl transition-transform duration-300 z-30 ${
               pdfPanelOpen ? 'translate-x-0' : 'translate-x-full'
@@ -1084,7 +1086,7 @@ export default function ExamPaperPage({
               </div>
               <div className="flex items-center gap-2">
                 <a
-                  href={`https://drive.google.com/file/d/${driveFileId}/view`}
+                  href={`/api/paper-pdf?id=${encodeURIComponent(paperDbId ?? '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] text-neutral-400 hover:text-white transition-colors"
@@ -1102,7 +1104,7 @@ export default function ExamPaperPage({
               </div>
             </div>
             <iframe
-              src={`https://drive.google.com/file/d/${driveFileId}/preview`}
+              src={`/api/paper-pdf?id=${encodeURIComponent(paperDbId ?? '')}#view=FitH`}
               className="w-full border-none"
               style={{ height: 'calc(100vh - 40px)' }}
               title="Original paper PDF"
