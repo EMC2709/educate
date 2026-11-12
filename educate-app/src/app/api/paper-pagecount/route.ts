@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     if (rows[0].page_count && rows[0].page_count > 0) {
       return NextResponse.json(
         { pageCount: rows[0].page_count },
-        { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800' } },
+        { headers: { 'Cache-Control': 'private, max-age=86400' } },
       );
     }
 
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { pageCount },
-      { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800' } },
+      { headers: { 'Cache-Control': 'private, max-age=86400' } },
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'pagecount failed';

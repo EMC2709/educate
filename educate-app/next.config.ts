@@ -19,6 +19,15 @@ const nextConfig: NextConfig = {
           { key: "X-DNS-Prefetch-Control", value: "off" },
         ],
       },
+      {
+        // The paper page embeds this route in a same-origin iframe (PDF Figures panel).
+        // Listed after the catch-all so it overrides X-Frame-Options: DENY for this path only.
+        source: "/api/paper-pdf",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+        ],
+      },
     ];
   },
 };

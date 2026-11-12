@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
               match: picked.match,
             }
           : { paper: null, match: null },
-        { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+        { headers: { 'Cache-Control': 'private, max-age=300' } }
       );
     }
 
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json(
         { paper: papers[0], questions },
-        { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+        { headers: { 'Cache-Control': 'private, max-age=300' } }
       );
     }
 
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { papers, meta: meta[0], total: papers.length, offset },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+      { headers: { 'Cache-Control': 'private, max-age=300' } }
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';

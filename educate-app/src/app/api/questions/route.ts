@@ -102,10 +102,10 @@ export async function GET(req: NextRequest) {
       `;
     }
 
-    // Cache at CDN — random mode gets short TTL, filtered gets 5 min
+    // Auth-gated: browser-only cache (never CDN). Random mode is not cached.
     const ttl = random ? 0 : 300;
     const cacheHeader = ttl > 0
-      ? `public, s-maxage=${ttl}, stale-while-revalidate=${ttl * 2}`
+      ? `private, max-age=${ttl}`
       : 'no-store';
 
     return NextResponse.json(

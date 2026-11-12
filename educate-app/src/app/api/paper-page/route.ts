@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'image/png',
         'Content-Length': String(png.length),
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'private, max-age=86400',
         'X-Page-Count': String(pageCount),
       },
     });

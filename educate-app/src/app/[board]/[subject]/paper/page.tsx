@@ -1103,13 +1103,15 @@ export default function ExamPaperPage({
                 </button>
               </div>
             </div>
-            <iframe
-              src={`/api/paper-pdf?id=${encodeURIComponent(paperDbId ?? '')}#view=FitH`}
-              className="w-full border-none"
-              style={{ height: 'calc(100vh - 40px)' }}
-              title="Original paper PDF"
-              allow="autoplay"
-            />
+            {/* Only fetch the PDF once the student opens the panel */}
+            {pdfPanelOpen && (
+              <iframe
+                src={`/api/paper-pdf?id=${encodeURIComponent(paperDbId ?? '')}#view=FitH`}
+                className="w-full border-none"
+                style={{ height: 'calc(100vh - 40px)' }}
+                title="Original paper PDF"
+              />
+            )}
           </div>
         )}
 
