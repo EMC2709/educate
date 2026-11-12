@@ -10,14 +10,14 @@ This is Paul's own copy of the UK GCSE revision app (GitHub `EMC2709/educate`). 
 
 ## Start here tonight
 
-The database and subject-matching are done and live. The remaining product gap is **original PDFs for signed-in students**. The code for that is written and committed locally, but it is **not deployed** and **Google credentials are not on Vercel**.
+The database and subject-matching are done and live. The remaining product gap is **original PDFs for signed-in students**. The code for that is on GitHub (`master`) but it is **not deployed**, and **Google credentials are not on Vercel**.
 
 Do this, in order:
 
-1. **Get the two unpushed commits** (see [Git](#git) below). Without them you are on 11 Nov code.
-2. **Create a Google Cloud service account**, enable the Drive API, and download a JSON key. Do not enable billing and do not spend money. If Google demands a billing account, stop and tell Paul.
+1. **Pull latest `master`** from [EMC2709/educate](https://github.com/EMC2709/educate) (`git pull origin master`). The three 12 Nov commits (`71590c2` matching, `5d15b5c` PDF stream, `41d6c91` these docs) were pushed at 17:35 Europe/London. A fresh clone of `master` already has them — no patch is needed.
+2. **Create a Google Cloud service account**, enable the Drive API, and download a JSON key. Sign in as **`paulmc18@gmail.com`**, not `emcwiliam27@gmail.com` (a Grok Bot attempt on 12 Nov stopped on Google's MFA page because the console was the wrong account; nothing was created and billing was not enabled). Do not enable billing and do not spend money. If Google demands a billing account, stop and tell Paul.
 3. **Share the PAPERS folder** with that service account as **Viewer** (Paul can do this; he is an editor). Do **not** set "anyone with the link" — these are official exam papers.
-4. **Add `GOOGLE_CREDENTIALS_JSON`** to Vercel (Production) as the full service-account JSON. You do **not** need `GOOGLE_TOKEN_JSON` for a service account. Then **redeploy** with `vercel deploy --prod` from `educate-app/`.
+4. **Add `GOOGLE_CREDENTIALS_JSON`** to Vercel (Production) as the full service-account JSON. You do **not** need `GOOGLE_TOKEN_JSON` for a service account. Then **redeploy** with `vercel deploy --prod` from `educate-app/`. A git push does **not** deploy.
 5. **Test** as Test Student: AQA Maths Paper 1 Higher 2023, open **PDF Figures**. The side panel should show the PDF, not a Google "You need access" page. A signed-out request to `/api/paper-pdf?id=…` must return 401.
 
 After that, only if there is time: GoDaddy DNS (records below), then optional items at the bottom.
@@ -28,16 +28,15 @@ After that, only if there is time: GoDaddy DNS (records below), then optional it
 
 - Repo: [EMC2709/educate](https://github.com/EMC2709/educate), branch `master`.
 - Local clone used for this work: `/workspace/educate-deploy` (on the Grok Bot computer). Vercel project is linked via `educate-app/.vercel/` (gitignored). **The Vercel project is not GitHub-linked:** `git push` does not deploy. Deploy with `vercel deploy --prod` from `educate-app/`, signed in as Paul (`paulmc18-4680` / `paulmc18@gmail.com`). Do **not** use or overwrite `/home/box/.vercel-ethan` (Ethan's isolated CLI).
-- **`origin/master` is two commits behind the local clone.** Those commits exist only locally unless you apply the patch or push:
+- **`master` on GitHub is up to date** as of 12 Nov 2026, 17:35 Europe/London (`git push origin master`, `b345bec..41d6c91`). Pull it; do not apply an old patch, and **do not force-push**. Pushing still does **not** deploy educate-virid.
 
-  | Commit | What it does | On educate-virid? |
-  |---|---|---|
-  | `71590c2` | Practice paper matching by subject + sitting + paper + tier | **Yes** — deployed 12 Nov 17:04 GMT, id `dpl_AD3SRkCzd1YjaT4BC7KQTws7bxmM` |
-  | `5d15b5c` | Same-origin PDF stream (`/api/paper-pdf`), service-account support in `getDrive()`, Drive iframe removed | **No** — not deployed, needs credentials first |
+  | Commit | What it does | On GitHub? | On educate-virid? |
+  |---|---|---|---|
+  | `71590c2` | Practice paper matching by subject + sitting + paper + tier | Yes | **Yes** — deployed 12 Nov 17:04 GMT, id `dpl_AD3SRkCzd1YjaT4BC7KQTws7bxmM` |
+  | `5d15b5c` | Same-origin PDF stream (`/api/paper-pdf`), service-account support in `getDrive()`, Drive iframe removed | Yes | **No** — not deployed, needs credentials first |
+  | `41d6c91` | This handover, plus `CLAUDE.md` / README updates | Yes | n/a (docs only) |
 
-- A `git format-patch` of both is `educate-unpushed-12-nov.patch` (alongside this handover). Apply on a fresh clone with `git am educate-unpushed-12-nov.patch`.
-- **Do not force-push.** Pushing to Ethan's `master` is optional and should only be done if Paul wants those commits on GitHub. It is not required to deploy.
-- Earlier commits already on `origin/master`: `65799e5` (removed `/api/debug-role`, added `db/schema.sql`), `ac3463c` (Anthropic model IDs), `b345bec` (docs).
+- Earlier on `origin/master`: `65799e5` (removed `/api/debug-role`, added `db/schema.sql`), `ac3463c` (Anthropic model IDs), `b345bec` (docs).
 
 ---
 
@@ -86,7 +85,7 @@ After that, only if there is time: GoDaddy DNS (records below), then optional it
 
 ### Google Cloud (create tonight)
 
-- No `gcloud` CLI and no `scripts/credentials.json` / `scripts/token.json` were on the box when this was written.
+- No `gcloud` CLI and no `scripts/credentials.json` / `scripts/token.json` were on the box when this was written. A Grok Bot attempt to create the service account on 12 Nov **did not complete**: the Cloud Console was signed in as `emcwiliam27@gmail.com` (Ethan), stopped at `https://console.cloud.google.com/enable-mfa`, and created no project, service account, or key. Billing was not enabled. Resume as **`paulmc18@gmail.com`**.
 - Preferred setup: a **service account** (no user OAuth refresh tokens to expire).
   1. In [Google Cloud Console](https://console.cloud.google.com/) as `paulmc18@gmail.com`, create a project (e.g. `educate-papers`). **Do not enable billing.**
   2. Enable the **Google Drive API**.
@@ -112,9 +111,9 @@ After that, only if there is time: GoDaddy DNS (records below), then optional it
 
 - `www` should then 308 to the apex. After DNS works, set Clerk production CNAMEs if/when moving off the dev instance.
 
-### GitHub (optional)
+### GitHub
 
-- Repo homepage still mentions a dead URL (`educate-swart`). Optional cleanup.
+- The 12 Nov commits are on `master` (see [Git](#git)). Repo homepage still mentions a dead URL (`educate-swart`). Optional cleanup.
 - Do not force-push. Do not commit env files or secrets.
 
 ### Anthropic

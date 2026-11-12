@@ -3,7 +3,7 @@
 # Educate: GCSE Revision Platform
 
 > Last reviewed: 12 Nov 2026. This file is the source of truth for AI coding sessions. Keep it current.
-> For the 11-12 Nov session state, unpushed commits, and the exact next steps (Drive PDFs, deploy, DNS), see `docs/HANDOVER-PAUL-2026-11-12.md`.
+> For the 11-12 Nov session state and the exact next steps (Drive PDFs, deploy, DNS), see `docs/HANDOVER-PAUL-2026-11-12.md`.
 > **Never put secret values (keys, connection strings, passwords) in this file or any committed file.**
 
 ## What this project is
@@ -67,7 +67,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
       types/index.ts
     db/schema.sql                Consolidated DB schema (see Database)
     scripts/                     One-off maintenance scripts (past-paper scraper, migrations, seeds, audits)
-    docs/HANDOVER-PAUL-2026-11-12.md  12 Nov 2026 session handover (next steps, platforms, unpushed commits)
+    docs/HANDOVER-PAUL-2026-11-12.md  12 Nov 2026 session handover (next steps, platforms; commits are on GitHub `master`)
     docs/HANDOVER-ETHAN.md       April 2026 handover (partly stale: shared DB/Clerk refs, old URL)
   educate-v4.jsx                 Original single-file prototype (reference only)
   *.md, *.pptx                   Market research, case study, pitch deck (not code)
@@ -148,7 +148,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
     - CNAME `www` -> `7696e975a7890719.vercel-dns-016.com`
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod` from the local clone (`educate-app/` is linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
-- As of 12 Nov evening, local `master` is **2 commits ahead** of `origin/master` (`71590c2` matching fix, live; `5d15b5c` PDF stream, not yet deployed). A patch is in `docs/educate-unpushed-12-nov.patch`. Do not force-push.
+- As of 12 Nov 17:35 Europe/London, those commits are **on GitHub `master`** (`71590c2` matching fix, live on educate-virid; `5d15b5c` PDF stream, on GitHub but not yet deployed; `41d6c91` handover docs). `git pull origin master`. Do not force-push. A git push still does not deploy.
 - The old deployment `educate-app-zeta.vercel.app` (Ethan's original, different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
 - **Two Neon worlds:** Paul's project `shy-paper-14167641` is what educate-virid uses. Ethan's production papers live on `shiny-tooth-08089128` (via Ethan's Vercel `DATABASE_URL`), **not** in Neon org `org-curly-sound-07355255` (project `cool-snow-33977978` has no papers). Port 5432 often times out; use `@neondatabase/serverless` over HTTPS. Do not rotate the source DB password or copy PII.
 
@@ -183,7 +183,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
    - recreate users, since a production instance starts empty
 4. **Past papers are in Paul's DB** (copied 12 Nov 2026 from Ethan's production Neon; verified equal): 26,231 papers, 584,732 questions, 0 orphans, 496 MB. Do not re-copy. Watch the 1 GB free limit.
    - Practice matching was broken (year-only, no subject) and is **fixed and live** (`71590c2`, `src/lib/past-paper-match.ts`). It uses exam-code footers in question text because `year` / `paper_number` / tier are mostly null. Retest: AQA Maths Paper 1 Higher 2023 loads 37 Maths questions, 84 marks — not Combined Science. Details and caveats (enlarged paper chosen, OCR fallback, no GCSE_Edexcel rows) are in the 12 Nov handover.
-5. **Drive PDFs are the remaining gap.** Code to stream them to signed-in students is committed locally as `5d15b5c` (`GET /api/paper-pdf?id=<paperUuid>`, Clerk auth, no raw Drive file ids, iframe no longer points at drive.google.com) but **not deployed**. `GOOGLE_CREDENTIALS_JSON` is still unset. Follow the "Start here tonight" steps in `docs/HANDOVER-PAUL-2026-11-12.md`. Google Classroom OAuth vars are also still unset. Do not publish the folder as "anyone with the link".
+5. **Drive PDFs are the remaining gap.** Code to stream them to signed-in students is on GitHub as `5d15b5c` (`GET /api/paper-pdf?id=<paperUuid>`, Clerk auth, no raw Drive file ids, iframe no longer points at drive.google.com) but **not deployed**. `GOOGLE_CREDENTIALS_JSON` is still unset. Follow the "Start here tonight" steps in `docs/HANDOVER-PAUL-2026-11-12.md`. Google Classroom OAuth vars are also still unset. Do not publish the folder as "anyone with the link".
 6. **New teachers must create a school** (organisation) at `/teacher` before they can create classes. Consider a smoother onboarding.
 7. **The privacy policy (`src/app/privacy/page.tsx`) says Supabase.** It should say Neon (EU/London), Clerk, Anthropic and Vercel.
 8. **There are 56 hidden TypeScript errors** (`ignoreBuildErrors: true`). Fix them, then remove the flag.
