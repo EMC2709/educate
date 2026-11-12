@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
   },
   // Keep native/WASM PDF deps out of the bundle — used only in server routes
   serverExternalPackages: ['@napi-rs/canvas', 'pdfjs-dist'],
+  // pdfjs loads its worker by a runtime-resolved path, which file tracing can't see,
+  // so ship it explicitly with the routes that render PDF pages.
+  outputFileTracingIncludes: {
+    '/api/paper-page': ['./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'],
+    '/api/paper-pagecount': ['./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'],
+  },
   async headers() {
     return [
       {

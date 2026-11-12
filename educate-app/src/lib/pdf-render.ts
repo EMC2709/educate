@@ -11,7 +11,15 @@ let pdfjsLib: any = null;
 async function getPdfjs(): Promise<any> {
   if (pdfjsLib) return pdfjsLib;
   pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  // In Node/serverless, point workerSrc at the bundled worker file so pdfjs
+  // Preload the worker in-process: pdfjs's fake worker uses globalThis.pdfjsWorker
+  // directly instead of importing pdf.worker.mjs by a runtime-resolved path
+  // (which failed on Vercel with "Cannot find module .../pdf.worker.mjs").
+  const g = globalThis as unknown as { pdfjsWorker?: unknown };
+  if (!g.pdfjsWorker) {
+    // @ts-expect-error pdfjs-dist ships no type declarations for the worker entry
+    g.pdfjsWorker = await import('pdfjs-dist/legacy/build/pdf.worker.mjs');
+  }
+  // Fallback: point workerSrc at the bundled worker file so pdfjs
   // can spin up its fake worker without trying to resolve a CDN URL.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { createRequire } = await import('node:module');
