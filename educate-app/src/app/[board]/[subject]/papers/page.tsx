@@ -55,30 +55,33 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
 
   const currentYear = selectedYearPaper?.year ?? '';
 
-  // DB paper lookup — fetch available papers so we can pass paperId directly to practice page
-  type DbPaper = { id: string; year: number | null; total_questions: number };
-  const [dbPapers, setDbPapers] = useState<DbPaper[]>([]);
+  // DB paper lookup — resolve the exact paper (subject + sitting + paper number + tier + component)
+  // so the practice page loads that paper, never another subject's paper from the same year.
+  type DbPaper = { id: string; total_questions: number; marks: number | null };
+  type DbMatch = { paper: DbPaper | null; match: 'exact' | 'metadata' | 'subject' | null };
+  const activeTier = activePaper?.tiered ? tier : null;
+  const [dbMatch, setDbMatch] = useState<DbMatch | null>(null);
   useEffect(() => {
-    const examType = `GCSE_${boardName}`;
-    const params = new URLSearchParams({ examType, limit: '100' });
-    if (isCombinedScience && activeComponent) params.set('component', activeComponent);
+    setDbMatch(null);
+    if (!activePaper || !currentYear) return;
+    const params = new URLSearchParams({
+      resolve: '1',
+      examType: `GCSE_${boardName}`,
+      subject,
+      yearLabel: currentYear,
+      paperNumber: String(activePaper.number),
+    });
+    if (activeTier) params.set('tier', activeTier);
+    if (activePaper.component) params.set('component', activePaper.component);
+    let cancelled = false;
     fetch(`/api/past-papers?${params}`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => setDbPapers((data?.papers ?? []).filter((p: DbPaper) => p.total_questions > 0)))
+      .then((data: DbMatch | null) => { if (!cancelled && data) setDbMatch(data); })
       .catch(() => {});
-  }, [boardName, isCombinedScience, activeComponent]);
+    return () => { cancelled = true; };
+  }, [boardName, subject, activePaper, activeTier, currentYear]);
 
-  // Find best DB paper for the currently selected year
-  const dbPaperForYear = useMemo(() => {
-    if (dbPapers.length === 0) return null;
-    const yearInt = parseInt(currentYear) || 0;
-    // Exact year match first
-    const exact = dbPapers.find(p => p.year === yearInt);
-    if (exact) return exact;
-    // No exact match — deterministic index offset so different years give different papers
-    const offset = yearInt > 2000 ? (2025 - yearInt) : 0;
-    return dbPapers[offset % dbPapers.length];
-  }, [dbPapers, currentYear]);
+  const dbPaperForYear = dbMatch?.paper ?? null;
 
   const tabColors: Record<1 | 2 | 3, string> = {
     1: '#6366f1',
@@ -295,6 +298,15 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                           </a>
                         </div>
 
+                        {/* What will load on Educate for this selection (from the database) */}
+                        {dbPaperForYear && (
+                          <p className="text-xs text-neutral-500 text-center">
+                            On Educate: {dbPaperForYear.total_questions} questions
+                            {dbPaperForYear.marks ? ` · ${dbPaperForYear.marks} marks` : ''}
+                            {dbMatch?.match !== 'exact' ? ' · closest available paper' : ''}
+                          </p>
+                        )}
+
                         {/* Practice on Educate — full exam paper mode */}
                         <button
                           onClick={() => {
@@ -310,6 +322,7 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                                 board: boardName,
                                 // Pass direct DB paper ID so the practice page doesn't have to guess
                                 paperId: dbPaperForYear?.id ?? null,
+                                paperMatch: dbMatch?.match ?? null,
                               }));
                             } catch {}
                             window.location.href = `/${boardName}/${encodeURIComponent(subject)}/paper`;

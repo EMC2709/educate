@@ -492,7 +492,10 @@ export default function ExamPaperPage({
   const staticQuestions: PaperQuestion[] = PAST_PAPER_BANK[subject] ?? [];
 
   const [questions, setQuestions] = useState<PaperQuestion[]>(staticQuestions);
-  const [loadingDb, setLoadingDb] = useState(false);
+  // Start in the loading state so the static sample set isn't flashed before the DB paper arrives
+  const [loadingDb, setLoadingDb] = useState(true);
+  const [paperMatch, setPaperMatch] = useState<'exact' | 'metadata' | 'subject' | null>(null);
+  const [usingDbPaper, setUsingDbPaper] = useState(false);
   const [mode, setMode] = useState<Mode>('intro');
   const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ''));
   const [paperInfo, setPaperInfo] = useState<PaperInfo>({
@@ -535,7 +538,6 @@ export default function ExamPaperPage({
 
         setLoadingDb(true);
 
-        type PaperMeta = { id: string; year: number | null; paper_number: string | null; total_questions: number };
         type QRow = { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: string | number | null; has_image?: boolean; image_desc?: string | null; };
 
         // Parse "25(c)" → [25, 'c', 0]   "18(iii)" → [18, 0, 3]   "3" → [3,0,0]
@@ -556,44 +558,26 @@ export default function ExamPaperPage({
         };
 
         // Resolve which paper to load
+        type Match = 'exact' | 'metadata' | 'subject' | null;
         const resolvePaperId = async (): Promise<string | null> => {
           // Direct ID passed from papers list — use it immediately
-          const directId = (info as { paperId?: string }).paperId ?? null;
-          if (directId) return directId;
-
-          // Otherwise find the best match by SUBJECT + examType + component + year
-          // IMPORTANT: subject is always locked — we never fall back across subjects
-          // (prevents e.g. a Chemistry paper appearing in the Spanish section).
-          const base = new URLSearchParams({ limit: '100', examType: gcseType, subject });
-          if (component) base.set('component', component);
-          if (paperNum) base.set('paperNumber', paperNum);
-          let papers: PaperMeta[] = await fetch(`/api/past-papers?${base}`)
-            .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
-
-          // Fallback 1: drop paperNumber but KEEP subject + component (many papers have null paper_number)
-          if (papers.length === 0 && paperNum) {
-            const noPN = new URLSearchParams({ limit: '100', examType: gcseType, subject });
-            if (component) noPN.set('component', component);
-            papers = await fetch(`/api/past-papers?${noPN}`)
-              .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
+          const direct = info as { paperId?: string | null; paperMatch?: Match };
+          if (direct.paperId) {
+            setPaperMatch(direct.paperMatch ?? null);
+            return direct.paperId;
           }
-          // Fallback 2: drop component but KEEP subject (no cross-subject leakage)
-          if (papers.length === 0 && component) {
-            const noComp = new URLSearchParams({ limit: '100', examType: gcseType, subject });
-            papers = await fetch(`/api/past-papers?${noComp}`)
-              .then(r => r.ok ? r.json() : null).then(d => d?.papers ?? []);
-          }
-          // No final cross-subject fallback — if no paper matches the subject, return null
 
-          const withQs = papers.filter(p => p.total_questions > 0);
-          if (withQs.length === 0) return null;
-
-          // Prefer exact year match, then deterministic index so different years give different papers
-          const yearInt = parseInt(year) || 0;
-          const byYear = withQs.find(p => p.year === yearInt);
-          if (byYear) return byYear.id;
-          const offset = yearInt > 2000 ? (2025 - yearInt) : 0;
-          return withQs[offset % withQs.length].id;
+          // Otherwise ask the API to resolve SUBJECT (+ aliases) + sitting + paper number + tier + component.
+          // IMPORTANT: subject is always locked — the API never falls back across subjects
+          // (prevents e.g. a Combined Science paper appearing under Maths).
+          const params = new URLSearchParams({ resolve: '1', examType: gcseType, subject, yearLabel: year });
+          if (paperNum) params.set('paperNumber', paperNum);
+          if (info.tier) params.set('tier', info.tier);
+          if (component) params.set('component', component);
+          const data = await fetch(`/api/past-papers?${params}`)
+            .then(r => r.ok ? r.json() : null) as { paper?: { id: string } | null; match?: Match } | null;
+          setPaperMatch(data?.match ?? null);
+          return data?.paper?.id ?? null;
         };
 
         resolvePaperId()
@@ -633,13 +617,18 @@ export default function ExamPaperPage({
               imageDesc: q.image_desc ?? null,
             }));
             setQuestions(dbQs);
+            setUsingDbPaper(true);
             setAnswers(dbQs.map(() => ''));
             setRevealed(dbQs.map(() => false));
           })
           .catch(() => {})
           .finally(() => setLoadingDb(false));
+      } else {
+        setLoadingDb(false);
       }
-    } catch {}
+    } catch {
+      setLoadingDb(false);
+    }
   }, [subject, boardName]);
 
   useEffect(() => {
@@ -726,6 +715,17 @@ export default function ExamPaperPage({
                 </div>
                 <span className="text-4xl shrink-0">📄</span>
               </div>
+
+              {usingDbPaper && paperInfo.year && paperMatch && paperMatch !== 'exact' && (
+                <p className="text-xs text-amber-400/90 mt-2">
+                  We couldn&apos;t find this exact paper, so these questions come from the closest {subject} paper we have.
+                </p>
+              )}
+              {!usingDbPaper && paperInfo.year && (
+                <p className="text-xs text-amber-400/90 mt-2">
+                  This exact paper isn&apos;t on Educate yet, so you&apos;re practising with sample {subject} questions.
+                </p>
+              )}
 
               <div className="grid grid-cols-3 gap-3 mt-5">
                 <div className="bg-neutral-800 rounded-xl p-3 text-center">

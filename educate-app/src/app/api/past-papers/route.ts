@@ -1,6 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import {
+  dbSubjectsFor, parseYearLabel, examCodePattern, pickPaper, ANY_EXAM_CODE_PATTERN,
+  type PaperCandidate, type PaperSelection,
+} from '@/lib/past-paper-match';
 
 /**
  * GET /api/past-papers
@@ -10,6 +14,13 @@ import { sql } from '@/lib/db';
  *
  * Single paper + its questions:
  *   ?id=<uuid>
+ *
+ * Resolve the paper a student picked (subject-locked, never cross-subject):
+ *   ?resolve=1&examType=GCSE_AQA&subject=Mathematics&yearLabel=2023&paperNumber=1&tier=H[&component=Biology]
+ *   yearLabel is "2023" (June) or "Nov 2023". Returns { paper, match } where match is
+ *   'exact' | 'metadata' | 'subject' (see lib/past-paper-match.ts) or paper: null.
+ *
+ * `subject` also matches known DB aliases (e.g. "Combined Science" → "Combined Science Trilogy").
  *
  * Response is cached at the CDN edge for 5 minutes.
  * With 100s of students the DB is hit ~once per 5 min per unique query.
@@ -30,6 +41,60 @@ export async function GET(req: NextRequest) {
   const offset    = parseInt(p.get('offset') ?? '0');
 
   try {
+    if (p.get('resolve')) {
+      if (!examType || !subject) {
+        return NextResponse.json({ error: 'examType and subject are required' }, { status: 400 });
+      }
+      const parsed = parseYearLabel(p.get('yearLabel') ?? p.get('year'));
+      const pnMatch = (paperNum ?? '').match(/(\d+)/);
+      const tierRaw = (p.get('tier') ?? '').toUpperCase().charAt(0);
+      const sel: PaperSelection = {
+        year: parsed?.year ?? 0,
+        session: parsed?.session ?? 'June',
+        paperNumber: pnMatch ? parseInt(pnMatch[1]) : null,
+        tier: tierRaw === 'H' || tierRaw === 'F' ? tierRaw : null,
+        component,
+      };
+      const codeRe = parsed ? examCodePattern(sel) : null;
+
+      const cands = await sql`
+        SELECT p.id, p.year, p.subject, p.paper_number, p.component, p.total_questions,
+               s.n_rows, s.hits, s.other_hits, s.marks
+        FROM past_papers p
+        JOIN LATERAL (
+          SELECT count(*)::int AS n_rows,
+                 ${codeRe
+                   ? sql`count(*) FILTER (WHERE q.question_text ~* ${codeRe})::int AS hits,
+                         count(*) FILTER (WHERE q.question_text ~* ${ANY_EXAM_CODE_PATTERN}
+                                            AND NOT q.question_text ~* ${codeRe})::int AS other_hits,`
+                   : sql`0 AS hits,
+                         count(*) FILTER (WHERE q.question_text ~* ${ANY_EXAM_CODE_PATTERN})::int AS other_hits,`}
+                 -- same clamp as the practice page: >25 is a mis-parsed section total, 0/NULL counts as 1
+                 sum(CASE WHEN q.marks > 25 THEN 1 ELSE COALESCE(NULLIF(q.marks, 0), 1) END)::int AS marks
+          FROM questions q WHERE q.paper_id = p.id
+        ) s ON true
+        WHERE p.processed = true AND p.total_questions > 0
+          AND p.exam_type = ${examType}
+          AND p.subject = ANY(${dbSubjectsFor(subject)})
+          ${component ? sql`AND (p.component IS NULL OR p.component = ${component})` : sql``}
+      ` as unknown as PaperCandidate[];
+
+      const picked = pickPaper(cands, sel);
+      return NextResponse.json(
+        picked
+          ? {
+              paper: {
+                id: picked.paper.id, year: picked.paper.year, subject: picked.paper.subject,
+                paper_number: picked.paper.paper_number, component: picked.paper.component,
+                total_questions: picked.paper.n_rows, marks: picked.paper.marks,
+              },
+              match: picked.match,
+            }
+          : { paper: null, match: null },
+        { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+      );
+    }
+
     if (id) {
       // Single paper with questions — used when student opens a paper
       const papers = await sql`
@@ -60,7 +125,7 @@ export async function GET(req: NextRequest) {
       WHERE processed = true AND total_questions > 0
         ${country   ? sql`AND country      = ${country}`   : sql``}
         ${examType  ? sql`AND exam_type    = ${examType}`  : sql``}
-        ${subject   ? sql`AND subject      = ${subject}`   : sql``}
+        ${subject   ? sql`AND subject      = ANY(${dbSubjectsFor(subject)})` : sql``}
         ${component ? sql`AND component    = ${component}` : sql``}
         ${year      ? sql`AND year         = ${year}`      : sql``}
         ${paperNum  ? sql`AND paper_number = ${paperNum}`  : sql``}
