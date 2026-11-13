@@ -81,7 +81,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - `generate`, `generate-study-tools`, `topic-chat`, `topic-summary`, `revision-notes`
 - **Content:** `questions`, `past-papers` (list, `?resolve=1` lookup by subject/sitting/paper/tier, `?available=1` stored-paper codes), `mark-scheme` (official AQA mark scheme for a stored paper: JSON, `format=pdf` or `page=N` PNG), `paper-pdf` (auth-only PDF stream), `paper-page` (auth-only PNG of one page), `paper-pagecount`, `download-paper` (official board-URL proxy only — not Drive)
   - All of these except `download-paper` require sign-in and must send `Cache-Control: private` (never `public` / `s-maxage`, or the CDN serves signed-in content to anyone).
-  - `paper-pdf` is the only route allowed in an iframe (`X-Frame-Options: SAMEORIGIN` override in `next.config.ts`; everything else is `DENY`).
+  - `paper-pdf` and `mark-scheme` are the only routes allowed in an iframe (`X-Frame-Options: SAMEORIGIN` overrides in `next.config.ts`; everything else is `DENY`). Both also need the pdfjs worker in `outputFileTracingIncludes` if they render pages.
 - **Gamification:** `award-xp`, `save-result`, `achievements`, `leaderboard`, `marketplace`, `marketplace/equip`, `friends`, `game`, `quiz-history`
 - **Flashcards:** `flashcards/**`, `shared-flashcards/**` (including `clone`)
 - **Users:** `profile`, `user-subjects`, `parent-link`, `parent/[token]`
@@ -219,9 +219,9 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - teacher dashboard ("Set up your school")
   - **Past papers from the DB:** list API and practice matching (AQA Maths Paper 1 Higher and Foundation 2023 retested as Test Student)
   - **Original paper PDFs** (signed-in only): PDF stream, page images, the "Paper pages" thumbnail strip and the PDF Figures panel, checked 13 Nov as Test Student on AQA Maths Paper 1 Higher 2023 (56-page enlarged paper). Signed out, every paper route returns 401.
-- **Unconfigured:** Google Classroom, custom domain DNS (GoDaddy records are listed above, not yet applied).
   - The official mark scheme beside the answers and the "stored papers only" papers page (AQA, checked 13 Nov)
   - `/practice` (random questions from stored papers, including 11+), answer saving and the finish confirmation on the paper page, topic tick-boxes, online-game API create/read/update (all checked 13 Nov as Test Student).
+- **Unconfigured:** Google Classroom, custom domain DNS (GoDaddy records are listed above, not yet applied).
 - **Sign-in now required:** online games (`/api/game`) and the global leaderboard. Guests get a 401 with a "sign in" message.
 - **Not yet exercised on the new deployment:** marketplace, flashcards CRUD, assignments, parent link, a full two-player online game.
 
