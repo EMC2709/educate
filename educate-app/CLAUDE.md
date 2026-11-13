@@ -154,7 +154,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod --yes` from the local clone on Paul's laptop (`C:\Users\LAPTOP80\Projects\educate\educate-app`, linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
   - **Check the link first:** `.vercel/project.json` must say `"projectName":"educate"`. Paul's account also has a stale April project called `educate-app`; this clone was linked to it until 12 Nov. Re-link with `vercel link --yes --project educate` if needed. Never deploy to `educate-app`.
-- As of 13 Nov 07:30 GMT, GitHub `master` and the live site are in sync at `5bb361e` (deployment `dpl_9ZTLCBQeiCXmhC9ghRjC32RfVfC1`). Do not force-push. After any code change: commit, push, **and** deploy.
+- As of 13 Nov, GitHub `master` and the live site are in sync at `8a0fe2f` (deployment `dpl_FXT9BcBVjoZ1gundWnR7mECPWzQE`). Do not force-push. After any code change: commit, push, **and** deploy.
 - The old deployment `educate-app-zeta.vercel.app` (Ethan's original, different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
 - **Two Neon worlds:** Paul's project `shy-paper-14167641` is what educate-virid uses. Ethan's production papers live on `shiny-tooth-08089128` (via Ethan's Vercel `DATABASE_URL`), **not** in Neon org `org-curly-sound-07355255` (project `cool-snow-33977978` has no papers). Port 5432 often times out; use `@neondatabase/serverless` over HTTPS. Do not rotate the source DB password or copy PII.
 
@@ -196,6 +196,13 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
    - `/api/download-paper` has no auth and follows redirects (SSRF risk via an allowlisted host).
    - The same-subject fallback in `past-paper-match.ts` can pick a different tier or year (shown with a "closest available paper" notice).
    - Not tested on a real phone. Google Classroom OAuth vars are still unset.
+   - **13 Nov whole-app review** (security, practice flows, UI/UX): fixes are live in `ae16f2d` and `8a0fe2f`. The full open list, with measurements, is in the handover. The ones that shape new work:
+     - **Past papers are not marked.** Only 712 of 584,732 questions have a mark scheme (none for GCSE AQA), and `has_image` is false on every row. The paper page shows the student's answers and links the official mark scheme for an exact match.
+     - **The papers page offers years the database lacks.** AQA mostly has June 2020–2024; OCR never matches exactly; there are no Edexcel papers. A different paper of the same subject is served and labelled as such.
+     - **11+** is stored as exam type `11Plus_Practice` (187 usable papers) and is reachable only through `/practice`. The content is rough.
+     - The deterministic marker in `src/lib/mark-scheme.ts` over-awards; streaks are never recorded from quizzes; most subtopics in the topic picker have no questions.
+     - Security still open: teachers can add any user to a class by raw id, `api/friends` leaks account existence, class join codes are weak.
+   - Rules that came out of it: every route that spends AI money or writes to the DB needs `auth()` and `rateLimit`; never trust scores, XP or player ids from the client; never return Clerk user ids of other users.
 6. **New teachers must create a school** (organisation) at `/teacher` before they can create classes. Consider a smoother onboarding.
 7. **The privacy policy (`src/app/privacy/page.tsx`) says Supabase.** It should say Neon (EU/London), Clerk, Anthropic, Vercel and Google Drive (paper PDFs).
 8. **There are 56 hidden TypeScript errors** (`ignoreBuildErrors: true`). Fix them, then remove the flag.
@@ -213,7 +220,9 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - **Past papers from the DB:** list API and practice matching (AQA Maths Paper 1 Higher and Foundation 2023 retested as Test Student)
   - **Original paper PDFs** (signed-in only): PDF stream, page images, the "Paper pages" thumbnail strip and the PDF Figures panel, checked 13 Nov as Test Student on AQA Maths Paper 1 Higher 2023 (56-page enlarged paper). Signed out, every paper route returns 401.
 - **Unconfigured:** Google Classroom, custom domain DNS (GoDaddy records are listed above, not yet applied).
-- **Not yet exercised on the new deployment:** games, marketplace, flashcards CRUD, assignments, parent link.
+  - `/practice` (random questions from stored papers, including 11+), answer saving and the finish confirmation on the paper page, topic tick-boxes, online-game API create/read/update (all checked 13 Nov as Test Student).
+- **Sign-in now required:** online games (`/api/game`) and the global leaderboard. Guests get a 401 with a "sign in" message.
+- **Not yet exercised on the new deployment:** marketplace, flashcards CRUD, assignments, parent link, a full two-player online game.
 
 ## Test accounts (existing users in the Clerk dev instance; profile rows seeded in the new DB)
 - Test Teacher: `testteacher@yopmail.com` (role teacher)

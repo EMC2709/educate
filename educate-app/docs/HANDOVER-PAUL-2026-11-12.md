@@ -18,8 +18,11 @@ All of the 12 Nov "start here" steps are **done and verified live**:
 - The "Paper pages" thumbnail strip in the paper sheet works again.
 - Signed-out requests to every paper route return **401**. Auth-gated responses are no longer cacheable by the CDN.
 
-**Suggested next steps (none are blocking):**
+A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [13 Nov — whole-app review](#13-nov--whole-app-review-security-practice-flows-uiux). The biggest remaining product gap is that **past papers are not marked**: the database holds almost no mark schemes.
 
+**Suggested next steps:**
+
+0. Decide how past papers get marked, and stop offering years the database does not have (items 1 and 2 in the review's open list).
 1. GoDaddy DNS for `educatethemasses.online` (records below). Only do this when Paul says so.
 2. Dependency security upgrades (`@clerk/nextjs`, `next`). See [Standing product debt](#standing-product-debt-still-open).
 3. The leftover review findings in [Open items from the 13 Nov review](#open-items-from-the-13-nov-code-review). They are all medium or low.
@@ -44,7 +47,9 @@ All of the 12 Nov "start here" steps are **done and verified live**:
   | `5d15b5c` | Same-origin PDF stream (`/api/paper-pdf`), service-account support in `getDrive()` | Yes (12 Nov 18:08) |
   | `c4a8e3f` | `/api/paper-pdf` may be framed same-origin; auth-gated APIs `Cache-Control: private`; PDF iframe only mounts when the panel opens | Yes |
   | `9ca3673` | pdfjs worker shipped (`outputFileTracingIncludes`) and preloaded — fixes 500s on `paper-page` / `paper-pagecount` | Yes |
-  | `5bb361e` | PDF panel shows page images when `navigator.pdfViewerEnabled === false` | Yes — current deployment `dpl_9ZTLCBQeiCXmhC9ghRjC32RfVfC1` (13 Nov 07:30 GMT) |
+  | `5bb361e` | PDF panel shows page images when `navigator.pdfViewerEnabled === false` | Yes |
+  | `ae16f2d` | Security fixes from the whole-app review (game, XP, leaderboard, AI routes, download-paper) | Yes |
+  | `8a0fe2f` | Practice fixes (answers saved, honest results, `/practice`, phone layout) | Yes — current deployment `dpl_FXT9BcBVjoZ1gundWnR7mECPWzQE` (13 Nov) |
 
 - **Local leftovers on the laptop (not in git):**
   - `stash@{0}` holds a RuFlo template that had overwritten `educate-app/CLAUDE.md`. It is safe to drop.
@@ -207,6 +212,74 @@ All of the 12 Nov "start here" steps are **done and verified live**:
 
 - A real phone.
 - PDFs over 9 MB. The largest is 116 MB, and the whole file is buffered in memory.
+
+---
+
+## 13 Nov — whole-app review (security, practice flows, UI/UX)
+
+Four independent Fable reviewers read the whole app (two on security, one on student practice flows, one on UI/UX), and a live sweep tested 192 board / subject / paper / year combinations as Test Student. Every finding was checked against the code or the database before it was fixed.
+
+**Fixed and live** (commits `ae16f2d` security, `8a0fe2f` practice; deployment `dpl_FXT9BcBVjoZ1gundWnR7mECPWzQE`):
+
+- **Security**
+  - `/api/game` had no sign-in on any method and returned children's names and Clerk ids. It now needs sign-in, takes the player from the session, limits a started game to its two players and never returns Clerk ids.
+  - `/api/award-xp` and `/api/save-result` trusted any score from the client (one request could give unlimited XP or coins). Values are now bounded and rate limited.
+  - The global leaderboard needs sign-in and hides other players' ids.
+  - `POST /api/revision-notes` and the AI fallback in `/api/generate` could be called by anyone, spending the Anthropic key. Both now need sign-in and are rate limited. `topic-chat`, `chat`, `check` and `generate-study-tools` got size caps and rate limits.
+  - `/api/download-paper` only serves PDFs from this origin, re-checks the allowlist after redirects and times out after 8 s. Other pages open on the exam board's own site.
+- **Practice paper page**
+  - Answers are saved as the student types and restored after a refresh; the browser warns before leaving mid-paper.
+  - Finishing with blank questions asks first, and the answers view has "Back to my answers".
+  - The answers view no longer shows empty "model answer" boxes. It says there is no stored mark scheme and links the official one when the paper is an exact match.
+  - A substituted paper is labelled as a different paper, not as the year the student picked.
+  - Multi-part questions "(a) (b) (c)" were shown as multiple choice with no way to type. Detection is now uppercase A–D only, and any question can be switched to a text box.
+  - Phone layout: narrower gutters, sticky top bar, PDF panel sizing, page images on touch devices.
+- **Elsewhere**
+  - `/practice` never loaded a question (it read the wrong response shape). It works now and offers 11+.
+  - Topic tick-boxes toggled twice per tap, so nothing was selected.
+  - Diagnosis "Start Revision" linked to a 404.
+  - A failed marking request in the quiz was counted as a wrong answer.
+
+**What the data can and cannot do** (measured in Paul's database on 13 Nov):
+
+- **Mark schemes:** only 712 of 584,732 questions have one, and none of them are GCSE AQA. Past-paper practice is therefore self-checking against the official mark scheme; nothing is marked automatically.
+- **Figures:** `has_image` is false on every row. The paper page now guesses from the question wording.
+- **Matching** (192 combinations, years 2023 and 2019):
+  - AQA: 45 exact, 59 served a different paper of the same subject, 8 nothing.
+  - OCR: all 22 served a different paper (no footer codes).
+  - Edexcel: all 58 nothing — there are no Edexcel papers, so students get the built-in sample questions.
+- **AQA sittings stored:** mostly June 2020–2024. 2019 and earlier exist only for Mathematics, Chemistry, Physics, Combined Science and Statistics. English Language has one usable paper.
+- **Languages:** French, Spanish and German paper codes use letters (`8658/LH` for Listening Higher), so "Paper 1/2/3" never matches exactly.
+- **11+:** 380 papers and 3,183 questions under exam type `11Plus_Practice`; 187 papers are usable and 93 have ten or more questions. They are reachable through `/practice` now, but the content is rough: fragments, and some rows are text from answer booklets.
+
+**Still open, most important first:**
+
+*Practice*
+1. **Past papers are not marked.** Options: link each paper to its mark-scheme PDF (the 7,378 unprocessed `past_papers` rows are mark schemes and transcripts) and show it beside the answers, or mark with AI.
+2. **The papers page offers years the database does not have**, which serves a different paper. Offer only sittings that exist.
+3. Map language papers to their letter codes (Listening, Reading, Writing).
+4. No Edexcel papers.
+5. The deterministic marker over-awards (`src/lib/mark-scheme.ts`): typing just the last number of the model answer scores 80% or more on 620 of 653 questions worth 3+ marks. It is used for guests and when the AI call fails.
+6. 482 of 658 subtopics in the topic picker have no questions, so the quiz silently serves whole-subject questions. Mastery uses a generic template for 416 of 538 topics.
+7. Streaks and the daily goal never move from quizzes (`recordActivity()` is only called from flashcards and the timer; `api/achievements` hard-codes `streak: 0`).
+8. Diagnosis labels question *i* with topic *i*, so the "weak topics" are mostly wrong.
+9. Finishing a past paper saves no result and awards no XP.
+10. 11+ content quality (above). `src/data/exam-levels.ts` defines levels but nothing imports it.
+11. Paper totals are inflated because null marks count as 1 (84 shown for an 80-mark paper).
+
+*UI*
+12. The phone-layout changes were not checked on a real phone. Still open from the review: the drawing canvas is tiny on phones, the floating tutor button overlaps the mobile nav, small low-contrast text in places, "Practice" used as a verb, and a failed quiz load appears as a question.
+
+*Security*
+13. A teacher can add any user to their class by raw user id (`classes/[id]/members`), then see that child's name, email and activity. `assignments/[id]/progress` has no class-membership check. Needs the teacher role, which is admin-granted today.
+14. `api/friends`: `ILIKE` wildcards, an account-exists oracle by email, and it creates the target's profile.
+15. Class join codes are 6 characters from `Math.random` with no attempt limit.
+16. Classroom OAuth callback trusts `state` as the user id (dormant: Google OAuth is not configured).
+17. Raw `err.message` is returned at about 30 sites; `drive_file_id` still reaches the client; `parent/[token]` runs `ALTER TABLE` on every request; `public/sw.js` caches signed-in pages; no CSP except on `/api/paper-pdf`.
+18. The rate limiter is in-memory per server instance, so limits are approximate.
+19. Unverified: `parent/[token]` and `classes/performance` select `score_correct` / `score_total`, but `db/schema.sql` defines `score` / `total`. They may return 500.
+
+**Deliberate behaviour changes:** guests can no longer play online games or see the global leaderboard; both need sign-in now.
 
 ---
 
