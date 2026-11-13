@@ -42,6 +42,67 @@ export interface PaperSelection {
   paperNumber: number | null;   // 1, 2, 3 …
   tier: 'H' | 'F' | null;
   component: string | null;     // Biology / Chemistry / Physics (Combined Science)
+  /** AQA language papers are coded by skill letter, e.g. "8658/LH" = Listening Higher. */
+  paperLetter?: 'l' | 's' | 'r' | 'w' | null;
+}
+
+/** "Paper 1: Listening" → 'l'. Only language papers carry a skill name in their title. */
+export function paperLetterFromTitle(title: string | null | undefined): 'l' | 's' | 'r' | 'w' | null {
+  const t = (title ?? '').toLowerCase();
+  if (/\blistening\b/.test(t)) return 'l';
+  if (/\bspeaking\b/.test(t)) return 's';
+  if (/\breading\b/.test(t)) return 'r';
+  if (/\bwriting\b/.test(t)) return 'w';
+  return null;
+}
+
+// ── Exam codes as printed in paper footers ───────────────────────────────────
+
+/** A footer code such as "IB/M/Jun23/8300/1H" or "Jun23/8464/B/1H/E3", reduced to its parts. */
+export interface ExamCode {
+  sitting: 'jun' | 'nov';
+  yy: string;               // "23"
+  spec: string;             // "8300"
+  component: string | null; // "b" | "c" | "p" (Combined Science), else null
+  paper: string;            // "1h", "2", "1a", "11", "lh", "w"
+}
+
+/**
+ * Postgres regex (case-insensitive flag added by the caller) that captures a footer
+ * code, e.g. "jun23/8300/1h/e3". Used to list which papers are stored.
+ */
+export const EXAM_CODE_CAPTURE = '((?:jun|nov)[0-9]{2}/[0-9]{4}[a-z]?(?:/[a-z0-9]{1,3}){1,3})';
+
+/** Parse a captured footer code; returns null for noise such as inserts ("8463/ins"). */
+export function parseExamCode(raw: string | null | undefined): ExamCode | null {
+  const parts = (raw ?? '').toLowerCase().split('/').map(s => s.trim()).filter(Boolean);
+  const sit = parts[0]?.match(/^(jun|nov)(\d{2})$/);
+  if (!sit) return null;
+  const spec = parts[1];
+  if (!spec || !/^\d{4}[a-z]?$/.test(spec)) return null;
+  let i = 2;
+  let component: string | null = null;
+  // Combined Science: "8464/b/1h" — a single letter followed by a paper number
+  if (parts.length > 3 && /^[a-z]$/.test(parts[2]) && /^\d/.test(parts[3])) {
+    component = parts[2];
+    i = 3;
+  }
+  const paper = parts[i];
+  if (!paper || !/^(\d{1,2}[a-z]{0,2}|[a-z]{1,2})$/.test(paper)) return null;
+  return { sitting: sit[1] as 'jun' | 'nov', yy: sit[2], spec, component, paper };
+}
+
+/** Canonical form without version suffixes, e.g. "jun23/8464/b/1h". */
+export function formatExamCode(c: ExamCode): string {
+  return `${c.sitting}${c.yy}/${c.spec}/${c.component ? `${c.component}/` : ''}${c.paper}`;
+}
+
+/** True if any stored code (canonical form) is the paper described by `sel`. */
+export function isPaperStored(codes: readonly string[], sel: PaperSelection): boolean {
+  const pattern = examCodePattern(sel);
+  if (!pattern) return false;
+  const re = new RegExp(pattern, 'i');
+  return codes.some(c => re.test(c));
 }
 
 /** Parse the UI year label ("2023" or "Nov 2023") into year + sitting. */
@@ -58,14 +119,23 @@ export function parseYearLabel(label: string | null | undefined): { year: number
  * Returns null if there is not enough information for a precise code match.
  */
 export function examCodePattern(sel: PaperSelection): string | null {
-  if (!sel.paperNumber) return null;
+  if (!sel.paperNumber && !sel.paperLetter) return null;
   const sitting = sel.session === 'November' ? 'nov' : 'jun';
   const yy = String(sel.year).slice(2);
   const letter = sel.component ? COMPONENT_LETTER[sel.component] : undefined;
   const compPart = letter ? `${letter}/` : '([a-z]/)?';
+  // Language papers: skill letter + tier, e.g. "8658/lh"
+  if (sel.paperLetter) {
+    const tierPart = sel.tier ? sel.tier.toLowerCase() : '[fh]?';
+    return `${sitting}${yy}/[0-9]{4}[a-z]?/${compPart}${sel.paperLetter}${tierPart}([^a-z0-9]|$)`;
+  }
   // Untiered papers may carry a one-character suffix, e.g. History "8145/1A", RS "8062/11"
   const tierPart = sel.tier ? sel.tier.toLowerCase() : '[a-z0-9]?';
-  return `${sitting}${yy}/[0-9]{4}[a-z]?/${compPart}${sel.paperNumber}${tierPart}([^a-z0-9]|$)`;
+  // Subjects with a single written exam (Music, Drama, Food, D&T) code it as "W", not "1"
+  const paperPart = !sel.tier && sel.paperNumber === 1
+    ? `(1${tierPart}|w)`
+    : `${sel.paperNumber}${tierPart}`;
+  return `${sitting}${yy}/[0-9]{4}[a-z]?/${compPart}${paperPart}([^a-z0-9]|$)`;
 }
 
 /** Matches any AQA-style sitting/spec code, used to spot papers that belong to a different sitting. */

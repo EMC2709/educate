@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/paper-page': ['./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'],
     '/api/paper-pagecount': ['./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'],
+    '/api/mark-scheme': ['./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'],
   },
   async headers() {
     return [
@@ -29,6 +30,14 @@ const nextConfig: NextConfig = {
         // The paper page embeds this route in a same-origin iframe (PDF Figures panel).
         // Listed after the catch-all so it overrides X-Frame-Options: DENY for this path only.
         source: "/api/paper-pdf",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+        ],
+      },
+      {
+        // The answers view shows the official mark scheme beside the student's answers
+        source: "/api/mark-scheme",
         headers: [
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },

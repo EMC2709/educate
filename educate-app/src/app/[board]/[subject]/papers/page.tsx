@@ -8,6 +8,7 @@ import { PAST_PAPERS_INDEX, getYearPapers } from '@/data/past-papers-index';
 import type { PaperEntry, YearPaper } from '@/data/past-papers-index';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/Button';
+import { isPaperStored, paperLetterFromTitle, parseYearLabel } from '@/lib/past-paper-match';
 
 export default function PastPapersPage({ params }: { params: Promise<{ board: string; subject: string }> }) {
   const { board: boardName, subject: rawSubject } = use(params);
@@ -44,6 +45,36 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
   }, [activePaper, tier, officialUrl]);
 
   const [selectedYear, setSelectedYear] = useState<string>('');
+  const activeTier = activePaper?.tiered ? tier : null;
+  // Language papers are coded by skill letter ("Paper 1: Listening" → L)
+  const activePaperLetter = paperLetterFromTitle(activePaper?.title);
+
+  // Which papers of this subject Educate actually stores (null = unknown, e.g. signed out)
+  const [storedCodes, setStoredCodes] = useState<string[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setStoredCodes(null);
+    const q = new URLSearchParams({ available: '1', examType: `GCSE_${boardName}`, subject });
+    fetch(`/api/past-papers?${q}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then((d: { codes?: string[] } | null) => { if (!cancelled && Array.isArray(d?.codes)) setStoredCodes(d.codes); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [boardName, subject]);
+
+  const isOnEducate = (yearLabel: string): boolean => {
+    if (!storedCodes || !activePaper) return false;
+    const parsed = parseYearLabel(yearLabel);
+    if (!parsed) return false;
+    return isPaperStored(storedCodes, {
+      year: parsed.year,
+      session: parsed.session,
+      paperNumber: activePaper.number,
+      tier: activeTier,
+      component: activePaper.component ?? null,
+      paperLetter: activePaperLetter,
+    });
+  };
 
   // Reset selected year when paper/tier/component changes
   const selectedYearPaper = useMemo(() => {
@@ -53,13 +84,21 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
     return yearPapers[0];
   }, [yearPapers, selectedYear]);
 
+  // With nothing chosen yet, start on the newest paper Educate has
+  useEffect(() => {
+    if (selectedYear || !storedCodes) return;
+    const firstStored = yearPapers.find(yp => isOnEducate(yp.year));
+    if (firstStored) setSelectedYear(firstStored.year);
+    // isOnEducate only depends on values already listed here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedCodes, yearPapers, selectedYear]);
+
   const currentYear = selectedYearPaper?.year ?? '';
 
   // DB paper lookup — resolve the exact paper (subject + sitting + paper number + tier + component)
   // so the practice page loads that paper, never another subject's paper from the same year.
   type DbPaper = { id: string; total_questions: number; marks: number | null };
   type DbMatch = { paper: DbPaper | null; match: 'exact' | 'metadata' | 'subject' | null };
-  const activeTier = activePaper?.tiered ? tier : null;
   const [dbMatch, setDbMatch] = useState<DbMatch | null>(null);
   useEffect(() => {
     setDbMatch(null);
@@ -73,15 +112,42 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
     });
     if (activeTier) params.set('tier', activeTier);
     if (activePaper.component) params.set('component', activePaper.component);
+    if (activePaperLetter) params.set('paperLetter', activePaperLetter);
     let cancelled = false;
     fetch(`/api/past-papers?${params}`)
       .then(r => r.ok ? r.json() : null)
       .then((data: DbMatch | null) => { if (!cancelled && data) setDbMatch(data); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [boardName, subject, activePaper, activeTier, currentYear]);
+  }, [boardName, subject, activePaper, activeTier, activePaperLetter, currentYear]);
 
   const dbPaperForYear = dbMatch?.paper ?? null;
+  // Is the paper the student picked on Educate? (unknown while signed out)
+  const exactOnEducate = dbMatch?.match === 'exact' || dbMatch?.match === 'metadata'
+    || (storedCodes !== null && isOnEducate(currentYear));
+  const notOnEducate = storedCodes !== null && !exactOnEducate;
+
+  function startPractice(paperId: string | null, match: DbMatch['match']) {
+    try {
+      sessionStorage.setItem('educate-paper-info', JSON.stringify({
+        paperTitle: activePaper?.title ?? `Paper ${activeTab}`,
+        year: currentYear,
+        tier: activePaper?.tiered ? (tier === 'H' ? 'Higher' : 'Foundation') : '',
+        duration: activePaper?.duration ?? '1 hour 45 minutes',
+        totalMarks: activePaper?.marks ?? 0,
+        component: activePaper?.component ?? null,
+        paperNumber: `Paper ${activeTab}`,
+        paperLetter: activePaperLetter,
+        board: boardName,
+        // Pass direct DB paper ID so the practice page doesn't have to guess
+        paperId,
+        paperMatch: match,
+        // The board's own past-papers page, for when no mark scheme can be shown
+        officialUrl: officialUrl ?? null,
+      }));
+    } catch {}
+    window.location.href = `/${boardName}/${encodeURIComponent(subject)}/paper`;
+  }
 
   const tabColors: Record<1 | 2 | 3, string> = {
     1: '#6366f1',
@@ -138,7 +204,7 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                   onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
                   onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
                 >
-                  &#9997; Practice Past Paper Questions on Educate
+                  &#9997; Practise Past Paper Questions on Educate
                 </button>
               </div>
             ) : (
@@ -245,21 +311,35 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                       <div className="mb-5">
                         <label className="text-neutral-400 text-xs font-semibold mb-2 block">Select Year</label>
                         <div className="flex flex-wrap gap-2">
-                          {yearPapers.map(yp => (
-                            <button
-                              key={yp.year}
-                              onClick={() => setSelectedYear(yp.year)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 border-2"
-                              style={
-                                currentYear === yp.year
-                                  ? { borderColor: color, backgroundColor: `${color}22`, color }
-                                  : { borderColor: '#2a2a2a', backgroundColor: 'transparent', color: '#6b7280' }
-                              }
-                            >
-                              {yp.year}
-                            </button>
-                          ))}
+                          {yearPapers.map(yp => {
+                            const stored = isOnEducate(yp.year);
+                            return (
+                              <button
+                                key={yp.year}
+                                onClick={() => setSelectedYear(yp.year)}
+                                aria-pressed={currentYear === yp.year}
+                                aria-label={`${yp.year}${storedCodes ? (stored ? ', can be practised on Educate' : ', download only') : ''}`}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 border-2 inline-flex items-center gap-1.5"
+                                style={
+                                  currentYear === yp.year
+                                    ? { borderColor: color, backgroundColor: `${color}22`, color }
+                                    : { borderColor: '#2a2a2a', backgroundColor: 'transparent', color: stored || !storedCodes ? '#a3a3a3' : '#6b7280' }
+                                }
+                              >
+                                {stored && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />}
+                                {yp.year}
+                              </button>
+                            );
+                          })}
                         </div>
+                        {storedCodes && (
+                          <p className="text-xs text-neutral-400 mt-2 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" aria-hidden="true" />
+                            {yearPapers.some(yp => isOnEducate(yp.year))
+                              ? 'You can practise these papers on Educate. The others can be downloaded.'
+                              : 'None of these papers are on Educate yet — you can still download them.'}
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -298,44 +378,45 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                           </a>
                         </div>
 
-                        {/* What will load on Educate for this selection (from the database) */}
-                        {dbPaperForYear && (
-                          <p className="text-xs text-neutral-500 text-center">
-                            On Educate: {dbPaperForYear.total_questions} questions
-                            {dbPaperForYear.marks ? ` · ${dbPaperForYear.marks} marks` : ''}
-                            {dbMatch?.match === 'subject' ? ' · this exact paper is not on Educate yet, so a different paper will open' : ''}
-                          </p>
-                        )}
+                        {notOnEducate ? (
+                          // This paper is not stored: say so, and offer another paper of the same subject
+                          <div className="rounded-xl border border-neutral-700 bg-neutral-800/60 px-4 py-3 text-center">
+                            <p className="text-sm text-neutral-200 m-0">
+                              The {currentYear} {activePaper.title.replace(/:.*$/, '')} isn&apos;t on Educate yet.
+                              Use the buttons above to get it from {boardName}.
+                            </p>
+                            {dbMatch?.match === 'subject' && dbPaperForYear && (
+                              <button
+                                onClick={() => startPractice(dbPaperForYear.id, 'subject')}
+                                className="mt-3 w-full py-2.5 rounded-lg text-sm font-semibold border-2 bg-transparent cursor-pointer transition-colors"
+                                style={{ borderColor: color, color }}
+                              >
+                                Practise a different {subject} paper instead
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            {/* What will load on Educate for this selection (from the database) */}
+                            {dbPaperForYear && dbMatch?.match !== 'subject' && (
+                              <p className="text-xs text-neutral-400 text-center">
+                                On Educate: {dbPaperForYear.total_questions} questions
+                                {dbPaperForYear.marks ? ` · ${dbPaperForYear.marks} marks` : ''}
+                              </p>
+                            )}
 
-                        {/* Practice on Educate — full exam paper mode */}
-                        <button
-                          onClick={() => {
-                            try {
-                              sessionStorage.setItem('educate-paper-info', JSON.stringify({
-                                paperTitle: activePaper?.title ?? `Paper ${activeTab}`,
-                                year: currentYear,
-                                tier: activePaper?.tiered ? (tier === 'H' ? 'Higher' : 'Foundation') : '',
-                                duration: activePaper?.duration ?? '1 hour 45 minutes',
-                                totalMarks: activePaper?.marks ?? 0,
-                                component: activePaper?.component ?? null,
-                                paperNumber: `Paper ${activeTab}`,
-                                board: boardName,
-                                // Pass direct DB paper ID so the practice page doesn't have to guess
-                                paperId: dbPaperForYear?.id ?? null,
-                                paperMatch: dbMatch?.match ?? null,
-                                // Official mark scheme for this exact sitting (used on the answers view)
-                                msUrl: selectedYearPaper?.msUrl ?? null,
-                              }));
-                            } catch {}
-                            window.location.href = `/${boardName}/${encodeURIComponent(subject)}/paper`;
-                          }}
-                          className="w-full py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 border-none cursor-pointer"
-                          style={{ backgroundColor: color, color: '#fff' }}
-                          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-                          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-                        >
-                          &#9997; Practice on Educate
-                        </button>
+                            {/* Practise on Educate — full exam paper mode */}
+                            <button
+                              onClick={() => startPractice(dbPaperForYear?.id ?? null, dbMatch?.match ?? null)}
+                              className="w-full py-3 rounded-xl text-center font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 border-none cursor-pointer"
+                              style={{ backgroundColor: color, color: '#fff' }}
+                              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                            >
+                              &#9997; Practise on Educate
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

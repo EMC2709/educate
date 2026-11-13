@@ -8,6 +8,7 @@ import { PAST_PAPER_BANK } from '@/data/past-paper-bank';
 import type { Question } from '@/types';
 import { MessageContent } from '@/components/ui/MessageContent';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
+import { MarkSchemePanel, useMarkScheme } from '@/components/papers/MarkSchemePanel';
 
 interface PaperInfo {
   paperTitle: string;
@@ -544,7 +545,9 @@ export default function ExamPaperPage({
     if (detected === 'drawing' && a && !a.startsWith('data:')) return 'written';
     return detected;
   };
-  const [msUrl, setMsUrl] = useState<string | null>(null);
+  // The board's own past-papers page (fallback when no mark scheme can be shown here)
+  const [boardPapersUrl, setBoardPapersUrl] = useState<string | null>(null);
+  const [msOpen, setMsOpen] = useState<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -564,8 +567,9 @@ export default function ExamPaperPage({
           board: info.board ?? boardName,
         }));
 
-        const storedMs = (info as { msUrl?: unknown }).msUrl;
-        setMsUrl(typeof storedMs === 'string' && storedMs.startsWith('https://') ? storedMs : null);
+        const extra = info as { officialUrl?: unknown; paperLetter?: unknown };
+        setBoardPapersUrl(typeof extra.officialUrl === 'string' && extra.officialUrl.startsWith('https://') ? extra.officialUrl : null);
+        const paperLetter = typeof extra.paperLetter === 'string' ? extra.paperLetter : null;
 
         const gcseType = `GCSE_${info.board ?? boardName}`;
         const year      = info.year ?? '';
@@ -610,6 +614,7 @@ export default function ExamPaperPage({
           if (paperNum) params.set('paperNumber', paperNum);
           if (info.tier) params.set('tier', info.tier);
           if (component) params.set('component', component);
+          if (paperLetter) params.set('paperLetter', paperLetter);
           const data = await fetch(`/api/past-papers?${params}`)
             .then(r => { if (r.status === 401) setNeedsSignIn(true); return r.ok ? r.json() : null; }) as { paper?: { id: string } | null; match?: Match } | null;
           setPaperMatch(data?.match ?? null);
@@ -734,12 +739,17 @@ export default function ExamPaperPage({
     else setMode('results');
   }
 
-  // Mark schemes: most database papers have none stored, so say so plainly and
-  // point to the official one when this is exactly the paper the student chose.
+  // Mark schemes: stored papers have almost no per-question mark scheme, so the answers
+  // view shows the official mark scheme for the paper's own exam code beside the answers.
+  // (Worked out from the paper itself, so it also fits a substituted paper.)
   const hasModelAnswers = questions.some(q => q.answer.trim().length > 0);
-  const officialMsHref = !hasModelAnswers && msUrl && paperMatch === 'exact'
-    ? `/api/download-paper?url=${encodeURIComponent(msUrl)}`
-    : null;
+  const markScheme = useMarkScheme(paperDbId, mode === 'results' && usingDbPaper && !hasModelAnswers);
+  useEffect(() => {
+    // Open it straight away on wide screens; phones get a button
+    if (markScheme.status === 'ready' && typeof window.matchMedia === 'function'
+      && window.matchMedia('(min-width: 768px)').matches) setMsOpen(true);
+  }, [markScheme.status]);
+  useEffect(() => { if (mode !== 'results') setMsOpen(false); }, [mode]);
   // When the chosen paper is not on Educate, a different paper of the same subject is used
   const isSubstitutePaper = usingDbPaper && paperMatch === 'subject';
 
@@ -1304,10 +1314,11 @@ export default function ExamPaperPage({
   }
 
   // ── RESULTS ────────────────────────────────────────────────────────────────
+  const msReady = markScheme.status === 'ready' && !!paperDbId;
   return (
     <div className="flex min-h-screen bg-neutral-950">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto pb-20 md:pb-8">
+      <div className={`flex-1 min-w-0 pb-20 md:pb-8 transition-all duration-300 ${msOpen && msReady ? 'md:mr-[45vw]' : ''}`}>
 
         {/* Results banner */}
         <div className="bg-neutral-950 border-b border-neutral-800 px-4 sm:px-6 py-6">
@@ -1332,6 +1343,14 @@ export default function ExamPaperPage({
                 <p className="text-lg font-bold text-white">{getTimeSince()}</p>
               </div>
             </div>
+            {msReady && (
+              <button
+                onClick={() => setMsOpen(o => !o)}
+                className="mt-5 px-5 py-3 rounded-xl text-sm font-bold text-white bg-indigo-500 hover:bg-indigo-400 border-none cursor-pointer transition-colors"
+              >
+                {msOpen ? 'Hide mark scheme' : '📋 Show the official mark scheme'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -1345,24 +1364,39 @@ export default function ExamPaperPage({
                   {subject}{paperInfo.component ? ` — ${paperInfo.component}` : ''} · {paperInfo.paperTitle}
                 </p>
                 <p className="text-xs text-gray-600 mt-0.5">
-                  {hasModelAnswers ? 'Model answers — for self-marking only' : 'Your answers — Educate has no mark scheme stored for this paper yet'}
+                  {hasModelAnswers
+                    ? 'Model answers — for self-marking only'
+                    : msReady
+                      ? 'Your answers — mark them against the official mark scheme'
+                      : 'Your answers'}
                 </p>
-                {!hasModelAnswers && (officialMsHref ? (
-                  <a
-                    href={officialMsHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block mt-2 text-sm font-bold text-indigo-700 hover:text-indigo-900 underline"
+                {!hasModelAnswers && msReady && (
+                  <button
+                    onClick={() => setMsOpen(true)}
+                    className="mt-2 text-sm font-bold text-indigo-700 hover:text-indigo-900 underline bg-transparent border-none cursor-pointer p-0"
                   >
-                    Open the official mark scheme ↗
-                  </a>
-                ) : (
+                    {msOpen ? 'The mark scheme is open beside your answers' : 'Open the official mark scheme'}
+                  </button>
+                )}
+                {!hasModelAnswers && !msReady && (
                   <p className="text-xs text-gray-600 mt-2">
-                    {isSubstitutePaper
-                      ? 'These questions are from a different paper than the one you picked, so its mark scheme will not match. Ask your teacher to check your answers.'
-                      : 'Check your answers with your teacher or against the mark scheme on the exam board’s website.'}
+                    {markScheme.status === 'loading'
+                      ? 'Looking for the official mark scheme…'
+                      : (
+                        <>
+                          The exam board has not published this paper&apos;s mark scheme where Educate can show it.
+                          {' '}Ask your teacher to check your answers
+                          {boardPapersUrl ? (
+                            <>, or look on the{' '}
+                              <a href={boardPapersUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-700 underline">
+                                {boardName} website ↗
+                              </a>
+                            </>
+                          ) : null}.
+                        </>
+                      )}
                   </p>
-                ))}
+                )}
               </div>
               <p className="text-xs font-bold uppercase text-gray-500">{hasModelAnswers ? 'Marked copy' : 'Your answers'}</p>
             </div>
@@ -1526,6 +1560,15 @@ export default function ExamPaperPage({
           </div>
         </div>
       </div>
+      {msReady && (
+        <MarkSchemePanel
+          paperId={paperDbId!}
+          pageCount={markScheme.pageCount}
+          inlinePdf={inlinePdf}
+          open={msOpen}
+          onClose={() => setMsOpen(false)}
+        />
+      )}
       <MobileNav />
     </div>
   );

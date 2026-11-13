@@ -3,8 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import {
   dbSubjectsFor, parseYearLabel, examCodePattern, pickPaper, ANY_EXAM_CODE_PATTERN,
+  EXAM_CODE_CAPTURE, parseExamCode, formatExamCode,
   type PaperCandidate, type PaperSelection,
 } from '@/lib/past-paper-match';
+
+// Stored-paper codes per board + subject (scanning question text takes a second or two)
+const availableCache = new Map<string, { codes: string[]; at: number }>();
+const AVAILABLE_CACHE_MS = 15 * 60 * 1000;
 
 /**
  * GET /api/past-papers
@@ -15,8 +20,11 @@ import {
  * Single paper + its questions:
  *   ?id=<uuid>
  *
+ * Which papers of a subject are stored (canonical exam codes, e.g. "jun23/8300/1h"):
+ *   ?available=1&examType=GCSE_AQA&subject=Mathematics  → { codes: string[] }
+ *
  * Resolve the paper a student picked (subject-locked, never cross-subject):
- *   ?resolve=1&examType=GCSE_AQA&subject=Mathematics&yearLabel=2023&paperNumber=1&tier=H[&component=Biology]
+ *   ?resolve=1&examType=GCSE_AQA&subject=Mathematics&yearLabel=2023&paperNumber=1&tier=H[&component=Biology][&paperLetter=l]
  *   yearLabel is "2023" (June) or "Nov 2023". Returns { paper, match } where match is
  *   'exact' | 'metadata' | 'subject' (see lib/past-paper-match.ts) or paper: null.
  *
@@ -37,10 +45,38 @@ export async function GET(req: NextRequest) {
   const component = p.get('component') || null;  // Biology, Chemistry, Physics (for Combined Science)
   const year      = p.get('year')      ? parseInt(p.get('year')!) : null;
   const paperNum  = p.get('paperNumber') || null;
-  const limit     = Math.min(parseInt(p.get('limit')  ?? '20'), 100);
-  const offset    = parseInt(p.get('offset') ?? '0');
+  const limit     = Math.min(Math.max(parseInt(p.get('limit')  ?? '20', 10) || 20, 1), 100);
+  const offset    = Math.max(parseInt(p.get('offset') ?? '0', 10) || 0, 0);
+  const letterRaw = (p.get('paperLetter') ?? '').toLowerCase();
+  const paperLetter = letterRaw === 'l' || letterRaw === 's' || letterRaw === 'r' || letterRaw === 'w' ? letterRaw : null;
 
   try {
+    if (p.get('available')) {
+      // Which sittings/papers of this subject are stored, as canonical exam codes
+      // (e.g. "jun23/8300/1h"). The papers page uses this to offer only papers Educate has.
+      if (!examType || !subject) {
+        return NextResponse.json({ error: 'examType and subject are required' }, { status: 400 });
+      }
+      const key = `${examType}|${subject}`;
+      const hit = availableCache.get(key);
+      if (hit && Date.now() - hit.at < AVAILABLE_CACHE_MS) {
+        return NextResponse.json({ codes: hit.codes }, { headers: { 'Cache-Control': 'private, max-age=600' } });
+      }
+      const rows = await sql`
+        SELECT DISTINCT lower(m[1]) AS code
+        FROM past_papers p
+        JOIN questions q ON q.paper_id = p.id
+        CROSS JOIN LATERAL regexp_matches(q.question_text, ${EXAM_CODE_CAPTURE}, 'gi') AS m
+        WHERE p.processed = true AND p.total_questions > 0
+          AND p.exam_type = ${examType}
+          AND p.subject = ANY(${dbSubjectsFor(subject)})
+      ` as unknown as Array<{ code: string }>;
+      const codes = [...new Set(rows.map(r => parseExamCode(r.code)).filter(c => c !== null).map(formatExamCode))].sort();
+      if (availableCache.size > 500) availableCache.clear();
+      availableCache.set(key, { codes, at: Date.now() });
+      return NextResponse.json({ codes }, { headers: { 'Cache-Control': 'private, max-age=600' } });
+    }
+
     if (p.get('resolve')) {
       if (!examType || !subject) {
         return NextResponse.json({ error: 'examType and subject are required' }, { status: 400 });
@@ -54,6 +90,7 @@ export async function GET(req: NextRequest) {
         paperNumber: pnMatch ? parseInt(pnMatch[1]) : null,
         tier: tierRaw === 'H' || tierRaw === 'F' ? tierRaw : null,
         component,
+        paperLetter,
       };
       const codeRe = parsed ? examCodePattern(sel) : null;
 

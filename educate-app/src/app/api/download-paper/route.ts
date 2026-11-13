@@ -1,21 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Allowlist of domains we'll proxy past papers from
-const ALLOWED_DOMAINS = [
-  'physicsandmathstutor.com',
-  'pmt.physicsandmathstutor.com',
-  'aqa.org.uk',
-  'filestore.aqa.org.uk',
-  'qualifications.pearson.com',
-  'ocr.org.uk',
-  'wjec.co.uk',
-  'eduqas.co.uk',
-  'revisionworld.com',
-];
-
-function isAllowedHost(hostname: string): boolean {
-  return ALLOWED_DOMAINS.some(d => hostname === d || hostname.endsWith(`.${d}`));
-}
+import { allowedOfficialUrl, boardPastPapersPage } from '@/lib/official-pdf';
 
 /**
  * GET /api/download-paper?url=<official exam-board URL>
@@ -23,6 +7,7 @@ function isAllowedHost(hostname: string): boolean {
  * Opens an official past paper or mark scheme. Only PDFs are served from this
  * origin; anything else (for example a board's past-papers web page) is opened
  * on the board's own site, so third-party HTML never runs on Educate's origin.
+ * A dead PDF link sends the student to the board's past-papers page instead.
  */
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
@@ -31,14 +16,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
   }
 
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return NextResponse.json({ error: 'Invalid url' }, { status: 400 });
-  }
-
-  if (parsed.protocol !== 'https:' || !isAllowedHost(parsed.hostname)) {
+  const parsed = allowedOfficialUrl(url);
+  if (!parsed) {
     return NextResponse.json({ error: 'Domain not permitted' }, { status: 403 });
   }
 
@@ -54,20 +33,20 @@ export async function GET(req: NextRequest) {
     });
 
     // A redirect must not take us off the allowlist
-    let finalUrl: URL;
-    try {
-      finalUrl = new URL(upstream.url || parsed.toString());
-    } catch {
-      finalUrl = parsed;
-    }
-    if (finalUrl.protocol !== 'https:' || !isAllowedHost(finalUrl.hostname)) {
+    if (!allowedOfficialUrl(upstream.url || parsed.toString())) {
       void upstream.body?.cancel().catch(() => {});
       return NextResponse.json({ error: 'Domain not permitted' }, { status: 403 });
     }
 
+    if (upstream.status === 404 || upstream.status === 410) {
+      // The board has moved or removed this file: open its past-papers page instead
+      void upstream.body?.cancel().catch(() => {});
+      return NextResponse.redirect(boardPastPapersPage(parsed.hostname) ?? parsed.toString(), 302);
+    }
+
     const contentType = (upstream.headers.get('content-type') ?? '').toLowerCase();
     if (!upstream.ok || !contentType.includes('application/pdf')) {
-      // Not a PDF (or not found): send the student to the official page itself
+      // Not a PDF: send the student to the official page itself
       void upstream.body?.cancel().catch(() => {});
       return NextResponse.redirect(parsed.toString(), 302);
     }
