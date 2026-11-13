@@ -1,6 +1,6 @@
-# Educate — handover for Claude Code, 12 Nov 2026
+# Educate — handover for Claude Code (12–13 Nov 2026)
 
-> Written 12 Nov 2026, evening, Europe/London, so work can continue in Claude Code tonight.
+> First written 12 Nov 2026 (evening); **updated 13 Nov 2026, 07:40 Europe/London** after the PDF work was finished in Claude Code on Paul's Windows laptop.
 > Lasting architecture, conventions and the standing TODO list live in [`CLAUDE.md`](../CLAUDE.md) (updated the same day). Read both.
 > **Never put secret values (API keys, connection strings, passwords, OAuth tokens, service-account JSON) in this file, in `CLAUDE.md`, in git, or in chat.**
 
@@ -8,197 +8,273 @@ This is Paul's own copy of the UK GCSE revision app (GitHub `EMC2709/educate`). 
 
 ---
 
-## Start here tonight
+## Where things stand (13 Nov)
 
-The database and subject-matching are done and live. The remaining product gap is **original PDFs for signed-in students**. The code for that is on GitHub (`master`) but it is **not deployed**, and **Google credentials are not on Vercel**.
+All of the 12 Nov "start here" steps are **done and verified live**:
 
-Do this, in order:
+- Past papers are in Paul's DB, and practice matching is by subject, sitting, paper and tier.
+- **Original PDFs work for signed-in students.** A Google service account reads the private PAPERS folder server-side. `/api/paper-pdf` streams the PDF, and `/api/paper-page` renders page images.
+- The PDF Figures side panel shows the PDF. On browsers with no inline PDF viewer (Android Chrome, or Chrome with "Download PDFs" on) it shows page images instead.
+- The "Paper pages" thumbnail strip in the paper sheet works again.
+- Signed-out requests to every paper route return **401**. Auth-gated responses are no longer cacheable by the CDN.
 
-1. **Pull latest `master`** from [EMC2709/educate](https://github.com/EMC2709/educate) (`git pull origin master`). The three 12 Nov commits (`71590c2` matching, `5d15b5c` PDF stream, `41d6c91` these docs) were pushed at 17:35 Europe/London. A fresh clone of `master` already has them — no patch is needed.
-2. **Create a Google Cloud service account**, enable the Drive API, and download a JSON key. Sign in as **`paulmc18@gmail.com`**, not `emcwiliam27@gmail.com` (a Grok Bot attempt on 12 Nov stopped on Google's MFA page because the console was the wrong account; nothing was created and billing was not enabled). Do not enable billing and do not spend money. If Google demands a billing account, stop and tell Paul.
-3. **Share the PAPERS folder** with that service account as **Viewer** (Paul can do this; he is an editor). Do **not** set "anyone with the link" — these are official exam papers.
-4. **Add `GOOGLE_CREDENTIALS_JSON`** to Vercel (Production) as the full service-account JSON. You do **not** need `GOOGLE_TOKEN_JSON` for a service account. Then **redeploy** with `vercel deploy --prod` from `educate-app/`. A git push does **not** deploy.
-5. **Test** as Test Student: AQA Maths Paper 1 Higher 2023, open **PDF Figures**. The side panel should show the PDF, not a Google "You need access" page. A signed-out request to `/api/paper-pdf?id=…` must return 401.
+**Suggested next steps (none are blocking):**
 
-After that, only if there is time: GoDaddy DNS (records below), then optional items at the bottom.
+1. GoDaddy DNS for `educatethemasses.online` (records below). Only do this when Paul says so.
+2. Dependency security upgrades (`@clerk/nextjs`, `next`). See [Standing product debt](#standing-product-debt-still-open).
+3. The leftover review findings in [Open items from the 13 Nov review](#open-items-from-the-13-nov-code-review). They are all medium or low.
+4. `super_admin` for Paul: he signs up with his own account, then run the SQL in [Clerk](#clerk).
 
 ---
 
 ## Git
 
-- Repo: [EMC2709/educate](https://github.com/EMC2709/educate), branch `master`.
-- Local clone used for this work: `/workspace/educate-deploy` (on the Grok Bot computer). Vercel project is linked via `educate-app/.vercel/` (gitignored). **The Vercel project is not GitHub-linked:** `git push` does not deploy. Deploy with `vercel deploy --prod` from `educate-app/`, signed in as Paul (`paulmc18-4680` / `paulmc18@gmail.com`). Do **not** use or overwrite `/home/box/.vercel-ethan` (Ethan's isolated CLI).
-- **`master` on GitHub is up to date** as of 12 Nov 2026, 17:35 Europe/London (`git push origin master`, `b345bec..41d6c91`). Pull it; do not apply an old patch, and **do not force-push**. Pushing still does **not** deploy educate-virid.
+- Repo: [EMC2709/educate](https://github.com/EMC2709/educate), branch `master`. **Do not force-push.**
+- **Deploy machine is now Paul's Windows laptop.**
+  - Clone: `C:\Users\LAPTOP80\Projects\educate`. Vercel CLI signed in as `paulmc18-4680`.
+  - `educate-app/.vercel/` is gitignored and is linked to the **`educate`** project (`prj_u7ixZfKMTW7uA98SFTUbmGlDhrcd`).
+  - Until 12 Nov it was linked to an old April project called **`educate-app`** (`prj_TZsh…`, last deployed 210 days ago). Check `.vercel/project.json` says `"projectName":"educate"` before any deploy.
+  - The old Grok Bot clone `/workspace/educate-deploy` is no longer needed.
+- **The Vercel project is not GitHub-linked:** `git push` does **not** deploy. Deploy with `vercel deploy --prod --yes` from `educate-app/`.
+- `master` and what's live are in sync as of 13 Nov 07:30:
 
-  | Commit | What it does | On GitHub? | On educate-virid? |
-  |---|---|---|---|
-  | `71590c2` | Practice paper matching by subject + sitting + paper + tier | Yes | **Yes** — deployed 12 Nov 17:04 GMT, id `dpl_AD3SRkCzd1YjaT4BC7KQTws7bxmM` |
-  | `5d15b5c` | Same-origin PDF stream (`/api/paper-pdf`), service-account support in `getDrive()`, Drive iframe removed | Yes | **No** — not deployed, needs credentials first |
-  | `41d6c91` | This handover, plus `CLAUDE.md` / README updates | Yes | n/a (docs only) |
+  | Commit | What it does | Live on educate-virid? |
+  |---|---|---|
+  | `71590c2` | Practice paper matching by subject + sitting + paper + tier | Yes |
+  | `5d15b5c` | Same-origin PDF stream (`/api/paper-pdf`), service-account support in `getDrive()` | Yes (12 Nov 18:08) |
+  | `c4a8e3f` | `/api/paper-pdf` may be framed same-origin; auth-gated APIs `Cache-Control: private`; PDF iframe only mounts when the panel opens | Yes |
+  | `9ca3673` | pdfjs worker shipped (`outputFileTracingIncludes`) and preloaded — fixes 500s on `paper-page` / `paper-pagecount` | Yes |
+  | `5bb361e` | PDF panel shows page images when `navigator.pdfViewerEnabled === false` | Yes — current deployment `dpl_9ZTLCBQeiCXmhC9ghRjC32RfVfC1` (13 Nov 07:30 GMT) |
 
-- Earlier on `origin/master`: `65799e5` (removed `/api/debug-role`, added `db/schema.sql`), `ac3463c` (Anthropic model IDs), `b345bec` (docs).
+- **Local leftovers on the laptop (not in git):**
+  - `stash@{0}` holds a RuFlo template that had overwritten `educate-app/CLAUDE.md`. It is safe to drop.
+  - A dozen zero-byte junk files from a mangled shell command sit in the repo root and `educate-app/` (`{`, `s`, `14`, `$null`, …). Delete them by hand if you like; they are untracked.
 
 ---
 
-## Platforms — current state and what to change
+## Platforms — current state
 
 ### Vercel (Paul)
 
-- Team: "Paul McWilliam's projects". Project: `educate`. Framework Next.js, Node 22.x, function region `lhr1`. Root Directory is `.` because deploys are run from `educate-app/`. If the project is ever GitHub-linked, set Root Directory to `educate-app`.
+- Team "Paul McWilliam's projects", project **`educate`**.
+  - Next.js, Node 22.x, region `lhr1`.
+  - Root Directory `.`, because deploys run from `educate-app/`. If the project is ever GitHub-linked, set it to `educate-app`.
 - Live: https://educate-virid.vercel.app
-- Currently serving the matching-fix deployment (`dpl_AD3SRkCzd1YjaT4BC7KQTws7bxmM`).
-- **Env vars set:** `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED`, other Neon/Postgres vars from the Vercel–Neon integration, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_APP_URL` (intended production URL `https://educatethemasses.online`).
-- **Env vars not set (do next):** `GOOGLE_CREDENTIALS_JSON` (service-account JSON for PDF streaming), and later `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (Classroom, optional), `GOOGLE_TOKEN_JSON` (only if using user OAuth instead of a service account).
-- `GOOGLE_DRIVE_API_KEY` is **not read by the app**. Do not rely on it.
-- After adding `GOOGLE_CREDENTIALS_JSON`, you must **redeploy** for the var to take effect.
+- **Env vars (Production):**
+  - `DATABASE_URL`, `DATABASE_URL_UNPOOLED` and the other Neon vars
+  - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+  - `ANTHROPIC_API_KEY`
+  - `NEXT_PUBLIC_APP_URL`
+  - **`GOOGLE_CREDENTIALS_JSON`** — added 13 Nov, encrypted and marked *sensitive*, Production only. It holds the service-account JSON.
+- **Not set:**
+  - `GOOGLE_TOKEN_JSON` — not needed with a service account
+  - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Classroom OAuth, optional
+  - `GOOGLE_DRIVE_API_KEY` — not read by the app
+- Changing an env var needs a **redeploy** to take effect.
+- The old project `educate-app` also has `GOOGLE_*` vars of unknown origin. Don't copy them, and don't deploy to it.
 
 ### Neon (two different databases — do not confuse them)
 
-**A. Paul's database (the one educate-virid uses) — this is the destination.**
+**A. Paul's database (the one educate-virid uses).**
 
-- Project name `educate`, id `shy-paper-14167641`, AWS eu-west-2 (London), free 1 GB plan.
-- Provisioned via the Vercel Marketplace; manage it through Vercel's Neon integration.
-- **Content copy completed 12 Nov 2026 16:28 UTC (Europe/London)** from Ethan's production DB, verified equal:
-  - `past_papers`: 26,231
-  - `questions`: 584,732
-  - orphan questions: 0
-  - empty `question_text` (kept as `''`): 212
-  - destination size: **496 MB** (comfortable on 1 GB, but watch the limit)
-  - Student, teacher and other PII tables were **not** copied. `revision_notes` was empty and was not copied.
-- **Do not re-copy, do not truncate, do not rotate passwords.**
+- Project `educate`, id `shy-paper-14167641`, AWS eu-west-2 (London), free 1 GB plan, managed through Vercel's Neon integration.
+- Content copied 12 Nov 2026 from Ethan's production DB, verified equal:
+  - 26,231 `past_papers` and 584,732 `questions`
+  - 0 orphans
+  - 496 MB in total
+  - No PII tables were copied.
+- **Do not re-copy, truncate or rotate passwords.**
 
-**B. Ethan's production database (the source of the papers).**
+**B. Ethan's production database (the source of the papers).** This is Neon project `shiny-tooth-08089128`, reached via `DATABASE_URL` on Ethan's Vercel project for `educate-app-zeta`.
 
-- Neon project `shiny-tooth-08089128`, reached via the **DATABASE_URL on Ethan's Vercel project** for `educate-app-zeta` (team emc2709). It is **not** visible in the Neon console org "Educate" (`org-curly-sound-07355255`, project `cool-snow-33977978`). That org has no `past_papers` / `questions` tables.
-- **Do not reset or rotate** that database password. **Do not copy PII.** Do not point educate-virid at this database.
+- Do not reset or rotate its password.
+- Do not copy PII from it.
+- Do not point educate-virid at it.
 
-**How to query from this environment:** port 5432 (`psql` / `pg_dump`) times out (box DNS sends Neon hosts to a black hole on that port). Use `@neondatabase/serverless` over HTTPS, with the pooled `DATABASE_URL`. For DDL prefer `DATABASE_URL_UNPOOLED`. Connection strings live in `educate-app/.env.local` and `/home/box/.secrets/paul-database-url` — never print them.
+**Querying:** use `@neondatabase/serverless` over HTTPS, because port 5432 is often blocked.
+
+- To get a URL, run `vercel env pull --environment=production <file>` into a scratch folder.
+- Never print it, and delete the file afterwards.
+- Run Node scripts from inside `educate-app/`, so `@neondatabase/serverless` resolves.
 
 ### Google Drive
 
-- Folder **[PAPERS](https://drive.google.com/drive/folders/1wTYT4FwqFLTuTcY_nc-UJM7pla5PbvW9)** (`1wTYT4FwqFLTuTcY_nc-UJM7pla5PbvW9`).
-- This is the **same folder** every `past_papers.drive_file_id` already points at (all 26,231 rows have a file id).
-- Owner: `stuart.fosker@gmail.com`. Paul (`paulmc18@gmail.com`) is a **writer** (editor). Only those two accounts have access. The folder is private — that is why students see "You need access".
-- Structure: `England` (GCSE_AQA, GCSE_OCR, GCSE_Eduqas, A-Level boards, KS1–3, 11 Plus, …), `Northern_Ireland`, `Scotland`, `Wales`.
-- **What to do:** share this folder with the new service account email as **Viewer**. Inheritance should cover the files. Do **not** click "Request access" from a test session. Do **not** set "anyone with the link".
-- Paul's Google Drive connector is already connected in Grok Bot (as of 12 Nov) if you need to inspect or share from there. The `share_file` tool cannot set "anyone with the link"; a Viewer grant to a named service-account email is the right grant.
+- Folder **[PAPERS](https://drive.google.com/drive/folders/1wTYT4FwqFLTuTcY_nc-UJM7pla5PbvW9)** (`1wTYT4FwqFLTuTcY_nc-UJM7pla5PbvW9`). Every `past_papers.drive_file_id` points into it.
+- Owner `stuart.fosker@gmail.com`. Paul (`paulmc18@gmail.com`) is an editor.
+- **Shared 13 Nov with `educate-pdf-reader@educate-492818.iam.gserviceaccount.com` as Viewer**, with no notification. General access is still **Restricted**. Never set "anyone with the link".
+- The service account can see 26,795 PDFs. Their sizes:
+  - median 0.46 MB, 90th percentile 2.45 MB, 99th percentile 9.84 MB, largest 116 MB
+  - 967 are over 4.5 MB, 323 of them GCSE papers
+  - 5 MB and 9 MB papers stream fine through `/api/paper-pdf`; nothing above 9 MB has been tried
+- **Claude's Google Drive connector** (in the Claude app) is connected to a different Google account: it gets "not found" on PAPERS. Make sharing changes in Drive in Chrome as Paul.
 
-### Google Cloud (create tonight)
+### Google Cloud
 
-- No `gcloud` CLI and no `scripts/credentials.json` / `scripts/token.json` were on the box when this was written. A Grok Bot attempt to create the service account on 12 Nov **did not complete**: the Cloud Console was signed in as `emcwiliam27@gmail.com` (Ethan), stopped at `https://console.cloud.google.com/enable-mfa`, and created no project, service account, or key. Billing was not enabled. Resume as **`paulmc18@gmail.com`**.
-- Preferred setup: a **service account** (no user OAuth refresh tokens to expire).
-  1. In [Google Cloud Console](https://console.cloud.google.com/) as `paulmc18@gmail.com`, create a project (e.g. `educate-papers`). **Do not enable billing.**
-  2. Enable the **Google Drive API**.
-  3. Create a service account (e.g. `educate-pdf-reader`). No special project-wide IAM is required; it will only see files shared with its email.
-  4. Create a JSON key. Store it outside git, e.g. `/home/box/.secrets/educate-drive-sa.json`, chmod 600.
-  5. Share the PAPERS folder with the key's `client_email` as Viewer.
-  6. Set Vercel Production `GOOGLE_CREDENTIALS_JSON` to the file's entire JSON. `getDrive()` treats JSON with `type: "service_account"` (or `client_email` + `private_key`) as a service account and does not need `GOOGLE_TOKEN_JSON`. It also un-escapes literal `\n` in the private key.
-- Fallback: user OAuth (`scripts/auth-drive.ts`), which needs a Desktop OAuth client, `GOOGLE_CREDENTIALS_JSON` + `GOOGLE_TOKEN_JSON`. Prefer the service account.
+- Project **`educate`** (`educate-492818`), owned by `paulmc18@gmail.com`, no organisation.
+  - It already existed (created Jul 2026) and was reused.
+  - The Drive API was already enabled.
+  - **Billing was not touched.**
+- Service account **`educate-pdf-reader@educate-492818.iam.gserviceaccount.com`**:
+  - It has **no project IAM roles**, and sees only what is shared with it.
+  - One JSON key, created 13 Nov, key id starting `8bd8cf9a0d70`.
+  - The key file is stored outside git at `C:\Users\LAPTOP80\.secrets\educate-drive-sa.json`, and the same JSON is in Vercel.
+- **To revoke access:** delete the key under Cloud Console → IAM → Service accounts → `educate-pdf-reader` → Keys, or remove the service account from the PAPERS share.
+  - If the key is rotated, update `GOOGLE_CREDENTIALS_JSON` with `vercel env add GOOGLE_CREDENTIALS_JSON production --sensitive < keyfile` (remove the old value first) and redeploy.
+- **Cloud Console pitfall:** typing `/` anywhere in the console opens its search box and leaves the current form. Avoid slashes in descriptions.
 
 ### Clerk
 
-- Sign-in is at **`/login`**. `/sign-in` is a 404.
-- This is still the **original app's DEVELOPMENT instance** (`pk_test`). The "Development mode" badge shows; new-device sign-ins email a verification code. A production Clerk instance is a later task (CNAMEs at GoDaddy, `pk_live`/`sk_live`, own Google OAuth, users must be recreated).
-- Test Teacher: `testteacher@yopmail.com` (role `teacher`). Test Student: `teststudent11@yopmail.com` (role `student`, no org). Passwords are **not** in this file. They are in the seed script `scripts/seed-test-users.ts` (`findOrCreateUser`) and `/workspace/educate-test-accounts.txt`. **Ignore the script's console.log and comments that say `Test1234!` — that password is stale and wrong.** yopmail inboxes are public.
-- Roles live in `profiles.role`, not in Clerk. To grant Paul `super_admin`: he signs up, then `UPDATE profiles SET role = 'super_admin', updated_at = now() WHERE user_id = 'user_...';` in Paul's Neon. **Never restore `/api/debug-role`.**
+- Sign-in is at **`/login`** (`/sign-in` is a 404). It is still the original app's **development instance** (`pk_test`): there is a "Development mode" badge, and new-device sign-ins email a 6-digit code.
+- **Test Teacher:** `testteacher@yopmail.com`, role `teacher`.
+- **Test Student:** `teststudent11@yopmail.com`, role `student`, no org.
+- **Passwords:**
+  - They are not in this file.
+  - The Test Student password is the third argument to `findOrCreateUser` for the student in `scripts/seed-test-users.ts` (around line 126). Ignore the stale `Test1234!` in that script's comments.
+  - New-device codes go to the public yopmail inbox (yopmail.com, inbox `teststudent11`).
+  - Claude will not type these passwords or codes on the live site, so Paul has to sign in himself.
+- Roles live in `profiles.role`. To make Paul `super_admin`:
+  1. He signs in with Google as himself.
+  2. Find his `user_...` id.
+  3. Run `UPDATE profiles SET role = 'super_admin', updated_at = now() WHERE user_id = 'user_...';` in Paul's Neon.
+- **Never restore `/api/debug-role`.**
 
 ### GoDaddy (waiting on Paul)
 
-- Domain: `educatethemasses.online`, registered 11 Nov 2026. Attached and verified in Vercel. **DNS is still pending.** Do not change records except to add these:
-
+- `educatethemasses.online` is attached and verified in Vercel. **DNS is still pending.** Only add:
   - A `@` → `216.150.1.1` and `216.150.16.1`
   - CNAME `www` → `7696e975a7890719.vercel-dns-016.com`
 
-- `www` should then 308 to the apex. After DNS works, set Clerk production CNAMEs if/when moving off the dev instance.
-
-### GitHub
-
-- The 12 Nov commits are on `master` (see [Git](#git)). Repo homepage still mentions a dead URL (`educate-swart`). Optional cleanup.
-- Do not force-push. Do not commit env files or secrets.
-
 ### Anthropic
 
-- Already updated (commit `ac3463c`), live:
-  - Marking / generation / revision notes: `claude-haiku-4-5-20251001`
-  - Tutor / topic chat / study tools: `claude-sonnet-4-5-20250929`
-- `/api/check` falls back to deterministic marking if the AI call fails, so a bad model ID fails **silently**. Check logs.
+- Marking, generation and revision notes use `claude-haiku-4-5-20251001`.
+- Tutor, topic chat and study tools use `claude-sonnet-4-5-20250929`.
+- `/api/check` falls back silently if the AI call fails, so check the logs.
 
 ---
 
-## What was completed on 11–12 Nov 2026
+## What was done
 
 ### 11 Nov — Paul's copy stood up
 
-- Local clone patched: `/api/debug-role` removed, `db/schema.sql` added, Anthropic model IDs updated, docs refreshed.
-- Deployed to Vercel project `educate` as https://educate-virid.vercel.app. Clerk, Neon and Anthropic wired. Test Teacher and Test Student seeded (11 Nov 20:05 UTC). Past papers were empty at that point.
+- Removed `/api/debug-role`.
+- Added `db/schema.sql` and updated the Anthropic model IDs.
+- Deployed to Vercel project `educate`.
+- Seeded the test users.
 
-### 12 Nov — past-paper content
+### 12 Nov — past-paper content and matching
 
-- After signing in as Ethan on Vercel, the real source `DATABASE_URL` was used **read-only** to copy `past_papers` then `questions` into Paul's Neon over HTTPS (`@neondatabase/serverless`, batched `json_to_recordset`, `ON CONFLICT DO NOTHING`). PII was not copied.
-- Verification: counts equal, 0 orphans, 496 MB. Safe note: `/workspace/educate-content-copy-verify.txt`.
+- **Content:** copied read-only from Ethan's production DB into Paul's Neon, then verified (counts above).
+- **Matching bug:**
+  - Symptom: AQA Maths Paper 1 Higher 2023 served Combined Science.
+  - Cause: the papers page picked by year only, with no subject.
+  - Fix: commit `71590c2` (`src/lib/past-paper-match.ts`). It matches on the exam-code footer in the question text (e.g. `IB/M/Jun23/8300/1H`) and never crosses subjects. If there is no exact match, it falls back by year column, then to the same subject with an on-screen notice.
+- **Useful paper id:** AQA Maths 2023 Paper 1 Higher is `697178d1-067b-42c6-a51f-812b31176f94`.
+  - It has 37 questions and 84 marks.
+  - It is the **enlarged (modified) print** version, and its PDF has 56 pages.
+  - The standard version (`f96480cb…`) has only 26 question rows.
+- **Limits:**
+  - OCR, WJEC, Eduqas and some AQA subjects have no footer codes, so they use the same-subject fallback.
+  - There are no `GCSE_Edexcel` rows.
+- **PDF stream code:** commit `5d15b5c`. `/api/paper-pdf?id=<paperUuid>` checks Clerk auth, accepts UUIDs only, and looks up the Drive id server-side.
 
-### 12 Nov — practice subject-matching bug (fixed and live)
+### 12–13 Nov — PDFs made live (Claude Code)
 
-- **Symptom:** Test Student chose AQA Maths Paper 1 Higher 2023 and got Combined Science Trilogy mark-scheme text ("1 iron, steel, tin 1"). The intro said 25 questions / 110 marks (static index) but 14 questions / 15 marks loaded. The API itself was fine (100 AQA papers, including Maths 2023).
-- **Cause:** `/[board]/[subject]/papers` fetched `/api/past-papers?examType=GCSE_AQA&limit=100` with **no subject**, then picked a paper **by year only**. The first 2023 row was often Combined Science. Database columns cannot be relied on for matching: of 785 AQA Maths papers, 780 have a null year, and none store a paper number or tier (there is no tier column). Titles are often SHA-like hashes.
-- **Fix (commit `71590c2`, live):**
-  - New `src/lib/past-paper-match.ts` (+ `past-paper-match.test.ts`, 5 tests, passing).
-  - `/api/past-papers?resolve=1&examType&subject&yearLabel&paperNumber&tier&component` looks a paper up. The list `subject` filter accepts mapped UI names as well as DB names.
-  - The papers page shows "On Educate: N questions · M marks" for the bound paper and passes its id through sessionStorage.
-  - Practice uses the same lookup if no id is passed, and starts in a loading state so sample questions do not flash first. A notice is shown for a same-subject fallback.
-  - **Matching order (never across subjects):**
-    1. Subject-name aliases (e.g. Combined Science → Combined Science Trilogy; Business Studies → Business; Religious Studies → Religious Studies A; plus OCR A/B suites — see the source file).
-    2. Exact match on sitting (2023 = June, "Nov 2023" = November) + paper number + tier, using the exam code in question text, e.g. `IB/M/Jun23/8300/1H`. Combined Science also uses B/C/P for the component. Among matches, the complete paper with the most rows wins.
-    3. Year-column match, excluding papers whose footer code disagrees.
-    4. Same-subject fallback with an on-screen notice; otherwise the built-in sample questions.
-  - Intro question-count and marks now come from the bound DB paper. Duration still comes from the static index (the DB has none).
-- **Retest (passed):** AQA Maths Paper 1 Higher 2023 → 37 questions, 84 marks, real Maths ("Work out 0.7 × 0.5", "Sunita is x years old…", simultaneous equations). Foundation 2023 → 40 questions, 80 marks, still Maths. No Combined Science.
-- **Useful ids (AQA Maths 2023 P1 Higher, exact match):** `697178d1-067b-42c6-a51f-812b31176f94` (37 rows, 84 marks after clamp, footer `Jun23/8300/1H`). This is the **enlarged (modified) paper**; the standard version `f96480cb…` has only 26 rows so the more complete one was chosen. Older id `af765a74…` (title hash `089f8c92…`) claims 21 questions but has 0 rows and is never served. "Ashley picks three of the discs" is the **2017** paper, not 2023.
-- **Limits:** lookup scans question text (~0.4–1.6s, cached 5 minutes). Boards without these footer codes (OCR, WJEC, Eduqas, some AQA subjects such as English Language) fall back to same-subject with a notice. There are **no `GCSE_Edexcel` rows**. Some stored questions are badly parsed (pre-existing).
+1. Pulled `master`, which was a fast-forward. Found and fixed the stale `.vercel` link (see [Git](#git)).
+2. Set up Google Cloud: service account, Viewer share and key (see [Google Cloud](#google-cloud)). Before deploying, checked that the key can list the PAPERS folder.
+3. Added `GOOGLE_CREDENTIALS_JSON`, then deployed `5d15b5c`. Signed-out `/api/paper-pdf` → 401.
+4. **Independent code review** (a Fable reviewer on `b345bec..2419dd7`). Each claim was checked against the code before anything was fixed. Fixed in `c4a8e3f`:
+   - `next.config.ts` sent `X-Frame-Options: DENY` on every route, which **blocked the PDF iframe**. `/api/paper-pdf` now gets `SAMEORIGIN` + `frame-ancestors 'self'` instead.
+   - `paper-page`, `paper-pagecount`, `past-papers` and `questions` sent `Cache-Control: public` / `s-maxage`. The CDN could then serve a signed-in response to signed-out visitors. All four now send **`private`**.
+   - The PDF iframe mounted, and downloaded the whole PDF, even with the panel closed. It now mounts only when the panel opens.
+5. **Signed-in test as Test Student** (Paul signed in) found that `paper-page` and `paper-pagecount` had **always 500'd in production**, with `Cannot find module …/pdfjs-dist/legacy/build/pdf.worker.mjs`. Vercel's file tracing never shipped the worker. Fixed in `9ca3673`:
+   - `outputFileTracingIncludes` now ships the worker with both routes.
+   - `pdf-render.ts` preloads it into `globalThis.pdfjsWorker`.
+6. **Page-image fallback** (`5bb361e`): Chrome with "Download PDFs" on (as on Paul's laptop), and Android Chrome, show only an "Open" placeholder for PDFs in an iframe. When `navigator.pdfViewerEnabled === false`, the panel now lists lazily loaded page images instead.
 
-### 12 Nov — PDF stream (coded, not live)
+**Verified live, signed in as Test Student** (Paul's Chrome, which has the PDF viewer off):
 
-- Commit `5d15b5c`. Files:
-  - `src/lib/drive.ts` — service account **or** OAuth.
-  - `src/app/api/paper-pdf/route.ts` — `GET /api/paper-pdf?id=<paperUuid>`: Clerk auth, UUID only, looks up `drive_file_id` from `past_papers` (**never** accepts a raw Drive file id from the client), streams `application/pdf` inline, `Cache-Control: private, max-age=3600`. 401 / 400 / 404 / 502 as appropriate. Node runtime, `maxDuration` 60s. Same small in-memory PDF cache as `paper-page`.
-  - `src/app/[board]/[subject]/paper/page.tsx` — side-panel iframe and "Open" link now use `/api/paper-pdf?id=${paperDbId}`. **Nothing in `src/` points at `drive.google.com` any more.** Existing `/api/paper-page` PNG thumbnails are unchanged and will start working once credentials are set.
-  - `QuestionCard` "View original paper" now uses `/api/paper-pdf?id=<paper_id>` (the old `/api/download-paper?fileId=` link was already broken; `download-paper` only proxies allowlisted exam-board URLs). `/api/questions` now returns `paper_id`.
-- Download Paper / Download Mark Scheme on the papers page still go through `/api/download-paper?url=` to official board sites — leave those alone.
-- **Noticed, not changed:** `/api/paper-page` sends PNGs with `Cache-Control: public, max-age=31536000, immutable`, so a CDN could serve page images to signed-out visitors after the first signed-in load. Prefer `private` if they should stay auth-only. `/api/past-papers` has a similar pre-existing `public, s-maxage=300` header.
+- The papers card reads "On Educate: 37 questions · 84 marks".
+- The practice intro shows 37 questions, 84 marks and 1hr 30min, and the questions are real Maths.
+- `/api/paper-pdf` returns 200 `application/pdf` (1.16 MB, about 4 s), `private`, `SAMEORIGIN`.
+  - The 5 MB and 9 MB papers stream in full.
+- `paper-pagecount` returns 56, and page images render, including page 1 of the 9 MB Geography paper.
+- The panel shows page 1 of 8300/1H (19 May 2023).
+  - On opening, 10 of 56 images loaded and the PDF did not download.
+- Signed out, every paper route returns 401.
+- Tests: 31/31 pass. `tsc` still shows the pre-existing 56 errors, with none new.
+
+**Not tested:**
+
+- A real phone.
+- PDFs over 9 MB. The largest is 116 MB, and the whole file is buffered in memory.
+
+---
+
+## Open items from the 13 Nov code review
+
+Each was checked against the code, and none is urgent:
+
+- **Medium — raw Drive file ids still reach the client.** `api/past-papers` and `api/questions` return `drive_file_id`, and the paper page uses it to decide whether to show the PDF button.
+  - Nothing accepts a raw id, so this can't be exploited while the folder stays Restricted.
+  - Fix: return a `has_pdf` boolean instead.
+- **Medium — memory.** `downloadPdfBuffer` buffers the whole file with no size cap.
+  - `paper-pdf` and `paper-page` keep separate 8-entry caches, and `paper-pagecount` doesn't cache at all.
+  - Fix: check Drive `size` first and refuse anything over about 25 MB, stream the response, and share one cache in `drive.ts`.
+- **Medium — the same-subject fallback** in `past-paper-match.ts` can pick a different tier or year (it shows a "closest available paper" notice).
+  - Also, when tier is null, the footer pattern matches `/1F`, `/1H` and `/11`–`/19` alike.
+- **Low — raw error text returned to the client.** `paper-page`, `paper-pagecount`, `past-papers` and `questions` return `err.message`.
+  - A non-UUID `id`, or a NaN `limit`/`offset`, makes Postgres errors show as a 500.
+  - Fix: reuse `UUID_RE` from `paper-pdf` and return generic errors.
+- **Low — `/api/download-paper`** has no auth and fetches with `redirect: 'follow'`. An open redirect on an allowlisted exam-board host could become SSRF.
+  - Fix: add `auth()` and `redirect: 'manual'`.
 
 ---
 
 ## Constraints (do not violate)
 
-- Never print or commit secrets, connection strings, or the test-account password.
+- Never print or commit secrets, connection strings, the service-account JSON or the test-account password.
 - Never restore `/api/debug-role` or any route that lets a user change their own role.
-- Do not force-push. Do not change GoDaddy DNS except the records listed above, and only when Paul is ready.
-- Do not spend money or enable Google Cloud / Vercel / Neon billing without telling Paul first and getting a yes.
-- Do not copy student/teacher/PII tables. Do not reset or rotate Ethan's (or Paul's) database password.
-- Do not overwrite Paul's default Vercel CLI with Ethan's, or vice versa.
-- Do not point the live app at Ethan's database.
-- UK English for user-visible strings.
+- Do not force-push. Change GoDaddy DNS only as listed above, and only when Paul is ready.
+- Do not spend money or enable Google Cloud / Vercel / Neon billing without asking Paul first.
+- Do not copy PII tables. Do not reset or rotate any database password.
+- Do not point the live app at Ethan's database. Do not deploy to the old `educate-app` Vercel project.
+- Never set PAPERS to "anyone with the link".
+- Use UK English in user-visible strings.
 
 ---
 
-## Standing product debt (from CLAUDE.md, still open)
+## Standing product debt (still open)
 
-1. Dependency vulnerabilities: upgrade `@clerk/nextjs` (middleware bypass in 7.0.0–7.2.3; installed 7.0.7) and `next` (16.2.1; fix in 16.4.6), then `npm audit fix`.
-2. Other security items from the April 2026 audit (Classroom OAuth `state`, `/api/check` unauthenticated non-AI path, client-side teacher layout checks, `game` PATCH ownership, unsanitised Mermaid/KaTeX, in-memory rate limiter).
-3. Clerk production instance, once DNS is live.
-4. Privacy policy still says Supabase; it should say Neon (EU/London), Clerk, Anthropic and Vercel.
-5. 56 existing TypeScript errors hidden by `ignoreBuildErrors: true` (not introduced by the 12 Nov commits). Fix them, then remove the flag.
-6. Teacher onboarding (must create a school before classes). Mastery "coming soon". Request-time DDL should move into `db/schema.sql`.
-7. Optional: GitHub repo description / homepage URL; `super_admin` for Paul after he signs up.
+1. Dependency vulnerabilities:
+   - `@clerk/nextjs` has a middleware bypass in 7.0.0–7.2.3; 7.0.7 is installed.
+   - `next` is at 16.2.1; the fixes are in 16.4.6.
+   - After upgrading those, run `npm audit fix`.
+2. April 2026 audit items, still open:
+   - Classroom OAuth `state`
+   - the unauthenticated non-AI path in `/api/check`
+   - client-side teacher layout checks
+   - `game` PATCH ownership
+   - unsanitised Mermaid/KaTeX
+   - the in-memory rate limiter
+3. A Clerk production instance, once DNS is live.
+4. The privacy policy still says Supabase. It should say Neon (EU/London), Clerk, Anthropic, Vercel and Google Drive.
+5. 56 TypeScript errors are hidden by `ignoreBuildErrors: true`.
+6. Teacher onboarding: teachers must create a school before they can create classes.
+7. Mastery pathways show "coming soon".
+8. Request-time DDL in routes should move into `db/schema.sql`.
+9. Optional: fix the GitHub repo homepage URL (it points to the dead `educate-swart`).
 
 ---
 
-## How to test after the PDF deploy
+## How to retest
 
-Sign in as Test Student at https://educate-virid.vercel.app/login (not `/sign-in`).
+Sign in as Test Student at https://educate-virid.vercel.app/login. A new device needs the yopmail code.
 
-1. Open https://educate-virid.vercel.app/AQA/Mathematics/papers — Paper 1, Higher, 2023. Card should read **On Educate: 37 questions · 84 marks**, with no "closest available paper" notice.
-2. Practice: intro 37 questions, 84 marks, 1hr 30min; Maths questions, not Combined Science.
-3. **PDF Figures:** the side panel should show the original PDF (streamed from `/api/paper-pdf?id=697178d1-067b-42c6-a51f-812b31176f94`). No Google Drive "You need access".
-4. Signed-out `curl` of that PDF URL must be **401**.
-5. Foundation 2023 should still be 40 questions / 80 marks and still Maths.
+1. Go to `/AQA/Mathematics/papers` and choose Paper 1, Higher, 2023. The card should read **On Educate: 37 questions · 84 marks**.
+2. Choose Practice, then Start Paper. Check the "Paper pages · 56 pages" strip appears and the questions are Maths.
+3. Open **PDF Figures**.
+   - A browser with a PDF viewer shows the PDF.
+   - With the viewer off (`chrome://settings/content/pdfDocuments` → Download), or on Android, it shows page images.
+   - It should never show a Google "You need access" page.
+4. Signed out, `/api/paper-pdf?id=697178d1-067b-42c6-a51f-812b31176f94` must return **401**. So must `paper-page`, `paper-pagecount`, `past-papers` and `questions`.
+5. Foundation 2023 should load 40 questions, 80 marks, and still be Maths.
