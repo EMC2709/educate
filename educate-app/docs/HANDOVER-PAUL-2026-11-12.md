@@ -18,11 +18,10 @@ All of the 12 Nov "start here" steps are **done and verified live**:
 - The "Paper pages" thumbnail strip in the paper sheet works again.
 - Signed-out requests to every paper route return **401**. Auth-gated responses are no longer cacheable by the CDN.
 
-A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [13 Nov — whole-app review](#13-nov--whole-app-review-security-practice-flows-uiux). The biggest remaining product gap is that **past papers are not marked**: the database holds almost no mark schemes.
+A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [13 Nov — whole-app review](#13-nov--whole-app-review-security-practice-flows-uiux). Later the same day the answers view gained the **official mark scheme beside the student's answers**, and the papers page now **only offers papers Educate has**; see [13 Nov — mark schemes and stored papers](#13-nov--mark-schemes-and-stored-papers). Past papers are still self-marked against that mark scheme; nothing is scored automatically.
 
 **Suggested next steps:**
 
-0. Decide how past papers get marked, and stop offering years the database does not have (items 1 and 2 in the review's open list).
 1. GoDaddy DNS for `educatethemasses.online` (records below). Only do this when Paul says so.
 2. Dependency security upgrades (`@clerk/nextjs`, `next`). See [Standing product debt](#standing-product-debt-still-open).
 3. The leftover review findings in [Open items from the 13 Nov review](#open-items-from-the-13-nov-code-review). They are all medium or low.
@@ -49,7 +48,8 @@ A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [1
   | `9ca3673` | pdfjs worker shipped (`outputFileTracingIncludes`) and preloaded — fixes 500s on `paper-page` / `paper-pagecount` | Yes |
   | `5bb361e` | PDF panel shows page images when `navigator.pdfViewerEnabled === false` | Yes |
   | `ae16f2d` | Security fixes from the whole-app review (game, XP, leaderboard, AI routes, download-paper) | Yes |
-  | `8a0fe2f` | Practice fixes (answers saved, honest results, `/practice`, phone layout) | Yes — current deployment `dpl_FXT9BcBVjoZ1gundWnR7mECPWzQE` (13 Nov) |
+  | `8a0fe2f` | Practice fixes (answers saved, honest results, `/practice`, phone layout) | Yes |
+  | `2f1a6ba` | Official mark scheme beside the answers; papers page offers only stored papers | Yes — current deployment `dpl_2dQJzmttexVJScGahR1QiEsZ1Ukf` (13 Nov) |
 
 - **Local leftovers on the laptop (not in git):**
   - `stash@{0}` holds a RuFlo template that had overwritten `educate-app/CLAUDE.md`. It is safe to drop.
@@ -255,9 +255,9 @@ Four independent Fable reviewers read the whole app (two on security, one on stu
 **Still open, most important first:**
 
 *Practice*
-1. **Past papers are not marked.** Options: link each paper to its mark-scheme PDF (the 7,378 unprocessed `past_papers` rows are mark schemes and transcripts) and show it beside the answers, or mark with AI.
-2. **The papers page offers years the database does not have**, which serves a different paper. Offer only sittings that exist.
-3. Map language papers to their letter codes (Listening, Reading, Writing).
+1. ~~Past papers are not marked~~ — the official mark scheme is now shown beside the answers (see the next section). Automatic scoring against it (AI) is still open.
+2. ~~The papers page offers years the database does not have~~ — done (`2f1a6ba`).
+3. ~~Map language papers to their letter codes~~ — done.
 4. No Edexcel papers.
 5. The deterministic marker over-awards (`src/lib/mark-scheme.ts`): typing just the last number of the model answer scores 80% or more on 620 of 653 questions worth 3+ marks. It is used for guests and when the AI call fails.
 6. 482 of 658 subtopics in the topic picker have no questions, so the quiz silently serves whole-subject questions. Mastery uses a generic template for 416 of 538 topics.
@@ -280,6 +280,49 @@ Four independent Fable reviewers read the whole app (two on security, one on stu
 19. Unverified: `parent/[token]` and `classes/performance` select `score_correct` / `score_total`, but `db/schema.sql` defines `score` / `total`. They may return 500.
 
 **Deliberate behaviour changes:** guests can no longer play online games or see the global leaderboard; both need sign-in now.
+
+---
+
+## 13 Nov — mark schemes and stored papers
+
+Commit `2f1a6ba`, deployment `dpl_2dQJzmttexVJScGahR1QiEsZ1Ukf`.
+
+**Where mark schemes come from.**
+- The database cannot supply them. Drive file names are content hashes, the hidden `past_papers` rows are not AQA, and almost no question has a `mark_scheme`.
+- Instead, `/api/mark-scheme?id=<paper>` reads the exam code printed in the paper's own questions. It takes the most frequent code, for example `Jun23/8300/1H`.
+- It then builds AQA's file-store URL from that code (`AQA-83001H-MS-JUN23.PDF`; `src/lib/aqa-mark-scheme.ts`) and checks the file exists (cached).
+- It serves the mark scheme same-origin as a PDF, or as page images for phones and browsers without a PDF viewer.
+- Option letters fall back to the shared mark scheme: `8702/1N` uses the `87021` mark scheme.
+- Because the mark scheme follows the paper's own code, a substituted paper still gets the right one.
+
+**Answers view.**
+- After "Finish", the mark scheme opens in a side panel. It opens straight away on wide screens; on phones there is a button.
+- If AQA does not publish the mark scheme, the page says so and links the board's website.
+
+**What AQA publishes** on its file store (checked 13 Nov):
+- June 2022, June 2023, November 2021 and November 2022.
+- **Not** 2024, and nothing before 2022. History and Music use names that don't follow the pattern.
+
+So the mark scheme appears for recent sittings only.
+
+**Papers page.**
+- `/api/past-papers?available=1&examType&subject` lists the stored papers of a subject as canonical exam codes (`jun23/8300/1h`, cached 15 min).
+- Years Educate has get a green dot, and the page starts on the newest of them.
+- For a paper Educate does not have, it now says "The 2024 Paper 1 isn't on Educate yet" instead of quietly opening a different paper. A different paper of the same subject is still offered as a labelled option.
+- Language papers now match by skill letter (`8658/LH` = Listening Higher). Single written papers match by `W` (Music, Drama, Food, D&T).
+
+**Measured live as Test Student** (AQA, June 2022 and June 2023, 104 paper choices):
+- **96** open the exact paper, and **90** show the official mark scheme beside the answers.
+- Not exact:
+  - English Language — only one usable paper is stored
+  - Art — no written exam
+  - Physics P2 2022 and French Reading 2023 — not stored
+- Exact but no mark scheme: History and Music.
+
+**Not done:**
+- Automatic scoring against the mark scheme.
+- Mark schemes for OCR, WJEC and Eduqas (their papers don't carry these codes).
+- Testing on a real phone.
 
 ---
 
