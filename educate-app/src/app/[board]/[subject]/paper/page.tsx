@@ -44,23 +44,23 @@ function detectAnswerType(text: string): 'mcq' | 'drawing' | 'written' {
     if (!t) continue;
 
     // Pattern 1 — (A) text
-    let m = t.match(/^\(([A-Da-d])\)[ \t]/i);
+    let m = t.match(/^\(([A-D])\)[ \t]/);
     if (m) { highConfidence.add(m[1].toUpperCase()); continue; }
 
     // Pattern 2 — A) | A. | A: followed by space
-    m = t.match(/^([A-Da-d])[).:]\s/i);
+    m = t.match(/^([A-D])[).:]\s/);
     if (m) { highConfidence.add(m[1].toUpperCase()); continue; }
 
     // Pattern 3 — A\ttext (tab after letter)
-    m = t.match(/^([A-Da-d])\t/i);
+    m = t.match(/^([A-D])\t/);
     if (m) { highConfidence.add(m[1].toUpperCase()); continue; }
 
     // Pattern 4 — A  text (2+ spaces — AQA format)
-    m = t.match(/^([A-Da-d]) {2,}\S/i);
+    m = t.match(/^([A-D]) {2,}\S/);
     if (m) { highConfidence.add(m[1].toUpperCase()); continue; }
 
     // Pattern 5 — A text (single space) — low confidence; only used when 4 letters present
-    m = t.match(/^([A-Da-d]) \S/i);
+    m = t.match(/^([A-D]) \S/);
     if (m) { lowConfidence.add(m[1].toUpperCase()); }
   }
 
@@ -112,24 +112,24 @@ function parseMCQ(text: string): { stem: string; options: { letter: string; text
     const t = line.trimStart();
 
     // (A) text
-    let m = t.match(/^\(([A-Da-d])\)[ \t]+(.+)/i);
+    let m = t.match(/^\(([A-D])\)[ \t]+(.+)/);
     if (m) { options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue; }
 
     // A) | A. | A: followed by space/text
-    m = t.match(/^([A-Da-d])[).:]\s+(.+)/i);
+    m = t.match(/^([A-D])[).:]\s+(.+)/);
     if (m) { options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue; }
 
     // A\ttext (tab)
-    m = t.match(/^([A-Da-d])\t+(.+)/i);
+    m = t.match(/^([A-D])\t+(.+)/);
     if (m) { options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue; }
 
     // A  text (2+ spaces)
-    m = t.match(/^([A-Da-d]) {2,}(.+)/i);
+    m = t.match(/^([A-D]) {2,}(.+)/);
     if (m) { options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue; }
 
     // A text (single space) — only treat as option if we already found ≥1 option
     if (options.length > 0) {
-      m = t.match(/^([A-Da-d]) (.+)/i);
+      m = t.match(/^([A-D]) (.+)/);
       if (m && ['A','B','C','D'].includes(m[1].toUpperCase())) {
         options.push({ letter: m[1].toUpperCase(), text: m[2].trim() }); continue;
       }
@@ -196,11 +196,13 @@ function LinedBox({
   onChange,
   lines,
   placeholder,
+  label,
 }: {
   value: string;
   onChange: (v: string) => void;
   lines: number;
   placeholder?: string;
+  label?: string;
 }) {
   const LINE_H = 32; // px per line
   const height = Math.max(lines, 2) * LINE_H;
@@ -219,7 +221,8 @@ function LinedBox({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder ?? ''}
-        className="absolute inset-0 w-full h-full bg-transparent border-none outline-none resize-none text-sm text-gray-900 px-1 py-0 font-[inherit] leading-8 placeholder-gray-300"
+        aria-label={label ?? 'Your answer'}
+        className="absolute inset-0 w-full h-full bg-transparent border-none outline-none focus-visible:outline-2 focus-visible:outline-indigo-500 resize-none text-base sm:text-sm text-gray-900 px-1 py-0 font-[inherit] leading-8 placeholder:text-gray-500"
         style={{ lineHeight: `${LINE_H}px` }}
       />
     </div>
@@ -237,37 +240,43 @@ function MCQBox({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="space-y-2 mt-2">
-      {options.map(opt => (
-        <label
-          key={opt.letter}
-          className="flex items-start gap-3 cursor-pointer group"
-          style={{ fontFamily: 'Arial, sans-serif' }}
-        >
-          <div
-            className="shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-black mt-0.5 transition-all"
-            style={
-              selected === opt.letter
-                ? { borderColor: '#6366f1', backgroundColor: '#6366f1', color: '#fff' }
-                : { borderColor: '#9ca3af', backgroundColor: '#fff', color: '#6b7280' }
-            }
-            onClick={() => onChange(selected === opt.letter ? '' : opt.letter)}
+    <div className="space-y-2 mt-2" role="radiogroup" aria-label="Answer options">
+      {options.map(opt => {
+        const isSelected = selected === opt.letter;
+        return (
+          // A real button per option: large tap target, keyboard focusable, one tap to pick
+          <button
+            key={opt.letter}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            onClick={() => onChange(opt.letter)}
+            className="w-full flex items-start gap-3 py-1.5 text-left bg-transparent border-none cursor-pointer rounded-lg focus-visible:outline-2 focus-visible:outline-indigo-500"
+            style={{ fontFamily: 'Arial, sans-serif' }}
           >
-            {opt.letter}
-          </div>
-          <div
-            className="flex-1 text-sm leading-relaxed py-0.5 px-3 rounded-lg border transition-all"
-            style={
-              selected === opt.letter
-                ? { borderColor: '#6366f1', backgroundColor: '#eef2ff', color: '#3730a3' }
-                : { borderColor: '#e5e7eb', backgroundColor: '#f9fafb', color: '#374151' }
-            }
-            onClick={() => onChange(selected === opt.letter ? '' : opt.letter)}
-          >
-            {opt.text}
-          </div>
-        </label>
-      ))}
+            <span
+              className="shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-black mt-0.5 transition-all"
+              style={
+                isSelected
+                  ? { borderColor: '#6366f1', backgroundColor: '#6366f1', color: '#fff' }
+                  : { borderColor: '#9ca3af', backgroundColor: '#fff', color: '#6b7280' }
+              }
+            >
+              {opt.letter}
+            </span>
+            <span
+              className="flex-1 text-sm leading-relaxed py-1.5 px-3 rounded-lg border transition-all"
+              style={
+                isSelected
+                  ? { borderColor: '#6366f1', backgroundColor: '#eef2ff', color: '#3730a3' }
+                  : { borderColor: '#e5e7eb', backgroundColor: '#f9fafb', color: '#374151' }
+              }
+            >
+              {opt.text}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -516,8 +525,26 @@ export default function ExamPaperPage({
   // turned on) show a bare "Open" placeholder in an iframe — use page images there.
   const [inlinePdf, setInlinePdf] = useState<boolean>(true);
   useEffect(() => {
-    setInlinePdf(navigator.pdfViewerEnabled !== false);
+    // Touch devices get page images too: iOS Safari only shows page 1 of a PDF in an iframe
+    const touch = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    setInlinePdf(navigator.pdfViewerEnabled !== false && !touch);
   }, []);
+  const [confirmFinish, setConfirmFinish] = useState<boolean>(false);
+  const [confirmRedo, setConfirmRedo] = useState<boolean>(false);
+  const [needsSignIn, setNeedsSignIn] = useState<boolean>(false);
+  // Questions the student has chosen to answer in a text box instead of the
+  // detected multiple-choice options or drawing canvas.
+  const [typedInstead, setTypedInstead] = useState<Record<number, boolean>>({});
+  const answerTypeFor = (i: number, text: string): 'mcq' | 'drawing' | 'written' => {
+    const detected = detectAnswerType(text);
+    const a = answers[i] ?? '';
+    if (typedInstead[i]) return 'written';
+    // A typed answer restored after a refresh keeps its text box
+    if (detected === 'mcq' && a && !/^[A-D]$/.test(a)) return 'written';
+    if (detected === 'drawing' && a && !a.startsWith('data:')) return 'written';
+    return detected;
+  };
+  const [msUrl, setMsUrl] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -536,6 +563,9 @@ export default function ExamPaperPage({
           paperNumber: info.paperNumber ?? null,
           board: info.board ?? boardName,
         }));
+
+        const storedMs = (info as { msUrl?: unknown }).msUrl;
+        setMsUrl(typeof storedMs === 'string' && storedMs.startsWith('https://') ? storedMs : null);
 
         const gcseType = `GCSE_${info.board ?? boardName}`;
         const year      = info.year ?? '';
@@ -581,7 +611,7 @@ export default function ExamPaperPage({
           if (info.tier) params.set('tier', info.tier);
           if (component) params.set('component', component);
           const data = await fetch(`/api/past-papers?${params}`)
-            .then(r => r.ok ? r.json() : null) as { paper?: { id: string } | null; match?: Match } | null;
+            .then(r => { if (r.status === 401) setNeedsSignIn(true); return r.ok ? r.json() : null; }) as { paper?: { id: string } | null; match?: Match } | null;
           setPaperMatch(data?.match ?? null);
           return data?.paper?.id ?? null;
         };
@@ -590,6 +620,7 @@ export default function ExamPaperPage({
           .then(async paperId => {
             if (!paperId) return [];
             const res = await fetch(`/api/past-papers?id=${paperId}`);
+            if (res.status === 401) setNeedsSignIn(true);
             if (!res.ok) return [];
             const data = await res.json() as { paper?: { drive_file_id?: string }; questions?: QRow[] };
             if (data.paper?.drive_file_id) setDriveFileId(data.paper.drive_file_id);
@@ -601,7 +632,9 @@ export default function ExamPaperPage({
               .catch(() => {});
             return data.questions ?? [];
           })
-          .then((qs: QRow[]) => {
+          .then((allRows: QRow[]) => {
+            // A few stored rows have no question text; a blank question cannot be answered
+            const qs = allRows.filter(q => (q.question_text ?? '').trim().length > 0);
             if (qs.length === 0) return;
 
             // Sort by parsed question_number (supports "25(c)", "18(iii)", etc.)
@@ -619,7 +652,10 @@ export default function ExamPaperPage({
               // No individual GCSE question is worth more than 25 marks.
               marks:     q.marks > 25 ? 1 : (q.marks || 1),
               hint:      q.topic || '',
-              hasImage:  q.has_image ?? false,
+              // The has_image flag is not filled in for stored papers, so also look for
+              // wording that refers to something only the original page shows.
+              hasImage:  (q.has_image ?? false) ||
+                /\b(figure|fig\.|diagram|graph|grid|chart|map|photograph|picture|shown (?:below|above)|table \d)\b/i.test(q.question_text),
               imageDesc: q.image_desc ?? null,
             }));
             setQuestions(dbQs);
@@ -639,7 +675,8 @@ export default function ExamPaperPage({
 
   useEffect(() => {
     if (mode === 'exam') {
-      setElapsed(0);
+      // The clock is reset by "Start paper", not here, so going back from the
+      // answers view to carry on does not wipe the time.
       timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -650,7 +687,7 @@ export default function ExamPaperPage({
   const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
   const attemptedCount = answers.filter((a, i) => {
     if (!a) return false;
-    const qType = detectAnswerType(questions[i]?.question ?? '');
+    const qType = answerTypeFor(i, questions[i]?.question ?? '');
     if (qType === 'drawing') return a.startsWith('data:');
     return a.trim().length > 0;
   }).length;
@@ -662,6 +699,50 @@ export default function ExamPaperPage({
   }
 
   // ── LOADING ────────────────────────────────────────────────────────────────
+  // ── Keep answers safe ──────────────────────────────────────────────────────
+  // Answers are mirrored to sessionStorage so a refresh, the back button or a
+  // tap on the nav bar does not wipe a half-finished paper.
+  const answersKey = `educate-paper-answers:${paperDbId ?? `${boardName}:${subject}`}`;
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || loadingDb || questions.length === 0) return;
+    restoredRef.current = true;
+    try {
+      const saved: unknown = JSON.parse(sessionStorage.getItem(answersKey) ?? 'null');
+      if (Array.isArray(saved) && saved.length === questions.length && saved.every(a => typeof a === 'string')) {
+        setAnswers(saved as string[]);
+      }
+    } catch { /* nothing saved, or storage unavailable */ }
+  }, [loadingDb, questions.length, answersKey]);
+  useEffect(() => {
+    if (!restoredRef.current) return;
+    try { sessionStorage.setItem(answersKey, JSON.stringify(answers)); } catch { /* storage full or unavailable */ }
+  }, [answers, answersKey]);
+
+  // Warn before closing or reloading the tab in the middle of a paper
+  useEffect(() => {
+    if (mode !== 'exam' || attemptedCount === 0) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [mode, attemptedCount]);
+
+  // Finishing: ask first if questions are still blank
+  const unansweredCount = questions.length - attemptedCount;
+  function requestFinish() {
+    if (unansweredCount > 0) setConfirmFinish(true);
+    else setMode('results');
+  }
+
+  // Mark schemes: most database papers have none stored, so say so plainly and
+  // point to the official one when this is exactly the paper the student chose.
+  const hasModelAnswers = questions.some(q => q.answer.trim().length > 0);
+  const officialMsHref = !hasModelAnswers && msUrl && paperMatch === 'exact'
+    ? `/api/download-paper?url=${encodeURIComponent(msUrl)}`
+    : null;
+  // When the chosen paper is not on Educate, a different paper of the same subject is used
+  const isSubstitutePaper = usingDbPaper && paperMatch === 'subject';
+
   if (loadingDb) {
     return (
       <div className="flex min-h-screen">
@@ -713,10 +794,16 @@ export default function ExamPaperPage({
                   <p className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-1">{boardName} · GCSE</p>
                   <h1 className="text-xl sm:text-2xl font-extrabold text-white mb-1">{subject}</h1>
                   <p className="text-neutral-400 text-sm">
-                    {paperInfo.paperTitle}
-                    {paperInfo.year ? ` · ${paperInfo.year}` : ''}
-                    {paperInfo.tier ? ` · ${paperInfo.tier} Tier` : ''}
-                    {paperInfo.component ? ` · ${paperInfo.component}` : ''}
+                    {isSubstitutePaper ? (
+                      <>A different {subject} paper (not the {paperInfo.year} one you picked)</>
+                    ) : (
+                      <>
+                        {paperInfo.paperTitle}
+                        {paperInfo.year && !isSubstitutePaper ? ` · ${paperInfo.year}` : ''}
+                        {paperInfo.tier && !isSubstitutePaper ? ` · ${paperInfo.tier} Tier` : ''}
+                        {paperInfo.component ? ` · ${paperInfo.component}` : ''}
+                      </>
+                    )}
                   </p>
                 </div>
                 <span className="text-4xl shrink-0">📄</span>
@@ -724,10 +811,15 @@ export default function ExamPaperPage({
 
               {usingDbPaper && paperInfo.year && paperMatch && paperMatch !== 'exact' && (
                 <p className="text-xs text-amber-400/90 mt-2">
-                  We couldn&apos;t find this exact paper, so these questions come from the closest {subject} paper we have.
+                  The {paperInfo.year} paper you picked isn&apos;t on Educate yet. These questions are from a different {subject} paper, so the official {paperInfo.year} mark scheme won&apos;t match them.
                 </p>
               )}
-              {!usingDbPaper && paperInfo.year && (
+              {!usingDbPaper && needsSignIn && (
+                <p className="text-sm text-amber-400 mt-2">
+                  <Link href="/login" className="text-amber-300 underline font-semibold">Sign in</Link> to practise the real past paper. Without signing in you get sample {subject} questions.
+                </p>
+              )}
+              {!usingDbPaper && !needsSignIn && paperInfo.year && (
                 <p className="text-xs text-amber-400/90 mt-2">
                   This exact paper isn&apos;t on Educate yet, so you&apos;re practising with sample {subject} questions.
                 </p>
@@ -757,12 +849,14 @@ export default function ExamPaperPage({
                 <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Drawing questions: use the canvas to sketch your answer</li>
                 <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Marks for each question are shown in the right margin</li>
                 <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>Use the hint button if stuck — but try without first</li>
-                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>After finishing, model answers appear for self-marking</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400 shrink-0">•</span>{hasModelAnswers
+                  ? 'After finishing, model answers appear so you can mark your own work'
+                  : 'After finishing, check your answers against the official mark scheme'}</li>
               </ul>
             </div>
 
             <button
-              onClick={() => setMode('exam')}
+              onClick={() => { setElapsed(0); setMode('exam'); }}
               className="w-full py-4 rounded-2xl font-bold text-base text-white border-none cursor-pointer transition-opacity"
               style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
@@ -782,7 +876,7 @@ export default function ExamPaperPage({
     return (
       <div className="flex min-h-screen bg-neutral-950">
         <Sidebar />
-        <div className={`flex-1 overflow-y-auto pb-20 md:pb-0 transition-all duration-300 ${pdfPanelOpen && driveFileId ? 'md:mr-[45vw]' : ''}`}>
+        <div className={`flex-1 min-w-0 pb-20 md:pb-0 transition-all duration-300 ${pdfPanelOpen && driveFileId ? 'md:mr-[45vw]' : ''}`}>
 
           {/* Sticky bar */}
           <div className="sticky top-0 z-20 bg-neutral-950/95 backdrop-blur border-b border-neutral-800 px-4 sm:px-6 py-2.5">
@@ -792,7 +886,7 @@ export default function ExamPaperPage({
                 <span className="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-md font-mono">
                   ⏱ {getTimeSince()}
                 </span>
-                <span className="text-xs text-neutral-500">
+                <span className="text-xs text-neutral-400 hidden sm:inline">
                   {attemptedCount}/{questions.length} answered
                 </span>
               </div>
@@ -811,10 +905,10 @@ export default function ExamPaperPage({
                   </button>
                 )}
                 <button
-                  onClick={() => setMode('results')}
+                  onClick={requestFinish}
                   className="bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold px-4 py-2 rounded-lg border-none cursor-pointer transition-colors"
                 >
-                  Finish &amp; Mark →
+                  Finish &amp; review →
                 </button>
               </div>
             </div>
@@ -825,7 +919,7 @@ export default function ExamPaperPage({
             <div className="bg-white shadow-2xl shadow-black/40 rounded-sm" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
 
               {/* Paper header — mimics real exam paper */}
-              <div className="border-b-4 border-black px-8 pt-8 pb-5">
+              <div className="border-b-4 border-black px-4 sm:px-8 pt-8 pb-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -837,8 +931,8 @@ export default function ExamPaperPage({
                     </h1>
                     <p className="text-sm text-gray-600 mt-1" style={{ fontFamily: 'Arial, sans-serif' }}>
                       {paperInfo.paperTitle}
-                      {paperInfo.year ? ` · ${paperInfo.year}` : ''}
-                      {paperInfo.tier ? ` · ${paperInfo.tier} Tier` : ''}
+                      {paperInfo.year && !isSubstitutePaper ? ` · ${paperInfo.year}` : ''}
+                      {paperInfo.tier && !isSubstitutePaper ? ` · ${paperInfo.tier} Tier` : ''}
                     </p>
                   </div>
                   <div className="text-right shrink-0" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -862,7 +956,7 @@ export default function ExamPaperPage({
 
               {/* PDF page thumbnails — scroll horizontally, click to expand inline */}
               {paperDbId && pageCount > 0 && (
-                <div id="page-strip" className="border-b border-gray-200 px-8 py-5 bg-gray-50" style={{ fontFamily: 'Arial, sans-serif' }}>
+                <div id="page-strip" className="border-b border-gray-200 px-4 sm:px-8 py-5 bg-gray-50" style={{ fontFamily: 'Arial, sans-serif' }}>
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-black uppercase tracking-wider text-black">
                       Paper pages <span className="text-gray-500 font-normal normal-case">· click to enlarge for figures &amp; diagrams</span>
@@ -920,18 +1014,18 @@ export default function ExamPaperPage({
               )}
 
               {/* Questions */}
-              <div className="px-8 py-6 space-y-0">
+              <div className="px-4 sm:px-8 py-6 space-y-0">
                 {questions.map((q, i) => {
-                  const qType = detectAnswerType(q.question);
+                  const qType = answerTypeFor(i, q.question);
                   // Pre-parse MCQ so we can fall back to written if options are missing
                   const mcqParsed = qType === 'mcq' ? parseMCQ(q.question) : null;
                   const showAsMcq = mcqParsed !== null && mcqParsed.options.length >= 2;
                   return (
                     <div key={i} className="py-5 border-b border-gray-200 last:border-b-0">
                       {/* Question row: number | text | marks */}
-                      <div className="flex gap-4">
+                      <div className="flex gap-2 sm:gap-4">
                         {/* Q number */}
-                        <div className="shrink-0 w-8 text-right">
+                        <div className="shrink-0 w-5 sm:w-8 text-right">
                           <span className="text-sm font-black text-black">{i + 1}</span>
                         </div>
 
@@ -998,15 +1092,37 @@ export default function ExamPaperPage({
                                     selected={answers[i]}
                                     onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
                                   />
+                                  {/* The option detector can be wrong (e.g. points A, B, C, D in a maths question) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setTypedInstead(prev => ({ ...prev, [i]: true }))}
+                                    className="mt-2 text-xs text-gray-600 hover:text-gray-900 underline bg-transparent border-none cursor-pointer p-0"
+                                    style={{ fontFamily: 'Arial, sans-serif' }}
+                                  >
+                                    Not a multiple-choice question? Type your answer instead
+                                  </button>
                                 </>
                               );
                             }
                             if (qType === 'drawing') {
                               return (
-                                <DrawingCanvas
-                                  value={answers[i]}
-                                  onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
-                                />
+                                <>
+                                  <DrawingCanvas
+                                    value={answers[i]}
+                                    onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAnswers(prev => prev.map((a, idx) => idx === i && a.startsWith('data:') ? '' : a));
+                                      setTypedInstead(prev => ({ ...prev, [i]: true }));
+                                    }}
+                                    className="mt-2 text-xs text-gray-600 hover:text-gray-900 underline bg-transparent border-none cursor-pointer p-0"
+                                    style={{ fontFamily: 'Arial, sans-serif' }}
+                                  >
+                                    Type your answer instead of drawing
+                                  </button>
+                                </>
                               );
                             }
                             // Default: lined text area
@@ -1018,24 +1134,27 @@ export default function ExamPaperPage({
                                   onChange={v => setAnswers(prev => prev.map((a, idx) => idx === i ? v : a))}
                                   lines={linesForAnswer}
                                   placeholder="Write your answer here…"
+                                  label={`Answer to question ${i + 1}`}
                                 />
                               </div>
                             );
                           })()}
 
                           {/* Hint */}
-                          <details className="mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
-                            <summary className="text-[11px] text-gray-400 hover:text-gray-600 cursor-pointer list-none transition-colors">
-                              💡 Show hint
-                            </summary>
-                            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 mt-1 leading-relaxed">
-                              {q.hint}
-                            </p>
-                          </details>
+                          {q.hint.trim() && (
+                            <details className="mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              <summary className="text-xs text-gray-600 hover:text-gray-800 cursor-pointer list-none transition-colors py-1">
+                                💡 Show hint
+                              </summary>
+                              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 mt-1 leading-relaxed">
+                                {usingDbPaper ? `Topic: ${q.hint}` : q.hint}
+                              </p>
+                            </details>
+                          )}
                         </div>
 
                         {/* Marks in right margin */}
-                        <div className="shrink-0 w-14 text-right pt-0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
+                        <div className="shrink-0 w-9 sm:w-14 text-right pt-0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
                           <span className="text-xs text-gray-600 font-semibold whitespace-nowrap">
                             [{q.marks}]
                           </span>
@@ -1047,9 +1166,9 @@ export default function ExamPaperPage({
               </div>
 
               {/* Paper footer */}
-              <div className="border-t-2 border-black px-8 py-4 flex items-center justify-between" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <div className="border-t-2 border-black px-4 sm:px-8 py-4 flex items-center justify-between" style={{ fontFamily: 'Arial, sans-serif' }}>
                 <p className="text-xs text-gray-500">
-                  {boardName} · {subject} · {paperInfo.paperTitle}{paperInfo.year ? ` · ${paperInfo.year}` : ''}
+                  {boardName} · {subject} · {paperInfo.paperTitle}{paperInfo.year && !isSubstitutePaper ? ` · ${paperInfo.year}` : ''}
                 </p>
                 <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">End of questions</p>
               </div>
@@ -1061,13 +1180,13 @@ export default function ExamPaperPage({
                 {attemptedCount} of {questions.length} questions answered
               </p>
               <button
-                onClick={() => setMode('results')}
-                className="px-8 py-4 rounded-2xl font-bold text-base text-white border-none cursor-pointer transition-opacity"
+                onClick={requestFinish}
+                className="px-4 sm:px-8 py-4 rounded-2xl font-bold text-base text-white border-none cursor-pointer transition-opacity"
                 style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                 onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
                 onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
               >
-                Finish &amp; See Model Answers →
+                Finish &amp; review my answers →
               </button>
             </div>
           </div>
@@ -1078,10 +1197,10 @@ export default function ExamPaperPage({
             never need Google Drive access. */}
         {driveFileId && paperDbId && (
           <div
-            className={`fixed top-0 right-0 h-screen bg-neutral-900 border-l border-neutral-800 shadow-2xl transition-transform duration-300 z-30 ${
+            className={`fixed top-0 right-0 h-dvh w-[92vw] md:w-[45vw] bg-neutral-900 border-l border-neutral-800 shadow-2xl transition-transform duration-300 z-[60] ${
               pdfPanelOpen ? 'translate-x-0' : 'translate-x-full'
             }`}
-            style={{ width: 'min(92vw, 720px)' }}
+
           >
             <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-800 bg-neutral-950">
               <div className="flex items-center gap-2">
@@ -1114,7 +1233,7 @@ export default function ExamPaperPage({
               <iframe
                 src={`/api/paper-pdf?id=${encodeURIComponent(paperDbId ?? '')}#view=FitH`}
                 className="w-full border-none"
-                style={{ height: 'calc(100vh - 40px)' }}
+                style={{ height: 'calc(100dvh - 40px)' }}
                 title="Original paper PDF"
               />
             )}
@@ -1122,7 +1241,7 @@ export default function ExamPaperPage({
             {pdfPanelOpen && !inlinePdf && pageCount > 0 && (
               <div
                 className="overflow-y-auto bg-neutral-800 p-3 space-y-3"
-                style={{ height: 'calc(100vh - 40px)' }}
+                style={{ height: 'calc(100dvh - 40px)' }}
                 aria-label="Original paper pages"
               >
                 {Array.from({ length: pageCount }, (_, idx) => (
@@ -1142,6 +1261,32 @@ export default function ExamPaperPage({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Confirm before finishing with blank questions */}
+        {confirmFinish && (
+          <div className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="finish-title">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full text-center">
+              <h2 id="finish-title" className="text-lg font-bold text-white mb-2">Finish the paper?</h2>
+              <p className="text-sm text-neutral-300 mb-5">
+                You have not answered {unansweredCount} of {questions.length} questions. You can come back to them after looking at your answers.
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setConfirmFinish(false)}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white bg-indigo-500 hover:bg-indigo-400 border-none cursor-pointer transition-colors"
+                >
+                  Keep working
+                </button>
+                <button
+                  onClick={() => { setConfirmFinish(false); setMode('results'); }}
+                  className="w-full py-3 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 cursor-pointer transition-colors"
+                >
+                  Finish anyway
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1194,20 +1339,38 @@ export default function ExamPaperPage({
         <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6">
           <div className="bg-white shadow-2xl shadow-black/40 rounded-sm" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
 
-            <div className="border-b-4 border-black px-8 pt-6 pb-4 flex items-center justify-between" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <div className="border-b-4 border-black px-4 sm:px-8 pt-6 pb-4 flex items-center justify-between" style={{ fontFamily: 'Arial, sans-serif' }}>
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-black">
                   {subject}{paperInfo.component ? ` — ${paperInfo.component}` : ''} · {paperInfo.paperTitle}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">Model answers — for self-marking only</p>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  {hasModelAnswers ? 'Model answers — for self-marking only' : 'Your answers — Educate has no mark scheme stored for this paper yet'}
+                </p>
+                {!hasModelAnswers && (officialMsHref ? (
+                  <a
+                    href={officialMsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-2 text-sm font-bold text-indigo-700 hover:text-indigo-900 underline"
+                  >
+                    Open the official mark scheme ↗
+                  </a>
+                ) : (
+                  <p className="text-xs text-gray-600 mt-2">
+                    {isSubstitutePaper
+                      ? 'These questions are from a different paper than the one you picked, so its mark scheme will not match. Ask your teacher to check your answers.'
+                      : 'Check your answers with your teacher or against the mark scheme on the exam board’s website.'}
+                  </p>
+                ))}
               </div>
-              <p className="text-xs font-bold uppercase text-gray-500">Marked copy</p>
+              <p className="text-xs font-bold uppercase text-gray-500">{hasModelAnswers ? 'Marked copy' : 'Your answers'}</p>
             </div>
 
-            <div className="px-8 py-6 space-y-0">
+            <div className="px-4 sm:px-8 py-6 space-y-0">
               {questions.map((q, i) => {
                 const userAnswer = answers[i];
-                const qType = detectAnswerType(q.question);
+                const qType = answerTypeFor(i, q.question);
                 const resMcqParsed = qType === 'mcq' ? parseMCQ(q.question) : null;
                 const showAsMcqRes = resMcqParsed !== null && resMcqParsed.options.length >= 2;
                 const isAttempted = qType === 'drawing'
@@ -1217,9 +1380,9 @@ export default function ExamPaperPage({
 
                 return (
                   <div key={i} className="py-5 border-b border-gray-200 last:border-b-0">
-                    <div className="flex gap-4">
+                    <div className="flex gap-2 sm:gap-4">
                       {/* Q number */}
-                      <div className="shrink-0 w-8 text-right pt-0.5">
+                      <div className="shrink-0 w-5 sm:w-8 text-right pt-0.5">
                         <span className={`text-sm font-black ${isAttempted ? 'text-emerald-600' : 'text-gray-400'}`}>{i + 1}</span>
                       </div>
 
@@ -1242,7 +1405,7 @@ export default function ExamPaperPage({
 
                         {/* Student answer */}
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ fontFamily: 'Arial, sans-serif', color: isAttempted ? '#059669' : '#9ca3af' }}>
+                          <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ fontFamily: 'Arial, sans-serif', color: isAttempted ? '#4b5563' : '#9ca3af' }}>
                             Your answer
                           </p>
                           {(() => {
@@ -1256,7 +1419,7 @@ export default function ExamPaperPage({
                             if (showAsMcqRes && resMcqParsed) {
                               const selectedOpt = resMcqParsed.options.find(o => o.letter === userAnswer);
                               return (
-                                <div className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-gray-800">
+                                <div className="border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800">
                                   <span className="font-black">{userAnswer}</span>
                                   {selectedOpt && <span className="text-gray-700 ml-2">— {selectedOpt.text}</span>}
                                 </div>
@@ -1270,7 +1433,7 @@ export default function ExamPaperPage({
                               );
                             }
                             return (
-                              <div className="border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                              <div className="border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
                                 {userAnswer}
                               </div>
                             );
@@ -1278,7 +1441,13 @@ export default function ExamPaperPage({
                         </div>
 
                         {/* Model answer */}
-                        {isRevealed ? (
+                        {!q.answer.trim() ? (
+                          hasModelAnswers ? (
+                            <p className="text-xs text-gray-600" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              No model answer for this question yet.
+                            </p>
+                          ) : null
+                        ) : isRevealed ? (
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1.5" style={{ fontFamily: 'Arial, sans-serif' }}>
                               {showAsMcqRes ? 'Correct answer' : 'Model answer'}
@@ -1286,7 +1455,13 @@ export default function ExamPaperPage({
                             <div className="border-l-4 border-indigo-400 bg-indigo-50 px-4 py-3 text-sm text-gray-800 leading-relaxed">
                               {showAsMcqRes && resMcqParsed ? (() => {
                                 // Normalise: extract first A-D letter from the mark scheme answer
-                                const correctLetter = q.answer.trim().toUpperCase().match(/[A-D]/)?.[0] ?? '';
+                                // The letter must stand alone at the start ("C", "(C)", "C. …") or follow
+                                // "answer is"; taking the first A–D anywhere turned "The answer is C" into A.
+                                const ans = q.answer.trim();
+                                const correctLetter = (
+                                  ans.match(/^\(?([A-D])\)?(?![A-Za-z])/) ??
+                                  ans.match(/\banswer\s*(?:is|:)?\s*\(?([A-D])\)?(?![A-Za-z])/i)
+                                )?.[1]?.toUpperCase() ?? '';
                                 const correctOpt = resMcqParsed.options.find(o => o.letter === correctLetter);
                                 return correctLetter
                                   ? <span><strong>{correctLetter}</strong>{correctOpt && <span className="text-gray-600 ml-2">— {correctOpt.text}</span>}</span>
@@ -1306,7 +1481,7 @@ export default function ExamPaperPage({
                       </div>
 
                       {/* Marks */}
-                      <div className="shrink-0 w-14 text-right pt-0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
+                      <div className="shrink-0 w-9 sm:w-14 text-right pt-0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
                         <span className="text-xs text-gray-600 font-semibold">[{q.marks}]</span>
                       </div>
                     </div>
@@ -1315,7 +1490,7 @@ export default function ExamPaperPage({
               })}
             </div>
 
-            <div className="border-t-2 border-black px-8 py-4" style={{ fontFamily: 'Arial, sans-serif' }}>
+            <div className="border-t-2 border-black px-4 sm:px-8 py-4" style={{ fontFamily: 'Arial, sans-serif' }}>
               <p className="text-xs text-gray-500 text-center">
                 Total marks available: <strong>{totalMarks}</strong> · Practised on Educate
               </p>
@@ -1323,16 +1498,24 @@ export default function ExamPaperPage({
           </div>
 
           {/* Nav buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
+            <button
+              onClick={() => setMode('exam')}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 cursor-pointer transition-colors"
+            >
+              ← Back to my answers
+            </button>
             <button
               onClick={() => {
+                if (attemptedCount > 0 && !confirmRedo) { setConfirmRedo(true); return; }
+                setConfirmRedo(false);
                 setAnswers(questions.map(() => ''));
                 setRevealed(questions.map(() => false));
                 setMode('intro');
               }}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 cursor-pointer transition-colors"
             >
-              ↺ Redo paper
+              {confirmRedo ? 'Tap again to clear all answers' : '↺ Start again'}
             </button>
             <Link
               href={`/${boardName}/${encodeURIComponent(subject)}/papers`}

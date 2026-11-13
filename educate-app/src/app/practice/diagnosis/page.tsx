@@ -307,7 +307,7 @@ export default function DiagnosisPage() {
                           <p className="text-neutral-500 text-xs m-0 mt-0.5">{selectedSubject}</p>
                         </div>
                         <Link
-                          href={`/aqa/${subjectToSlug(selectedSubject)}?topic=${encodeURIComponent(t.name)}`}
+                          href={`/AQA/${encodeURIComponent(selectedSubject)}?topic=${encodeURIComponent(t.name)}`}
                           className="no-underline text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors"
                         >
                           Start Revision →

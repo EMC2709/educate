@@ -39,6 +39,13 @@ export async function GET(req: NextRequest) {
 
   if (!subject) return NextResponse.json({ error: 'subject required' }, { status: 400 });
 
+  // "GCSE" or "A-Level" on their own mean every board at that level (stored as GCSE_AQA, GCSE_OCR, ...)
+  const examFilter = !examType
+    ? sql``
+    : (examType === 'GCSE' || examType === 'A-Level')
+      ? sql`AND pp.exam_type LIKE ${examType + '\\_%'}`
+      : sql`AND pp.exam_type = ${examType}`;
+
   try {
     let rows;
 
@@ -52,10 +59,12 @@ export async function GET(req: NextRequest) {
                        plainto_tsquery('english', ${q})) AS rank
         FROM questions qs
         JOIN past_papers pp ON pp.id = qs.paper_id
-        WHERE pp.subject = ${subject}
+        WHERE lower(pp.subject) = lower(${subject})
+          AND pp.processed = true
+          AND btrim(coalesce(qs.question_text, '')) <> ''
           AND to_tsvector('english', coalesce(qs.question_text,'') || ' ' || coalesce(qs.topic,''))
               @@ plainto_tsquery('english', ${q})
-          ${examType  ? sql`AND pp.exam_type  = ${examType}`            : sql``}
+          ${examFilter}
           ${country   ? sql`AND pp.country    = ${country}`             : sql``}
           ${component ? sql`AND pp.component  = ${component}`           : sql``}
           ${topic     ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}`    : sql``}
@@ -72,8 +81,10 @@ export async function GET(req: NextRequest) {
                pp.subject, pp.exam_type, pp.country, pp.year, pp.title, pp.drive_file_id, qs.paper_id
         FROM questions qs
         JOIN past_papers pp ON pp.id = qs.paper_id
-        WHERE pp.subject = ${subject}
-          ${examType  ? sql`AND pp.exam_type  = ${examType}`            : sql``}
+        WHERE lower(pp.subject) = lower(${subject})
+          AND pp.processed = true
+          AND btrim(coalesce(qs.question_text, '')) <> ''
+          ${examFilter}
           ${country   ? sql`AND pp.country    = ${country}`             : sql``}
           ${component ? sql`AND pp.component  = ${component}`           : sql``}
           ${topic     ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}`    : sql``}
@@ -90,8 +101,10 @@ export async function GET(req: NextRequest) {
                pp.subject, pp.exam_type, pp.country, pp.year, pp.title, pp.drive_file_id, qs.paper_id
         FROM questions qs
         JOIN past_papers pp ON pp.id = qs.paper_id
-        WHERE pp.subject = ${subject}
-          ${examType  ? sql`AND pp.exam_type  = ${examType}`            : sql``}
+        WHERE lower(pp.subject) = lower(${subject})
+          AND pp.processed = true
+          AND btrim(coalesce(qs.question_text, '')) <> ''
+          ${examFilter}
           ${country   ? sql`AND pp.country    = ${country}`             : sql``}
           ${component ? sql`AND pp.component  = ${component}`           : sql``}
           ${topic     ? sql`AND qs.topic ILIKE ${'%' + topic + '%'}`    : sql``}

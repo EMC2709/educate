@@ -303,7 +303,7 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                           <p className="text-xs text-neutral-500 text-center">
                             On Educate: {dbPaperForYear.total_questions} questions
                             {dbPaperForYear.marks ? ` · ${dbPaperForYear.marks} marks` : ''}
-                            {dbMatch?.match !== 'exact' ? ' · closest available paper' : ''}
+                            {dbMatch?.match === 'subject' ? ' · this exact paper is not on Educate yet, so a different paper will open' : ''}
                           </p>
                         )}
 
@@ -323,6 +323,8 @@ export default function PastPapersPage({ params }: { params: Promise<{ board: st
                                 // Pass direct DB paper ID so the practice page doesn't have to guess
                                 paperId: dbPaperForYear?.id ?? null,
                                 paperMatch: dbMatch?.match ?? null,
+                                // Official mark scheme for this exact sitting (used on the answers view)
+                                msUrl: selectedYearPaper?.msUrl ?? null,
                               }));
                             } catch {}
                             window.location.href = `/${boardName}/${encodeURIComponent(subject)}/paper`;

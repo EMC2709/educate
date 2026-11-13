@@ -15,7 +15,7 @@ export function Checkbox({ checked, partial, color = '#6c63ff', size = 'md', onC
   return (
     <button
       type="button"
-      onClick={onChange}
+      onClick={e => { e.stopPropagation(); onChange(); }}
       className={`${dim} ${radius} border-2 flex items-center justify-center transition-all duration-150 flex-shrink-0`}
       style={{
         borderColor: checked ? color : partial ? `${color}99` : '#444',

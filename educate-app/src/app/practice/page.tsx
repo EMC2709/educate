@@ -21,6 +21,19 @@ interface Filters {
 
 type PracticeState = 'idle' | 'loading' | 'active' | 'done';
 
+const ELEVEN_PLUS = '11Plus_Practice';
+
+// Subject names as stored with the past papers
+const SUBJECT_SUGGESTIONS = [
+  'Mathematics', 'English Language', 'English Literature', 'Biology', 'Chemistry', 'Physics',
+  'Geography', 'History', 'Computer Science', 'Business', 'Economics', 'Psychology', 'Sociology',
+  'French', 'Spanish', 'German', 'Music', 'Drama', 'Physical Education',
+];
+const SUBJECT_ALIASES: Record<string, string> = {
+  maths: 'Mathematics', math: 'Mathematics', english: 'English Language', pe: 'Physical Education',
+  'business studies': 'Business', computing: 'Computer Science',
+};
+
 export default function PracticePage() {
   const [filters, setFilters] = useState<Filters>({ subject: '', examType: '', topic: '' });
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -30,9 +43,13 @@ export default function PracticePage() {
   const [saving, setSaving] = useState(false);
   const [savedScore, setSavedScore] = useState<{ score: number; total: number } | null>(null);
 
+  // 11+ papers are stored under one exam type with a single subject value
+  const is11Plus = filters.examType === ELEVEN_PLUS;
+  const subjectForSearch = is11Plus ? ELEVEN_PLUS : (SUBJECT_ALIASES[filters.subject.trim().toLowerCase()] ?? filters.subject.trim());
+
   const handleStart = async () => {
-    if (!filters.subject.trim()) {
-      setError('Please enter a subject to practice.');
+    if (!subjectForSearch) {
+      setError('Please choose a subject to practise.');
       return;
     }
     setError(null);
@@ -42,16 +59,21 @@ export default function PracticePage() {
     setSavedScore(null);
 
     const params = new URLSearchParams({ random: 'true', limit: '10' });
-    if (filters.subject.trim()) params.set('subject', filters.subject.trim());
+    params.set('subject', subjectForSearch);
     if (filters.examType) params.set('examType', filters.examType);
     if (filters.topic.trim()) params.set('topic', filters.topic.trim());
 
     try {
       const res = await fetch(`/api/questions?${params.toString()}`);
-      if (!res.ok) throw new Error(`Failed to fetch questions (${res.status})`);
-      const data: Question[] = await res.json();
-      if (!Array.isArray(data) || data.length === 0) {
-        setError('No questions found for those filters. Try broadening your search.');
+      if (res.status === 401) throw new Error('Please sign in to practise questions from real past papers.');
+      if (!res.ok) throw new Error('We could not load questions just now. Please try again.');
+      const body: unknown = await res.json();
+      // The API returns { questions, count }
+      const data: Question[] = Array.isArray(body) ? body : ((body as { questions?: Question[] }).questions ?? []);
+      if (data.length === 0) {
+        setError(is11Plus
+          ? 'No 11+ questions found. Try removing the topic.'
+          : 'No questions found. Check the subject (for example "Mathematics" or "Biology"), or remove the topic.');
         setState('idle');
         return;
       }
@@ -81,8 +103,8 @@ export default function PracticePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subject: filters.subject.trim(),
-          examType: filters.examType || 'Free Practice',
+          subject: is11Plus ? '11+' : subjectForSearch,
+          examType: is11Plus ? '11+' : (filters.examType || 'Free Practice'),
           topic: filters.topic.trim() || undefined,
           score,
           total,
@@ -145,11 +167,16 @@ export default function PracticePage() {
                     <input
                       id="subject-input"
                       type="text"
-                      value={filters.subject}
+                      list="subject-suggestions"
+                      disabled={is11Plus}
+                      value={is11Plus ? '11+ practice papers (all subjects)' : filters.subject}
                       onChange={e => setFilters(f => ({ ...f, subject: e.target.value }))}
-                      placeholder="e.g. Mathematics, English, Verbal Reasoning"
-                      className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-neutral-600 outline-none focus:border-indigo-500 transition-colors"
+                      placeholder="e.g. Mathematics, Biology, History"
+                      className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-white placeholder:text-neutral-400 outline-none focus:border-indigo-500 transition-colors disabled:opacity-70"
                     />
+                    <datalist id="subject-suggestions">
+                      {SUBJECT_SUGGESTIONS.map(s => <option key={s} value={s} />)}
+                    </datalist>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -165,10 +192,9 @@ export default function PracticePage() {
                         className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer"
                       >
                         <option value="">Any</option>
-                        <option value="11+">11+</option>
+                        <option value={ELEVEN_PLUS}>11+</option>
                         <option value="GCSE">GCSE</option>
                         <option value="A-Level">A-Level</option>
-                        <option value="Free Practice">Free Practice</option>
                       </select>
                     </div>
 
@@ -218,7 +244,7 @@ export default function PracticePage() {
                 {/* Score bar */}
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-bold text-white m-0">
-                    {filters.subject}{filters.examType ? ` \u2014 ${filters.examType}` : ''}
+                    {is11Plus ? '11+ practice' : `${subjectForSearch}${filters.examType ? ` \u2014 ${filters.examType}` : ''}`}
                     {filters.topic ? ` \u2014 ${filters.topic}` : ''}
                   </h2>
                   <span className="text-sm font-bold text-indigo-400">
@@ -243,7 +269,7 @@ export default function PracticePage() {
                             {i + 1}
                           </span>
                           <div className="flex-1 min-w-0">
-                            {q.topic && (
+                            {q.topic && q.topic !== ELEVEN_PLUS && (
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-600 m-0 mb-1">
                                 {q.topic}
                               </p>

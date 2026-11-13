@@ -343,6 +343,11 @@ export default function QuizPage({
         setScore(prev => ({ correct: prev.correct, total: prev.total + 1 }));
         return;
       }
+      if (!res.ok) {
+        // Do not count a failed marking request as a wrong answer
+        setFeedback({ correct: false, feedback: 'We could not mark that answer just now, so it has not been counted. Please try again.', modelAnswer: q.answer, marksAwarded: 0 });
+        return;
+      }
       const parsed = await res.json();
       setFeedback(parsed);
       const newScore = { correct: score.correct + (parsed.correct ? 1 : 0), total: score.total + 1 };
