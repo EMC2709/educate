@@ -105,6 +105,36 @@ export async function renderPdfPage({ pdfBuffer, pageNumber, width = 1000 }: Ren
   return { png, pageCount };
 }
 
+/** Extract the text of a PDF, page by page (used to give the AI marker the mark scheme). */
+export async function extractPdfText(pdfBuffer: Buffer, maxChars = 300_000): Promise<string> {
+  const pdfjs = await getPdfjs();
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(pdfBuffer),
+    isEvalSupported: false,
+    useSystemFonts: true,
+  }).promise;
+  const pages: string[] = [];
+  let total = 0;
+  try {
+    for (let n = 1; n <= doc.numPages && total < maxChars; n++) {
+      const page = await doc.getPage(n);
+      const content = await page.getTextContent();
+      let text = '';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const item of content.items as any[]) {
+        if (typeof item.str !== 'string') continue;
+        text += item.str + (item.hasEOL ? '\n' : ' ');
+      }
+      const clean = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+      pages.push(`[Page ${n}]\n${clean}`);
+      total += clean.length;
+    }
+  } finally {
+    await doc.destroy();
+  }
+  return pages.join('\n\n').slice(0, maxChars);
+}
+
 /** Get just the page count without rendering. */
 export async function getPdfPageCount(pdfBuffer: Buffer): Promise<number> {
   const pdfjs = await getPdfjs();

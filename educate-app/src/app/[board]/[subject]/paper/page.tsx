@@ -548,6 +548,14 @@ export default function ExamPaperPage({
   // The board's own past-papers page (fallback when no mark scheme can be shown here)
   const [boardPapersUrl, setBoardPapersUrl] = useState<string | null>(null);
   const [msOpen, setMsOpen] = useState<boolean>(false);
+  // AI marking against the official mark scheme (answers view)
+  type AiMarked = { marksAwarded: number; maxMarks: number; feedback: string };
+  const [aiMark, setAiMark] = useState<{
+    status: 'idle' | 'loading' | 'done' | 'error';
+    results: Record<number, AiMarked>;
+    comment: string;
+    error: string;
+  }>({ status: 'idle', results: {}, comment: '', error: '' });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -749,7 +757,11 @@ export default function ExamPaperPage({
     if (markScheme.status === 'ready' && typeof window.matchMedia === 'function'
       && window.matchMedia('(min-width: 768px)').matches) setMsOpen(true);
   }, [markScheme.status]);
-  useEffect(() => { if (mode !== 'results') setMsOpen(false); }, [mode]);
+  useEffect(() => {
+    if (mode !== 'results') setMsOpen(false);
+    // Start each view at the top (the answers view has its summary and buttons there)
+    if (mode !== 'intro') window.scrollTo({ top: 0 });
+  }, [mode]);
   // When the chosen paper is not on Educate, a different paper of the same subject is used
   const isSubstitutePaper = usingDbPaper && paperMatch === 'subject';
 
@@ -1315,6 +1327,51 @@ export default function ExamPaperPage({
 
   // ── RESULTS ────────────────────────────────────────────────────────────────
   const msReady = markScheme.status === 'ready' && !!paperDbId;
+
+  // Typed and multiple-choice answers can be AI-marked; drawings cannot
+  const markable = questions.flatMap((q, i) => {
+    const a = (answers[i] ?? '').trim();
+    const t = answerTypeFor(i, q.question);
+    if (!a || t === 'drawing') return [];
+    let answer = a;
+    if (t === 'mcq') {
+      const opt = parseMCQ(q.question)?.options.find(o => o.letter === a);
+      answer = `Chose option ${a}${opt ? `: ${opt.text}` : ''}`;
+    }
+    return [{ index: i, question: q.question.slice(0, 4000), answer: answer.slice(0, 8000), maxMarks: Math.min(Math.max(q.marks, 1), 25) }];
+  });
+  const aiTotal = Object.values(aiMark.results).reduce((s, r) => s + r.marksAwarded, 0);
+
+  async function runAiMarking() {
+    if (!paperDbId || markable.length === 0) return;
+    setAiMark({ status: 'loading', results: {}, comment: '', error: '' });
+    try {
+      const res = await fetch('/api/mark-scheme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: paperDbId, answers: markable }),
+      });
+      const data = await res.json().catch(() => null) as
+        { results?: Array<AiMarked & { index: number }>; overallComment?: string; error?: string } | null;
+      if (!res.ok || !data?.results) {
+        setAiMark({ status: 'error', results: {}, comment: '', error: data?.error ?? 'AI marking failed. Please try again.' });
+        return;
+      }
+      const results: Record<number, AiMarked> = {};
+      for (const r of data.results) results[r.index] = { marksAwarded: r.marksAwarded, maxMarks: r.maxMarks, feedback: r.feedback };
+      setAiMark({ status: 'done', results, comment: data.overallComment ?? '', error: '' });
+      // Record the result in the student's progress (best effort)
+      const score = Object.values(results).reduce((s, r) => s + r.marksAwarded, 0);
+      fetch('/api/save-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, board: boardName, questionType: 'past-paper', scoreCorrect: score, scoreTotal: totalMarks }),
+      }).catch(() => {});
+    } catch {
+      setAiMark({ status: 'error', results: {}, comment: '', error: 'AI marking failed. Check your connection and try again.' });
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-neutral-950">
       <Sidebar />
@@ -1350,6 +1407,40 @@ export default function ExamPaperPage({
               >
                 {msOpen ? 'Hide mark scheme' : '📋 Show the official mark scheme'}
               </button>
+            )}
+
+            {/* AI marking against the official mark scheme */}
+            {msReady && !hasModelAnswers && markable.length > 0 && (
+              <div className="mt-4 max-w-xl mx-auto">
+                {aiMark.status === 'done' ? (
+                  <div className="bg-neutral-900 border border-emerald-500/40 rounded-2xl px-5 py-4 text-left" role="status">
+                    <p className="text-xs uppercase tracking-widest text-emerald-400 font-bold m-0">AI marking</p>
+                    <p className="text-2xl font-extrabold text-white mt-1 mb-1">
+                      {aiTotal} <span className="text-base font-semibold text-neutral-400">/ {totalMarks} marks</span>
+                    </p>
+                    {aiMark.comment && <p className="text-sm text-neutral-300 m-0">{aiMark.comment}</p>}
+                    <p className="text-xs text-neutral-400 mt-2 mb-0">
+                      AI can make mistakes. Check each mark against the mark scheme, and ask your teacher if you are not sure.
+                      {markable.length < attemptedCount ? ' Drawing answers are not AI-marked.' : ''}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={runAiMarking}
+                      disabled={aiMark.status === 'loading'}
+                      className="px-5 py-3 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-wait border-none cursor-pointer transition-colors"
+                    >
+                      {aiMark.status === 'loading' ? 'Marking your answers… this can take a minute' : '✨ Mark my answers with AI'}
+                    </button>
+                    <p className="text-xs text-neutral-400 mt-2 mb-0">
+                      {aiMark.status === 'error'
+                        ? aiMark.error
+                        : `The AI marks your ${markable.length} answer${markable.length === 1 ? '' : 's'} against the official mark scheme.`}
+                    </p>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -1473,6 +1564,31 @@ export default function ExamPaperPage({
                             );
                           })()}
                         </div>
+
+                        {/* AI mark for this question */}
+                        {aiMark.status === 'done' && (() => {
+                          const r = aiMark.results[i];
+                          if (r) {
+                            const full = r.marksAwarded === r.maxMarks;
+                            const none = r.marksAwarded === 0;
+                            return (
+                              <div
+                                className={`border-l-4 px-4 py-2.5 text-sm leading-relaxed ${full ? 'border-emerald-500 bg-emerald-50' : none ? 'border-rose-400 bg-rose-50' : 'border-amber-400 bg-amber-50'}`}
+                                style={{ fontFamily: 'Arial, sans-serif' }}
+                              >
+                                <p className="text-xs font-black uppercase tracking-widest text-gray-700 m-0 mb-1">
+                                  AI mark: {r.marksAwarded} / {r.maxMarks}
+                                </p>
+                                <p className="text-gray-800 m-0">{r.feedback}</p>
+                              </div>
+                            );
+                          }
+                          return (
+                            <p className="text-xs text-gray-600 m-0" style={{ fontFamily: 'Arial, sans-serif' }}>
+                              {isAttempted ? 'Not AI-marked (drawing answer) — check it against the mark scheme.' : 'AI mark: 0 — not attempted.'}
+                            </p>
+                          );
+                        })()}
 
                         {/* Model answer */}
                         {!q.answer.trim() ? (

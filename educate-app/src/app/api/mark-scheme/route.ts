@@ -5,10 +5,16 @@ import { rateLimit } from '@/lib/rate-limit';
 import { EXAM_CODE_CAPTURE, parseExamCode, formatExamCode } from '@/lib/past-paper-match';
 import { aqaMarkSchemeCandidates } from '@/lib/aqa-mark-scheme';
 import { officialPdfExists, fetchOfficialPdf } from '@/lib/official-pdf';
-import { renderPdfPage, getPdfPageCount } from '@/lib/pdf-render';
+import { renderPdfPage, getPdfPageCount, extractPdfText } from '@/lib/pdf-render';
+import { markPaperWithAI } from '@/lib/ai-paper-marking';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+// AI marking of a whole paper can take a minute or more
+export const maxDuration = 300;
+
+// Extracted mark-scheme text per official URL (small, cached per instance)
+const textCache = new Map<string, { text: string; at: number }>();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -135,5 +141,71 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error('[mark-scheme] fetch/render failed:', err instanceof Error ? err.message : 'unknown error');
     return NextResponse.json({ error: 'Could not load the mark scheme. Please try again.' }, { status: 502 });
+  }
+}
+
+const markSchema = z.object({
+  id: z.string().regex(UUID_RE),
+  answers: z.array(z.object({
+    index: z.number().int().min(0).max(500),
+    question: z.string().min(1).max(4000),
+    answer: z.string().min(1).max(8000),
+    maxMarks: z.number().int().min(1).max(25),
+  })).min(1).max(120),
+});
+
+/**
+ * POST /api/mark-scheme  { id, answers: [{ index, question, answer, maxMarks }] }
+ *   → { results: [{ index, marksAwarded, maxMarks, feedback }], overallComment }
+ *
+ * AI marking of a student's answers against the paper's official mark scheme.
+ * Signed-in only and rate limited: each call reads the whole mark scheme.
+ */
+export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in to use AI marking.' }, { status: 401 });
+  if (!rateLimit(`ai-marking:user:${userId}`, 6, 15 * 60_000).ok) {
+    return NextResponse.json({ error: 'You have used AI marking a lot in the last few minutes. Please wait a little and try again.' }, { status: 429 });
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ error: 'AI marking is not available right now.' }, { status: 503 });
+  }
+
+  const parsed = markSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: 'Nothing to mark.' }, { status: 400 });
+  const { id, answers } = parsed.data;
+
+  let info: Resolved | 'not-found';
+  try {
+    info = await resolveMarkScheme(id);
+  } catch {
+    return NextResponse.json({ error: 'Could not look up the mark scheme.' }, { status: 500 });
+  }
+  if (info === 'not-found') return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
+  if (!info.url) return NextResponse.json({ error: 'There is no mark scheme to mark against for this paper.' }, { status: 404 });
+
+  try {
+    let text = textCache.get(info.url);
+    if (!text || Date.now() - text.at > RESOLVED_MS) {
+      const pdf = await fetchOfficialPdf(info.url);
+      text = { text: await extractPdfText(pdf), at: Date.now() };
+      if (textCache.size > 50) textCache.clear();
+      textCache.set(info.url, text);
+    }
+    if (text.text.length < 200) {
+      return NextResponse.json({ error: 'The mark scheme could not be read for AI marking.' }, { status: 502 });
+    }
+
+    const outcome = await markPaperWithAI(text.text, answers);
+    if (!outcome.ok) {
+      return NextResponse.json(
+        { error: outcome.reason === 'refused' ? 'The AI could not mark these answers.' : 'The AI marking did not come back complete. Please try again.' },
+        { status: 502 },
+      );
+    }
+    return NextResponse.json(outcome, { headers: { 'Cache-Control': 'no-store' } });
+  } catch (err) {
+    console.error('[ai-marking] failed:', err instanceof Error ? err.message : 'unknown error');
+    return NextResponse.json({ error: 'AI marking failed. Please try again.' }, { status: 502 });
   }
 }
