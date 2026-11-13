@@ -1,5 +1,7 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { rateLimit } from '@/lib/rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -48,11 +50,23 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { subject, topic } = body as { subject?: string; topic?: string };
+  // Generating notes calls the AI and writes to the DB, so it needs sign-in and a rate limit.
+  // (Reading cached notes via GET stays open to guests.)
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Sign in to generate revision notes.' }, { status: 401 });
+  if (!rateLimit(`revision-notes:user:${userId}`, 10, 60_000).ok) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute and try again.' }, { status: 429 });
+  }
+
+  const body = await request.json().catch(() => null) as { subject?: unknown; topic?: unknown } | null;
+  const subject = typeof body?.subject === 'string' ? body.subject.trim() : '';
+  const topic = typeof body?.topic === 'string' ? body.topic.trim() : '';
 
   if (!subject || !topic) {
     return NextResponse.json({ error: 'subject and topic are required' }, { status: 400 });
+  }
+  if (subject.length > 80 || topic.length > 200) {
+    return NextResponse.json({ error: 'subject or topic is too long' }, { status: 400 });
   }
 
   const prompt = `Generate concise GCSE revision notes for: ${subject} - ${topic}

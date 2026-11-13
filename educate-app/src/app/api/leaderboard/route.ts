@@ -29,13 +29,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ entries: rows, currentUserId: userId });
   }
 
-  // Global: fetch with active_banner_id
+  // Global: signed-in users only (it lists children's display names), and other
+  // players' Clerk ids are replaced with opaque placeholders.
+  if (!userId) return NextResponse.json({ error: 'Sign in to see the leaderboard', entries: [] }, { status: 401 });
   try {
     const rows = await sql`
       SELECT user_id, display_name, avatar_url, xp, level, active_banner_id
       FROM profiles ORDER BY xp DESC LIMIT 50
-    `;
-    return NextResponse.json({ entries: rows, currentUserId: userId });
+    ` as unknown as Array<Record<string, unknown> & { user_id: string }>;
+    const entries = rows.map((r, i) => (r.user_id === userId ? r : { ...r, user_id: `player-${i + 1}` }));
+    return NextResponse.json({ entries, currentUserId: userId });
   } catch {
     return NextResponse.json({ entries: [], currentUserId: userId });
   }

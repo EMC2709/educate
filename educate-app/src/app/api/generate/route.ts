@@ -6,6 +6,8 @@ import { SUBTOPIC_BANK } from '@/data/subtopic-bank';
 import { MCQ_BANK } from '@/data/mcq-bank';
 import { shuffle } from '@/lib/shuffle';
 import { anthropic } from '@/lib/anthropic';
+import { auth } from '@clerk/nextjs/server';
+import { rateLimit } from '@/lib/rate-limit';
 import { generateMCQPrompt } from '@/lib/prompts';
 import type { Question, Flashcard } from '@/types';
 
@@ -53,7 +55,7 @@ function getSubtopicBankContent(
 }
 
 export async function POST(request: Request) {
-  let parsedBody;
+  let parsedBody: z.infer<typeof schema>;
   try {
     parsedBody = schema.parse(await request.json());
   } catch {
@@ -69,9 +71,11 @@ export async function POST(request: Request) {
       if (mcqQs && mcqQs.length > 0) {
         return NextResponse.json({ mcqQuestions: shuffle(mcqQs).slice(0, 10) });
       }
-      // AI fallback for subjects not in the static bank
+      // AI fallback for subjects not in the static bank — signed-in users only, rate limited
       const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (apiKey && apiKey !== 'your-api-key-here') {
+      const { userId } = await auth();
+      const allowed = !!userId && rateLimit(`generate-mcq:user:${userId}`, 10, 60_000).ok;
+      if (allowed && apiKey && apiKey !== 'your-api-key-here') {
         try {
           const prompt = generateMCQPrompt(subject, parsedBody.board, focusStr ?? null);
           const message = await anthropic.messages.create({

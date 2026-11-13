@@ -16,7 +16,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Too many messages — slow down.' }, { status: 429, headers: rateLimitHeaders(LIMIT, rl) });
   }
 
-  const { messages, subject, board, topic } = await request.json();
+  // Bound everything that goes into the prompt: 30 turns of at most 4,000 characters each
+  const raw = await request.json().catch(() => null) as { messages?: unknown; subject?: unknown; board?: unknown; topic?: unknown } | null;
+  const short = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
+  const subject = short(raw?.subject, 80);
+  const board = short(raw?.board, 40);
+  const topic = short(raw?.topic, 200);
+  const messages = Array.isArray(raw?.messages)
+    ? (raw.messages as Array<{ role?: unknown; content?: unknown }>)
+        .filter(m => (m?.role === 'user' || m?.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+        .slice(-30)
+        .map(m => ({ role: m.role as string, content: (m.content as string).slice(0, 4000) }))
+    : [];
+  if (messages.length === 0) return NextResponse.json({ error: 'No message to answer.' }, { status: 400 });
 
   const system = `You are a friendly, expert GCSE ${subject} tutor helping a student who just completed a test on "${topic}" (${board || 'AQA'} spec).
 Answer their questions clearly and concisely. Use **bold** for key terms, $LaTeX$ for maths, and \`\`\`mermaid\n...\n\`\`\` diagrams where helpful.

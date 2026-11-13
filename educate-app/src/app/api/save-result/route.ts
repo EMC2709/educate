@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sql } from '@/lib/db';
 import { saveQuizResult } from '@/lib/progress';
+import { rateLimit } from '@/lib/rate-limit';
 // XP is now awarded per-question via /api/award-xp — save-result only logs the quiz result
 
 async function ensureTables() {
@@ -34,21 +35,23 @@ async function ensureTables() {
 
 // Accept both quiz-page format (scoreCorrect/scoreTotal/board/questionType)
 // and practice-page format (score/total/examType/topic)
+// Scores come from the client, so keep them within what one quiz or paper can produce.
+const count = z.number().min(0).max(500);
 const schema = z.object({
-  subject: z.string(),
+  subject: z.string().min(1).max(80),
   // Quiz page fields
-  board: z.string().optional(),
-  questionType: z.string().optional(),
-  scoreCorrect: z.number().optional(),
-  scoreTotal: z.number().optional(),
-  marksAwarded: z.number().optional(),
-  totalMarks: z.number().optional(),
+  board: z.string().max(40).optional(),
+  questionType: z.string().max(40).optional(),
+  scoreCorrect: count.optional(),
+  scoreTotal: count.optional(),
+  marksAwarded: count.optional(),
+  totalMarks: count.optional(),
   // Practice page fields
-  examType: z.string().optional(),
-  topic: z.string().optional().nullable(),
-  score: z.number().optional(),
-  total: z.number().optional(),
-  questions_done: z.number().optional(),
+  examType: z.string().max(40).optional(),
+  topic: z.string().max(200).optional().nullable(),
+  score: count.optional(),
+  total: count.optional(),
+  questions_done: count.optional(),
 });
 
 export async function POST(request: Request) {
@@ -59,7 +62,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'DATABASE_URL not configured', xpGained: 0 }, { status: 503 });
   }
 
-  const body = schema.parse(await request.json());
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid result' }, { status: 400 });
+  const body = parsed.data;
+
+  // A finished quiz or paper every few seconds is not a real student
+  const withinLimit = rateLimit(`save-result:user:${userId}`, 12, 60_000).ok;
+  if (!withinLimit) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
   try {
     await ensureTables();
@@ -69,8 +78,8 @@ export async function POST(request: Request) {
   }
 
   // Normalise to a single shape
-  const scoreCorrect = body.scoreCorrect ?? body.score ?? 0;
   const scoreTotal   = body.scoreTotal   ?? body.total  ?? 0;
+  const scoreCorrect = Math.min(body.scoreCorrect ?? body.score ?? 0, scoreTotal);
   const board        = body.board        ?? body.examType ?? '';
   const questionType = body.questionType ?? 'practice';
   const topic        = body.topic ?? null;

@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { anthropic } from '@/lib/anthropic';
 import { scoreAnswer, buildFallbackFeedback } from '@/lib/mark-scheme';
 import { checkAnswerPrompt } from '@/lib/prompts';
+import { rateLimit } from '@/lib/rate-limit';
 
 const schema = z.object({
   subject: z.string().max(80),
@@ -12,7 +13,7 @@ const schema = z.object({
   question: z.string().max(4000),
   modelAnswer: z.string().max(10000),
   acceptedAnswers: z.array(z.string()).optional(),
-  userAnswer: z.string().max(4000),
+  userAnswer: z.string().max(12000),
   marks: z.number().int().min(1).max(25),
 });
 
@@ -20,9 +21,11 @@ export async function POST(request: Request) {
   // Note: deterministic scoring runs for everyone.
   // AI feedback only runs if an API key is present and the user is signed in.
   const { userId } = await auth();
+  // Over the limit, marking still works: it falls back to the deterministic scorer.
   const aiEnabled = !!userId &&
     !!process.env.ANTHROPIC_API_KEY &&
-    process.env.ANTHROPIC_API_KEY !== 'your-api-key-here';
+    process.env.ANTHROPIC_API_KEY !== 'your-api-key-here' &&
+    rateLimit(`check-ai:user:${userId}`, 60, 60_000).ok;
 
   try {
     const body = await request.json();

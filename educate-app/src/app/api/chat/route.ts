@@ -37,6 +37,10 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: 'Invalid request body.' }, { status: 400, headers: rateLimitHeaders(LIMIT, rl) });
   }
+  // The message shape is open-ended, so cap the conversation by total size instead
+  if (JSON.stringify(body.messages).length > 80_000) {
+    return Response.json({ error: 'This conversation is too long. Start a new chat.' }, { status: 413, headers: rateLimitHeaders(LIMIT, rl) });
+  }
 
   const systemPrompt = chatSystemPrompt(body.subject ?? null, body.board ?? null);
 

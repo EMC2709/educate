@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { anthropic } from '@/lib/anthropic';
+import { rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -18,6 +19,9 @@ export async function POST(request: Request) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
+  }
+  if (!rateLimit(`study-tools:user:${userId}`, 10, 60_000).ok) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute and try again.' }, { status: 429 });
   }
 
   let body: z.infer<typeof schema>;
