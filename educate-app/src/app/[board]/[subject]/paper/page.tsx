@@ -512,6 +512,12 @@ export default function ExamPaperPage({
   const [paperDbId, setPaperDbId] = useState<string | null>(null);
   const [pageCount, setPageCount] = useState<number>(0);
   const [expandedPage, setExpandedPage] = useState<number | null>(null);
+  // Browsers without an inline PDF viewer (e.g. Android Chrome, or "Download PDFs"
+  // turned on) show a bare "Open" placeholder in an iframe — use page images there.
+  const [inlinePdf, setInlinePdf] = useState<boolean>(true);
+  useEffect(() => {
+    setInlinePdf(navigator.pdfViewerEnabled !== false);
+  }, []);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -1104,13 +1110,37 @@ export default function ExamPaperPage({
               </div>
             </div>
             {/* Only fetch the PDF once the student opens the panel */}
-            {pdfPanelOpen && (
+            {pdfPanelOpen && (inlinePdf || pageCount === 0) && (
               <iframe
                 src={`/api/paper-pdf?id=${encodeURIComponent(paperDbId ?? '')}#view=FitH`}
                 className="w-full border-none"
                 style={{ height: 'calc(100vh - 40px)' }}
                 title="Original paper PDF"
               />
+            )}
+            {/* No inline PDF viewer: show the pages as images instead */}
+            {pdfPanelOpen && !inlinePdf && pageCount > 0 && (
+              <div
+                className="overflow-y-auto bg-neutral-800 p-3 space-y-3"
+                style={{ height: 'calc(100vh - 40px)' }}
+                aria-label="Original paper pages"
+              >
+                {Array.from({ length: pageCount }, (_, idx) => (
+                  <figure key={idx} className="bg-white rounded shadow overflow-hidden m-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/paper-page?id=${encodeURIComponent(paperDbId ?? '')}&page=${idx + 1}&w=900`}
+                      alt={`Page ${idx + 1} of the original paper`}
+                      loading="lazy"
+                      className="w-full block"
+                      style={{ minHeight: 200 }}
+                    />
+                    <figcaption className="text-[10px] text-neutral-500 text-center py-1 bg-neutral-100">
+                      Page {idx + 1} of {pageCount}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
             )}
           </div>
         )}
