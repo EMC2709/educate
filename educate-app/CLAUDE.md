@@ -34,10 +34,17 @@ An AI-assisted GCSE revision web app for UK students, with teacher, school and p
 | Use | Model | Files |
 |---|---|---|
 | Answer marking, question generation, revision notes | `claude-haiku-4-5-20251001` | `api/check`, `api/generate`, `api/revision-notes` |
-| Tutor chat, topic chat, study tools | `claude-sonnet-4-5-20250929` | `api/chat`, `api/topic-chat`, `api/generate-study-tools` |
+| Tutor chat, topic chat, study tools | `claude-sonnet-5-5` (`TUTOR_MODEL` in `lib/anthropic.ts`) | `api/chat`, `api/topic-chat`, `api/generate-study-tools` |
 | Marking a whole past paper against its mark scheme | `claude-opus-5-5` | `lib/ai-paper-marking.ts` (called by `POST api/mark-scheme`) |
 
-**Deadline: Claude Sonnet 4.5 retires on 30 Nov 2026.** Tutor chat, topic chat and study tools will fail from that day unless they move to `claude-sonnet-5-5` first. That model rejects `thinking: {type: "disabled"}`, forced `tool_choice` and non-default `temperature`, so read the migration notes before swapping the ID.
+**Tutor chat, topic chat and study tools moved to `claude-sonnet-5-5` on 13 Nov 2026** (Sonnet 4.5 retires on 30 Nov 2026). Rules for that model:
+- It thinks before answering, and the thinking counts towards `max_tokens`. Keep the limits well above the reply length (chat 4,000, topic chat 3,000, study tools 8,000) or replies get cut off or come back empty.
+- All three run at `effort: 'low'`, the recommended level for chat. Change depth with effort; `thinking: {type: "disabled"}`, forced `tool_choice` and non-default `temperature` all return a 400.
+- `api/chat` sends `sendReasoning: false`, so thinking never reaches the browser and is never sent back. Keep it that way: replaying thinking blocks after the system prompt changes (the student switches subject) can be rejected.
+- Read replies by block type, never `content[0]`. `askTutorModel()` in `lib/anthropic.ts` does this for the two non-streaming routes and handles a declined (`refusal`) or cut-off reply.
+- Each route logs token counts as `[chat] usage`, `[topic-chat] usage` or `[generate-study-tools] usage`.
+- The three Haiku 4.5 routes are unchanged. Haiku 4.5 was not on the deprecation list when checked on 13 Nov 2026; `claude-haiku-5-5` is its successor when that changes.
+- The `ANTHROPIC_API_KEY` in the local `.env.local` is invalid (401 on 13 Nov), so AI routes can only be tested on the deployed site until it is replaced.
 
 To list the models available to the key: `GET https://api.anthropic.com/v1/models`.
 `/api/check` falls back to deterministic marking if the AI call fails, so a broken model ID fails **silently**. Check the logs.
@@ -158,7 +165,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod --yes` from the local clone on Paul's laptop (`C:\Users\LAPTOP80\Projects\educate\educate-app`, linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
   - **Check the link first:** `.vercel/project.json` must say `"projectName":"educate"`. Paul's account also has a stale April project called `educate-app`; this clone was linked to it until 12 Nov. Re-link with `vercel link --yes --project educate` if needed. Never deploy to `educate-app`.
-- As of 13 Nov, GitHub `master` and the live site are in sync at the "AI marking" commit (deployment `dpl_j9nZECCaZ9XsA1Eyi1tcF8193XC3`). Do not force-push. After any code change: commit, push, **and** deploy.
+- As of 13 Nov, GitHub `master` and the live site are in sync at the "tutor chat on Claude Sonnet 5.5" commit (deployment `dpl_4j61Br99CFu6hGqJhduVnriD2yy5`). Do not force-push. After any code change: commit, push, **and** deploy.
 - The old deployment `educate-app-zeta.vercel.app` (Ethan's original, different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
 - **Two Neon worlds:** Paul's project `shy-paper-14167641` is what educate-virid uses. Ethan's production papers live on `shiny-tooth-08089128` (via Ethan's Vercel `DATABASE_URL`), **not** in Neon org `org-curly-sound-07355255` (project `cool-snow-33977978` has no papers). Port 5432 often times out; use `@neondatabase/serverless` over HTTPS. Do not rotate the source DB password or copy PII.
 

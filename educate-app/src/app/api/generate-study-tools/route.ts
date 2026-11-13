@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { anthropic } from '@/lib/anthropic';
+import { askTutorModel } from '@/lib/anthropic';
 import { rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
@@ -49,18 +49,19 @@ Return ONLY a valid JSON array — no markdown, no explanation, no code fences. 
 [{"question":"Explain why plants need chlorophyll for photosynthesis.","marks":3,"answer":"Chlorophyll absorbs light energy (1). This energy drives the conversion of CO2 and water into glucose (1). Without chlorophyll, the light-dependent reactions cannot occur (1)."},...]`;
 
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2048,
+    // max_tokens covers the model's thinking as well as the JSON, so it sits well above the JSON's size
+    const reply = await askTutorModel({
+      route: 'generate-study-tools',
       system:
         'You are a GCSE revision tool. Output ONLY a valid JSON array with no surrounding text, markdown, or code fences. Never add explanations before or after the JSON.',
       messages: [{ role: 'user', content: prompt }],
+      maxTokens: 8000,
     });
-
-    const raw = message.content
-      .map(b => (b.type === 'text' ? b.text : ''))
-      .join('')
-      .trim();
+    if (reply.refused || reply.truncated) {
+      console.error('generate-study-tools: no usable reply', { refused: reply.refused, truncated: reply.truncated });
+      return NextResponse.json({ error: 'Generation failed.' }, { status: 500 });
+    }
+    const raw = reply.text;
 
     // Strip any accidental markdown code fences
     const cleaned = raw.replace(/```json|```/g, '').trim();

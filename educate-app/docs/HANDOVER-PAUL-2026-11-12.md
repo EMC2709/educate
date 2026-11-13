@@ -152,7 +152,8 @@ A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [1
 ### Anthropic
 
 - Marking, generation and revision notes use `claude-haiku-4-5-20251001`.
-- Tutor, topic chat and study tools use `claude-sonnet-4-5-20250929`.
+- Tutor, topic chat and study tools use `claude-sonnet-5-5` (moved off Sonnet 4.5 on 13 Nov, ahead of its 30 Nov retirement; see "Tutor chat moved to Claude Sonnet 5.5" below).
+- Marking a whole past paper uses `claude-opus-5-5`.
 - `/api/check` falls back silently if the AI call fails, so check the logs.
 
 ---
@@ -359,6 +360,35 @@ Deployment `dpl_j9nZECCaZ9XsA1Eyi1tcF8193XC3`.
   - how question types are chosen for a quiz
   - where "share with a parent" lives
   - the phone menu
+
+### Tutor chat moved to Claude Sonnet 5.5 (13 Nov, last)
+
+Deployment `dpl_4j61Br99CFu6hGqJhduVnriD2yy5`.
+
+- **Why:** Claude Sonnet 4.5 retires on 30 Nov 2026. Tutor chat, topic chat and study tools would have stopped working that day.
+- **Why Sonnet 5.5 and not Opus 5.5:** it is the direct successor, costs $2 / $10 per million tokens against $3 / $15 before, and can skip thinking on simple questions. Opus 5.5 costs twice as much and always thinks first, which slows a chat.
+- **What changed:**
+  - `TUTOR_MODEL` and `askTutorModel()` in `src/lib/anthropic.ts`; the three routes use them.
+  - The model thinks before answering and that counts towards the token limit, so the limits went up: chat 600 → 4,000, topic chat 500 → 3,000, study tools 2,048 → 8,000. Reply length is still set by the prompts.
+  - All three run at low effort.
+  - Tutor chat keeps the model's thinking on the server (`sendReasoning: false`).
+  - A declined or empty reply now shows "Sorry, I can't answer that one. Try asking it a different way." instead of an empty bubble.
+- **Also fixed:** "Generate with AI" on the notes page read the chat stream in an old format and silently produced nothing. It now reads the current format and shows an error if the reply is empty.
+- **Tested live as Test Student:**
+  - Tutor chat panel: two turns, maths rendered, first words in 0.6 to 1.7 seconds, full reply in 3 to 6 seconds.
+  - Topic chat: two turns, 3 to 4 seconds each, the follow-up used the earlier answer correctly.
+  - Study tools: 8 flashcards and 5 questions, about 4 seconds each, valid JSON both times.
+  - Notes "Generate with AI": 444 words, complete, in about 9 seconds.
+  - Logs: all 12 requests were served by `claude-sonnet-5-5` and finished normally. A chat reply used 300 to 1,250 output tokens (about half a penny to a penny).
+- **Not tested:**
+  - A long conversation (more than two turns).
+  - A question the model declines, so the "can't answer that one" message has not been seen live.
+  - Essay subjects, and quality side by side with the old model.
+- **Not done:** tutor chat has no automatic retry on a second model when the model declines; the installed chat library can't send that option. Topic chat and study tools do have it.
+- **Found on the way, still open:**
+  - The notes page's Subject list comes from `educate-user-subjects` in the browser's storage. A student who has not picked subjects gets an empty list and cannot generate a note.
+  - `ChatContext` sends `aiDisabled: true` when the school's "AI off" switch is set, but `api/chat` ignores it and still calls the model.
+  - The `ANTHROPIC_API_KEY` in the local `.env.local` is invalid, so AI routes can only be tested on the deployed site.
 
 ---
 

@@ -2,6 +2,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { streamText, convertToModelMessages } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { chatSystemPrompt } from '@/lib/prompts';
+import { TUTOR_MODEL } from '@/lib/anthropic';
 import { z } from 'zod';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
 
@@ -48,13 +49,24 @@ export async function POST(request: Request) {
   const coreMessages = await convertToModelMessages(body.messages as Parameters<typeof convertToModelMessages>[0]);
 
   const result = streamText({
-    model: anthropic('claude-sonnet-4-5-20250929'),
+    model: anthropic(TUTOR_MODEL),
     system: systemPrompt,
     messages: coreMessages,
-    maxOutputTokens: 600,
+    // The model's thinking counts towards this limit as well as the reply, so leave headroom
+    maxOutputTokens: 4000,
+    // Low effort is the recommended level for chat: little or no thinking, fastest first word
+    providerOptions: { anthropic: { effort: 'low' } },
+    onFinish: ({ finishReason, usage }) => {
+      // Token counts only (no content), so the cost of tutor chat can be tracked in the logs
+      console.log('[chat] usage', JSON.stringify({
+        model: TUTOR_MODEL, input: usage.inputTokens, output: usage.outputTokens, finish: finishReason,
+      }));
+    },
   });
 
   return result.toUIMessageStreamResponse({
     headers: rateLimitHeaders(LIMIT, rl),
+    // Thinking is never shown, and keeping it out of the client means it is never sent back
+    sendReasoning: false,
   });
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { anthropic } from '@/lib/anthropic';
+import { askTutorModel } from '@/lib/anthropic';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
 
 const LIMIT = 30;
@@ -40,14 +40,12 @@ Keep responses focused and under 200 words unless a longer explanation is genuin
   }));
 
   try {
-    const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 500,
-      system,
-      messages: coreMessages,
-    });
-    const text = result.content.map(b => (b.type === 'text' ? b.text : '')).join('').trim();
-    return NextResponse.json({ message: text }, { headers: rateLimitHeaders(LIMIT, rl) });
+    // max_tokens covers the model's thinking as well as the reply, so it sits well above 200 words
+    const reply = await askTutorModel({ route: 'topic-chat', system, messages: coreMessages, maxTokens: 3000 });
+    const message = reply.refused || !reply.text
+      ? "Sorry, I can't answer that one. Try asking it a different way."
+      : reply.text;
+    return NextResponse.json({ message }, { headers: rateLimitHeaders(LIMIT, rl) });
   } catch {
     return NextResponse.json({ error: 'Failed to respond.' }, { status: 500 });
   }

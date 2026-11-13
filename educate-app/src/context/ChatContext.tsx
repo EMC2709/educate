@@ -56,10 +56,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     sendMessage({ text }, { body: { subject: subject ?? null, board: board ?? null } });
   };
 
-  const chatMessages = messages.map(m => ({
-    role: m.role as 'user' | 'assistant',
-    content: m.parts?.map(p => p.type === 'text' ? p.text : '').join('') ?? '',
-  }));
+  const chatMessages = messages.map((m, i) => {
+    const content = m.parts?.map(p => p.type === 'text' ? p.text : '').join('') ?? '';
+    // A finished reply with no text means the model declined or was cut off: say so instead of showing an empty bubble
+    const finishedEmpty = m.role === 'assistant' && !content.trim() && !(isLoading && i === messages.length - 1);
+    return {
+      role: m.role as 'user' | 'assistant',
+      content: finishedEmpty ? "Sorry, I can't answer that one. Try asking it a different way." : content,
+    };
+  });
 
   return (
     <ChatContext.Provider value={{

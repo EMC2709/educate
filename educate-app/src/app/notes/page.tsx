@@ -400,19 +400,19 @@ export default function NotesPage() {
       if (!res.ok) throw new Error('Failed');
       const text = await res.text();
       let generated = '';
+      // The chat route streams server-sent events: one `data: {"type":"text-delta","delta":"…"}` line per chunk
       for (const line of text.split('\n')) {
-        if (line.startsWith('0:"')) {
-          try { generated += JSON.parse(line.slice(2)); } catch {}
-        } else if (line.startsWith('0:')) {
-          try { generated += JSON.parse(line.slice(2)); } catch {}
-        }
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const chunk = JSON.parse(line.slice(6));
+          if (chunk.type === 'text-delta' && typeof chunk.delta === 'string') generated += chunk.delta;
+        } catch {}
       }
-      if (generated) {
-        setContent(prev => prev ? prev + '\n\n---\n\n' + generated : generated);
-        showToast({ icon: '✨', title: 'Notes generated!', type: 'success' });
-      }
+      if (!generated.trim()) throw new Error('Empty reply');
+      setContent(prev => prev ? prev + '\n\n---\n\n' + generated : generated);
+      showToast({ icon: '✨', title: 'Notes generated!', type: 'success' });
     } catch {
-      showToast({ icon: '❌', title: 'Could not generate notes. Are you signed in?', type: 'info' });
+      showToast({ icon: '❌', title: 'Could not generate notes. Check you are signed in, then try again.', type: 'info' });
     }
     setGenerating(false);
   }
