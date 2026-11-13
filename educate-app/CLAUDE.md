@@ -35,6 +35,9 @@ An AI-assisted GCSE revision web app for UK students, with teacher, school and p
 |---|---|---|
 | Answer marking, question generation, revision notes | `claude-haiku-4-5-20251001` | `api/check`, `api/generate`, `api/revision-notes` |
 | Tutor chat, topic chat, study tools | `claude-sonnet-4-5-20250929` | `api/chat`, `api/topic-chat`, `api/generate-study-tools` |
+| Marking a whole past paper against its mark scheme | `claude-opus-5-5` | `lib/ai-paper-marking.ts` (called by `POST api/mark-scheme`) |
+
+**Deadline: Claude Sonnet 4.5 retires on 30 Nov 2026.** Tutor chat, topic chat and study tools will fail from that day unless they move to `claude-sonnet-5-5` first. That model rejects `thinking: {type: "disabled"}`, forced `tool_choice` and non-default `temperature`, so read the migration notes before swapping the ID.
 
 To list the models available to the key: `GET https://api.anthropic.com/v1/models`.
 `/api/check` falls back to deterministic marking if the AI call fails, so a broken model ID fails **silently**. Check the logs.
@@ -70,6 +73,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
     scripts/                     One-off maintenance scripts (past-paper scraper, migrations, seeds, audits)
     docs/HANDOVER-PAUL-2026-11-12.md  11-13 Nov 2026 session handover (what was done, platforms, open review items)
     docs/HANDOVER-ETHAN.md       April 2026 handover (partly stale: shared DB/Clerk refs, old URL)
+    docs/help/                   Student and parent help guide: Educate-Help-Guide.pdf, built by build_help_guide.py (reportlab). Update the script and rebuild when button names change.
   educate-v4.jsx                 Original single-file prototype (reference only)
   *.md, *.pptx                   Market research, case study, pitch deck (not code)
 ```
@@ -79,7 +83,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - `chat` (streaming tutor, needs auth)
   - `check` (marking; AI only when signed in, otherwise deterministic)
   - `generate`, `generate-study-tools`, `topic-chat`, `topic-summary`, `revision-notes`
-- **Content:** `questions`, `past-papers` (list, `?resolve=1` lookup by subject/sitting/paper/tier, `?available=1` stored-paper codes), `mark-scheme` (official AQA mark scheme for a stored paper: JSON, `format=pdf` or `page=N` PNG), `paper-pdf` (auth-only PDF stream), `paper-page` (auth-only PNG of one page), `paper-pagecount`, `download-paper` (official board-URL proxy only — not Drive)
+- **Content:** `questions`, `past-papers` (list, `?resolve=1` lookup by subject/sitting/paper/tier, `?available=1` stored-paper codes), `mark-scheme` (GET: official AQA mark scheme for a stored paper as JSON, `format=pdf` or `page=N` PNG; POST: AI marking of a student's answers against it), `paper-pdf` (auth-only PDF stream), `paper-page` (auth-only PNG of one page), `paper-pagecount`, `download-paper` (official board-URL proxy only — not Drive)
   - All of these except `download-paper` require sign-in and must send `Cache-Control: private` (never `public` / `s-maxage`, or the CDN serves signed-in content to anyone).
   - `paper-pdf` and `mark-scheme` are the only routes allowed in an iframe (`X-Frame-Options: SAMEORIGIN` overrides in `next.config.ts`; everything else is `DENY`). Both also need the pdfjs worker in `outputFileTracingIncludes` if they render pages.
 - **Gamification:** `award-xp`, `save-result`, `achievements`, `leaderboard`, `marketplace`, `marketplace/equip`, `friends`, `game`, `quiz-history`
@@ -154,7 +158,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod --yes` from the local clone on Paul's laptop (`C:\Users\LAPTOP80\Projects\educate\educate-app`, linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
   - **Check the link first:** `.vercel/project.json` must say `"projectName":"educate"`. Paul's account also has a stale April project called `educate-app`; this clone was linked to it until 12 Nov. Re-link with `vercel link --yes --project educate` if needed. Never deploy to `educate-app`.
-- As of 13 Nov, GitHub `master` and the live site are in sync at `2f1a6ba` (deployment `dpl_2dQJzmttexVJScGahR1QiEsZ1Ukf`). Do not force-push. After any code change: commit, push, **and** deploy.
+- As of 13 Nov, GitHub `master` and the live site are in sync at the "AI marking" commit (deployment `dpl_j9nZECCaZ9XsA1Eyi1tcF8193XC3`). Do not force-push. After any code change: commit, push, **and** deploy.
 - The old deployment `educate-app-zeta.vercel.app` (Ethan's original, different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
 - **Two Neon worlds:** Paul's project `shy-paper-14167641` is what educate-virid uses. Ethan's production papers live on `shiny-tooth-08089128` (via Ethan's Vercel `DATABASE_URL`), **not** in Neon org `org-curly-sound-07355255` (project `cool-snow-33977978` has no papers). Port 5432 often times out; use `@neondatabase/serverless` over HTTPS. Do not rotate the source DB password or copy PII.
 
@@ -197,7 +201,8 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
    - The same-subject fallback in `past-paper-match.ts` can pick a different tier or year (shown with a "closest available paper" notice).
    - Not tested on a real phone. Google Classroom OAuth vars are still unset.
    - **13 Nov whole-app review** (security, practice flows, UI/UX): fixes are live in `ae16f2d` and `8a0fe2f`. The full open list, with measurements, is in the handover. The ones that shape new work:
-     - **Mark schemes come from AQA, not the DB.** Only 712 of 584,732 questions have a `mark_scheme` (none GCSE AQA) and `has_image` is false on every row. `GET /api/mark-scheme?id=<paper>` works out the official AQA mark scheme from the paper's own footer code (`src/lib/aqa-mark-scheme.ts`, `src/lib/official-pdf.ts`). The answers view shows it in a side panel (`components/papers/MarkSchemePanel.tsx`). AQA's file store only has June 2022/2023 and Nov 2021/2022. Nothing is scored automatically.
+     - **Mark schemes come from AQA, not the DB.** Only 712 of 584,732 questions have a `mark_scheme` (none GCSE AQA) and `has_image` is false on every row. `GET /api/mark-scheme?id=<paper>` works out the official AQA mark scheme from the paper's own footer code (`src/lib/aqa-mark-scheme.ts`, `src/lib/official-pdf.ts`). The answers view shows it in a side panel (`components/papers/MarkSchemePanel.tsx`). AQA's file store only has June 2022/2023 and Nov 2021/2022.
+     - **AI marking** (13 Nov): `POST /api/mark-scheme { id, answers }` extracts the mark scheme's text (`extractPdfText` in `pdf-render.ts`) and has Claude mark the student's typed and multiple-choice answers (`src/lib/ai-paper-marking.ts`: structured JSON output, mark scheme in a cached system block, marks clamped server-side). Signed-in only, 6 runs per student per 15 minutes, `maxDuration` 300. Token use is logged as `[ai-marking] usage`. The mark scheme is about 16,800 tokens; a warm full-paper run costs roughly $0.08 and a cold one about $0.16. Drawings are not marked. Only papers with a mark scheme can be marked.
      - **The papers page offers only stored papers** (`/api/past-papers?available=1` → canonical codes; `isPaperStored` in `past-paper-match.ts`). Languages match by skill letter, single written papers by `W`. OCR never matches exactly (no footer codes) and there are no Edexcel papers.
      - **11+** is stored as exam type `11Plus_Practice` (187 usable papers) and is reachable only through `/practice`. The content is rough.
      - The deterministic marker in `src/lib/mark-scheme.ts` over-awards; streaks are never recorded from quizzes; most subtopics in the topic picker have no questions.
