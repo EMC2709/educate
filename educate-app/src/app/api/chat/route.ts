@@ -3,6 +3,7 @@ import { streamText, convertToModelMessages } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { chatSystemPrompt } from '@/lib/prompts';
 import { TUTOR_MODEL } from '@/lib/anthropic';
+import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import { z } from 'zod';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
 
@@ -30,6 +31,10 @@ export async function POST(request: Request) {
       { error: `Slow down — ${LIMIT} messages per minute max. Try again in ${rl.retryAfterSec}s.` },
       { status: 429, headers: rateLimitHeaders(LIMIT, rl) }
     );
+  }
+
+  if (await isAiDisabledFor(userId)) {
+    return Response.json({ error: AI_DISABLED_MESSAGE }, { status: 403, headers: rateLimitHeaders(LIMIT, rl) });
   }
 
   let body: z.infer<typeof schema>;

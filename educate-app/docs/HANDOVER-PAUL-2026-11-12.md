@@ -385,10 +385,40 @@ Deployment `dpl_4j61Br99CFu6hGqJhduVnriD2yy5`.
   - A question the model declines, so the "can't answer that one" message has not been seen live.
   - Essay subjects, and quality side by side with the old model.
 - **Not done:** tutor chat has no automatic retry on a second model when the model declines; the installed chat library can't send that option. Topic chat and study tools do have it.
-- **Found on the way, still open:**
-  - The notes page's Subject list comes from `educate-user-subjects` in the browser's storage. A student who has not picked subjects gets an empty list and cannot generate a note.
-  - `ChatContext` sends `aiDisabled: true` when the school's "AI off" switch is set, but `api/chat` ignores it and still calls the model.
-  - The `ANTHROPIC_API_KEY` in the local `.env.local` is invalid, so AI routes can only be tested on the deployed site.
+- **Found on the way:**
+  - The notes page's Subject list was empty for a student with no saved subjects, and the school "AI off" switch did nothing. Both are fixed; see the next section.
+  - Still open: the `ANTHROPIC_API_KEY` in the local `.env.local` is invalid, so AI routes can only be tested on the deployed site.
+
+### School "AI off" switch and the notes Subject list (13 Nov, last)
+
+Deployment `dpl_3PyfDyH5jY6jG7NaZ51FtoY5Lyj2`.
+
+**The "AI off" switch**
+
+- **What was wrong:** the switch on the teacher dashboard only saved to the teacher's own browser. It never reached students or the server, so it stopped nothing.
+- **What it does now:**
+  - The setting is stored per school in a new column, `organisations.ai_disabled` (added to the live database and to `db/schema.sql`).
+  - The teacher dashboard reads it with `GET /api/organisations` and changes it with `PATCH /api/organisations { aiDisabled }`. Teachers and above can change it, for their own school only.
+  - Every route that calls a model asks `isAiDisabledFor(userId)` in `src/lib/ai-access.ts` first: tutor chat, topic chat, study tools, revision notes and AI paper marking refuse with "AI features are switched off for your school." Answer marking and multiple-choice generation carry on without AI.
+  - It applies to everyone in the school, teachers included. People who are not in a school are never affected.
+  - Students' browsers read the setting once per sign-in (`ChatContext`), so the chat panel answers locally without calling the server.
+- **Tested live as Test Student**, using a temporary test school that was removed afterwards (0 schools exist again):
+  - Not in a school: AI works, and a student changing the switch gets a 403.
+  - In a school with AI off: all five routes above returned 403 with the message; answer marking gave a non-AI result in 82 ms; the chat panel showed the "switched off" message and made 0 calls to the chat route; "Generate with AI" on a note showed the same message.
+  - In a school with AI back on: AI works again and the browser follows.
+- **Not tested:**
+  - The switch itself on the teacher dashboard, and a teacher's `PATCH`. That needs a teacher signed in with a school set up. The setting was flipped directly in the database for the tests above.
+  - The message on the mastery topic chat and on the paper page's AI marking button (their routes were tested; the pages pass the route's message through).
+- **Things to know:**
+  - If the database cannot be reached, the check lets AI through rather than blocking every student.
+  - Any teacher in a school can flip the switch for the whole school. Restrict it to `school_admin` if that turns out to be wrong.
+  - Each AI request now makes one extra small database query.
+
+**Notes page Subject list**
+
+- A student with no saved subjects on that device now gets all 26 subjects (AQA), and their own list replaces it if their account has one.
+- Tested live as Test Student: 26 subjects listed, Mathematics selected, note generation runs.
+- The other pages that read `educate-user-subjects` from the browser (timer, exams, mastery, checklist, timetable, export) were not changed and may still show nothing for such a student.
 
 ---
 

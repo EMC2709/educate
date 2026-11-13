@@ -140,15 +140,40 @@ export default function TeacherDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [aiDisabled, setAiDisabled] = useState(false);
 
-  // Load AI toggle state from localStorage
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  // The switch is stored against the school on the server, so it applies to every student's device
   useEffect(() => {
-    setAiDisabled(localStorage.getItem('educate-ai-disabled') === 'true');
+    fetch('/api/organisations')
+      .then(r => (r.ok ? r.json() : null))
+      .then((data: { organisation?: { ai_disabled?: boolean } | null } | null) => {
+        const off = data?.organisation?.ai_disabled === true;
+        setAiDisabled(off);
+        localStorage.setItem('educate-ai-disabled', off ? 'true' : 'false');
+      })
+      .catch(() => {});
   }, []);
 
-  const toggleAi = () => {
+  const toggleAi = async () => {
+    if (aiSaving) return;
     const next = !aiDisabled;
-    setAiDisabled(next);
-    localStorage.setItem('educate-ai-disabled', next ? 'true' : 'false');
+    setAiSaving(true);
+    setAiError('');
+    try {
+      const res = await fetch('/api/organisations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiDisabled: next }),
+      });
+      const data = await res.json().catch(() => null) as { aiDisabled?: boolean; error?: string } | null;
+      if (!res.ok || typeof data?.aiDisabled !== 'boolean') throw new Error(data?.error ?? 'Could not save the setting. Please try again.');
+      setAiDisabled(data.aiDisabled);
+      localStorage.setItem('educate-ai-disabled', data.aiDisabled ? 'true' : 'false');
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Could not save the setting. Please try again.');
+    }
+    setAiSaving(false);
   };
 
   const fetchData = () => {
@@ -248,14 +273,19 @@ export default function TeacherDashboard() {
               </p>
               <p className="text-xs text-neutral-400 m-0">
                 {aiDisabled
-                  ? 'Students use the scraped exam question bank only (no API cost)'
-                  : 'Students can use AI-generated questions and the AI tutor (uses API credits)'}
+                  ? 'Everyone at your school uses the question bank only: no AI tutor, AI marking or AI-written questions'
+                  : 'Everyone at your school can use the AI tutor, AI marking and AI-written questions'}
               </p>
+              {aiError && <p className="text-xs text-red-400 m-0 mt-1" role="alert">{aiError}</p>}
             </div>
           </div>
           <button
             onClick={toggleAi}
-            className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer border-0 ${aiDisabled ? 'bg-neutral-700' : 'bg-indigo-500'}`}
+            disabled={aiSaving}
+            role="switch"
+            aria-checked={!aiDisabled}
+            aria-label="AI features for your school"
+            className={`relative shrink-0 w-12 h-6 rounded-full transition-colors cursor-pointer border-0 disabled:opacity-60 ${aiDisabled ? 'bg-neutral-700' : 'bg-indigo-500'}`}
           >
             <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow ${aiDisabled ? 'left-0.5' : 'left-[1.625rem]'}`} />
           </button>

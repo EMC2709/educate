@@ -165,7 +165,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod --yes` from the local clone on Paul's laptop (`C:\Users\LAPTOP80\Projects\educate\educate-app`, linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
   - **Check the link first:** `.vercel/project.json` must say `"projectName":"educate"`. Paul's account also has a stale April project called `educate-app`; this clone was linked to it until 12 Nov. Re-link with `vercel link --yes --project educate` if needed. Never deploy to `educate-app`.
-- As of 13 Nov, GitHub `master` and the live site are in sync at the "tutor chat on Claude Sonnet 5.5" commit (deployment `dpl_4j61Br99CFu6hGqJhduVnriD2yy5`). Do not force-push. After any code change: commit, push, **and** deploy.
+- As of 13 Nov, GitHub `master` and the live site are in sync at the "school AI switch enforced on the server" commit (deployment `dpl_3PyfDyH5jY6jG7NaZ51FtoY5Lyj2`). The live database has `organisations.ai_disabled` (added 13 Nov). Do not force-push. After any code change: commit, push, **and** deploy.
 - The old deployment `educate-app-zeta.vercel.app` (Ethan's original, different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
 - **Two Neon worlds:** Paul's project `shy-paper-14167641` is what educate-virid uses. Ethan's production papers live on `shiny-tooth-08089128` (via Ethan's Vercel `DATABASE_URL`), **not** in Neon org `org-curly-sound-07355255` (project `cool-snow-33977978` has no papers). Port 5432 often times out; use `@neondatabase/serverless` over HTTPS. Do not rotate the source DB password or copy PII.
 
@@ -177,6 +177,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - Check the role with `getUserRole`.
   - Validate the body with Zod.
   - Rate-limit AI routes with `lib/rate-limit.ts`.
+  - **Every route that calls a model must ask `isAiDisabledFor(userId)` (`src/lib/ai-access.ts`) first.** That is the school "AI off" switch (`organisations.ai_disabled`, changed by teachers through `PATCH /api/organisations`). Refuse with `AI_DISABLED_MESSAGE` and a 403, or carry on without AI where a non-AI path exists (as `api/check` and `api/generate` do). Never rely on the browser's `educate-ai-disabled` value; it is only a mirror for the UI.
 - SQL: always use the `sql` tagged template (parameterised). Never string-concatenate user input. Compose optional filters with nested `sql\`\`` fragments, as in `api/past-papers`.
 - Guest-first: static banks in `src/data/` must keep working without a DB or AI. Use AI and the DB only as an enhancement or fallback.
 - AI output is rendered through `MessageContent` (KaTeX and Mermaid). Sanitise any new HTML/SVG injection.

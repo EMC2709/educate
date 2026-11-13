@@ -5,6 +5,7 @@ import { anthropic } from '@/lib/anthropic';
 import { scoreAnswer, buildFallbackFeedback } from '@/lib/mark-scheme';
 import { checkAnswerPrompt } from '@/lib/prompts';
 import { rateLimit } from '@/lib/rate-limit';
+import { isAiDisabledFor } from '@/lib/ai-access';
 
 const schema = z.object({
   subject: z.string().max(80),
@@ -22,10 +23,12 @@ export async function POST(request: Request) {
   // AI feedback only runs if an API key is present and the user is signed in.
   const { userId } = await auth();
   // Over the limit, marking still works: it falls back to the deterministic scorer.
+  // The same applies when the student's school has switched AI off.
   const aiEnabled = !!userId &&
     !!process.env.ANTHROPIC_API_KEY &&
     process.env.ANTHROPIC_API_KEY !== 'your-api-key-here' &&
-    rateLimit(`check-ai:user:${userId}`, 60, 60_000).ok;
+    rateLimit(`check-ai:user:${userId}`, 60, 60_000).ok &&
+    !(await isAiDisabledFor(userId));
 
   try {
     const body = await request.json();

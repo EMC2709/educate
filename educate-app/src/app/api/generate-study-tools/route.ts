@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { askTutorModel } from '@/lib/anthropic';
+import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import { rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
   }
   if (!rateLimit(`study-tools:user:${userId}`, 10, 60_000).ok) {
     return NextResponse.json({ error: 'Too many requests. Please wait a minute and try again.' }, { status: 429 });
+  }
+
+  if (await isAiDisabledFor(userId)) {
+    return NextResponse.json({ error: AI_DISABLED_MESSAGE }, { status: 403 });
   }
 
   let body: z.infer<typeof schema>;

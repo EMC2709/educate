@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { rateLimit } from '@/lib/rate-limit';
+import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -56,6 +57,9 @@ export async function POST(request: Request) {
   if (!userId) return NextResponse.json({ error: 'Sign in to generate revision notes.' }, { status: 401 });
   if (!rateLimit(`revision-notes:user:${userId}`, 10, 60_000).ok) {
     return NextResponse.json({ error: 'Too many requests. Please wait a minute and try again.' }, { status: 429 });
+  }
+  if (await isAiDisabledFor(userId)) {
+    return NextResponse.json({ error: AI_DISABLED_MESSAGE }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null) as { subject?: unknown; topic?: unknown } | null;

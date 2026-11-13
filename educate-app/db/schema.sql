@@ -9,8 +9,11 @@ CREATE TABLE IF NOT EXISTS organisations (
   slug TEXT UNIQUE NOT NULL,
   domain TEXT,
   country TEXT DEFAULT 'England',
+  ai_disabled BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+-- The school "AI off" switch (added 13 Nov 2026); read by src/lib/ai-access.ts
+ALTER TABLE organisations ADD COLUMN IF NOT EXISTS ai_disabled BOOLEAN NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS profiles (
   user_id TEXT PRIMARY KEY,

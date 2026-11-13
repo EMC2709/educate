@@ -6,8 +6,12 @@ import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { useToast } from '@/components/ui/Toast';
 import { unlockAchievement } from '@/lib/achievements';
 import { useUser } from '@clerk/nextjs';
+import { EXAM_BOARDS } from '@/data/exam-boards';
 
 const NOTES_KEY = 'educate-notes';
+
+// Fallback for the Subject list when the student has not picked their subjects yet
+const ALL_SUBJECTS = EXAM_BOARDS.AQA.subjects.map(subject => ({ subject, board: 'AQA' }));
 
 interface Note {
   id: string;
@@ -83,7 +87,7 @@ function ConvertModal({
       else setQuestions(items as CustomQuestion[]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      setError(msg.includes('Sign in') ? msg : 'Could not generate — make sure you are signed in.');
+      setError(msg.includes('Sign in') || msg.includes('switched off') || msg.includes('Too many') ? msg : 'Could not generate — make sure you are signed in.');
     }
     setLoading(false);
   }
@@ -289,17 +293,36 @@ export default function NotesPage() {
 
   useEffect(() => {
     setNotes(getNotes());
-    try {
-      const cached = localStorage.getItem('educate-user-subjects');
-      if (cached) {
-        const subs = JSON.parse(cached);
-        setSubjects(subs);
-        if (subs.length > 0) {
-          setSelectedSubject(subs[0].subject);
-          setSelectedBoard(subs[0].board);
+
+    // Show a subject list, keeping the student's current choice when it is still on the list
+    const apply = (subs: { subject: string; board: string }[]) => {
+      setSubjects(subs);
+      setSelectedSubject(prev => {
+        const keep = subs.find(s => s.subject === prev) ?? subs[0];
+        setSelectedBoard(keep.board);
+        return keep.subject;
+      });
+    };
+
+    let cached: unknown = null;
+    try { cached = JSON.parse(localStorage.getItem('educate-user-subjects') || 'null'); } catch {}
+    if (Array.isArray(cached) && cached.length > 0) {
+      apply(cached as { subject: string; board: string }[]);
+      return;
+    }
+
+    // No subjects saved on this device (a new student, or a new browser): offer every subject
+    // so a note can always be written, then swap in the student's own list if their account has one.
+    apply(ALL_SUBJECTS);
+    fetch('/api/user-subjects')
+      .then(r => (r.ok ? r.json() : null))
+      .then((data: { subjects?: { subject: string; board: string }[] } | null) => {
+        if (data?.subjects && data.subjects.length > 0) {
+          apply(data.subjects);
+          try { localStorage.setItem('educate-user-subjects', JSON.stringify(data.subjects)); } catch {}
         }
-      }
-    } catch {}
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -397,6 +420,13 @@ export default function NotesPage() {
           board: selectedBoard,
         }),
       });
+      if (res.status === 403) {
+        // AI switched off for the student's school: say so rather than blaming sign-in
+        const refusal = await res.json().catch(() => null) as { error?: string } | null;
+        showToast({ icon: '⚠️', title: refusal?.error ?? 'AI features are not available.', type: 'info' });
+        setGenerating(false);
+        return;
+      }
       if (!res.ok) throw new Error('Failed');
       const text = await res.text();
       let generated = '';

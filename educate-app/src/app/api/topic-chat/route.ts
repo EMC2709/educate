@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { askTutorModel } from '@/lib/anthropic';
+import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
 
 const LIMIT = 30;
@@ -14,6 +15,10 @@ export async function POST(request: Request) {
   const rl = rateLimit(key, LIMIT, WINDOW_MS);
   if (!rl.ok) {
     return NextResponse.json({ error: 'Too many messages — slow down.' }, { status: 429, headers: rateLimitHeaders(LIMIT, rl) });
+  }
+
+  if (await isAiDisabledFor(userId)) {
+    return NextResponse.json({ error: AI_DISABLED_MESSAGE }, { status: 403, headers: rateLimitHeaders(LIMIT, rl) });
   }
 
   // Bound everything that goes into the prompt: 30 turns of at most 4,000 characters each

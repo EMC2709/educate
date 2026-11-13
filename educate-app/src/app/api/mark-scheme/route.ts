@@ -7,6 +7,7 @@ import { aqaMarkSchemeCandidates } from '@/lib/aqa-mark-scheme';
 import { officialPdfExists, fetchOfficialPdf } from '@/lib/official-pdf';
 import { renderPdfPage, getPdfPageCount, extractPdfText } from '@/lib/pdf-render';
 import { markPaperWithAI } from '@/lib/ai-paper-marking';
+import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -169,6 +170,9 @@ export async function POST(req: NextRequest) {
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'AI marking is not available right now.' }, { status: 503 });
+  }
+  if (await isAiDisabledFor(userId)) {
+    return NextResponse.json({ error: AI_DISABLED_MESSAGE }, { status: 403 });
   }
 
   const parsed = markSchema.safeParse(await req.json().catch(() => null));

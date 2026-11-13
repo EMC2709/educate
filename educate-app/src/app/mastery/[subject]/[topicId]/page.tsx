@@ -233,7 +233,8 @@ export default function TopicLearningPage({ params }: { params: Promise<{ subjec
         body: JSON.stringify({ messages: nextMsgs, subject, board, topic: topicName }),
       });
       const data = await res.json();
-      const reply = data.message ?? 'Sorry, I could not respond.';
+      // Refusals (signed out, too many messages, AI switched off for the school) come back as { error }
+      const reply = data.message ?? data.error ?? 'Sorry, I could not respond.';
       setChatMsgs(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch {
       setChatMsgs(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Please try again.' }]);

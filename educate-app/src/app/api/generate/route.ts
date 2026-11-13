@@ -8,6 +8,7 @@ import { shuffle } from '@/lib/shuffle';
 import { anthropic } from '@/lib/anthropic';
 import { auth } from '@clerk/nextjs/server';
 import { rateLimit } from '@/lib/rate-limit';
+import { isAiDisabledFor } from '@/lib/ai-access';
 import { generateMCQPrompt } from '@/lib/prompts';
 import type { Question, Flashcard } from '@/types';
 
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
       // AI fallback for subjects not in the static bank — signed-in users only, rate limited
       const apiKey = process.env.ANTHROPIC_API_KEY;
       const { userId } = await auth();
-      const allowed = !!userId && rateLimit(`generate-mcq:user:${userId}`, 10, 60_000).ok;
+      const allowed = !!userId && rateLimit(`generate-mcq:user:${userId}`, 10, 60_000).ok && !(await isAiDisabledFor(userId));
       if (allowed && apiKey && apiKey !== 'your-api-key-here') {
         try {
           const prompt = generateMCQPrompt(subject, parsedBody.board, focusStr ?? null);
