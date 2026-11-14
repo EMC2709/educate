@@ -588,10 +588,12 @@ export default function ExamPaperPage({
 
         type QRow = { question_text: string; marks: number; topic: string; mark_scheme?: string; question_number: string | number | null; has_image?: boolean; image_desc?: string | null; };
 
-        // Parse "25(c)" → [25, 'c', 0]   "18(iii)" → [18, 0, 3]   "3" → [3,0,0]
+        // Parse "25(c)" → [25, 'c', 0]   "18(iii)" → [18, 0, 3]   "3" → [3,0,0]   AQA "1.3" → [1, 3, 0]
         const parseQN = (qn: string | number | null | undefined): [number, number, number] => {
           if (qn == null) return [9999, 0, 0];
           const s = String(qn);
+          const dotted = s.match(/^(\d+)\.(\d+)$/);
+          if (dotted) return [parseInt(dotted[1]) || 9999, parseInt(dotted[2]), 0];
           const m = s.match(/^(\d+)\s*(?:\(([a-z]|[ivx]+)\))?\s*(?:\(([a-z]|[ivx]+)\))?/i);
           if (!m) return [9999, 0, 0];
           const main = parseInt(m[1]) || 9999;

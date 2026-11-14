@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { cleanPaperQuestions } from '@/lib/question-text';
 
 /**
  * GET /api/questions — the hot path for students practising
@@ -121,8 +122,11 @@ export async function GET(req: NextRequest) {
       ? `private, max-age=${ttl}`
       : 'no-store';
 
+    // Strip the printed page furniture the scraper kept (page markers, footers, "[Turn over]")
+    const questions = cleanPaperQuestions(rows as { question_number: string | null; question_text: string | null }[]);
+
     return NextResponse.json(
-      { questions: rows, count: (rows as unknown[]).length },
+      { questions, count: questions.length },
       { headers: { 'Cache-Control': cacheHeader } }
     );
   } catch (err) {

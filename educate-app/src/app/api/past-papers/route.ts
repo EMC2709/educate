@@ -6,6 +6,7 @@ import {
   EXAM_CODE_CAPTURE, parseExamCode, formatExamCode,
   type PaperCandidate, type PaperSelection,
 } from '@/lib/past-paper-match';
+import { cleanPaperQuestions } from '@/lib/question-text';
 
 // Stored-paper codes per board + subject (scanning question text takes a second or two)
 const availableCache = new Map<string, { codes: string[]; at: number }>();
@@ -141,12 +142,14 @@ export async function GET(req: NextRequest) {
       `;
       if (papers.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-      const questions = await sql`
+      const rows = await sql`
         SELECT id, question_number, question_text, marks, topic, has_image, image_desc,
                difficulty, mark_scheme
         FROM questions WHERE paper_id = ${id}
         ORDER BY question_number NULLS LAST
       `;
+      // Strip the printed page furniture the scraper kept (page markers, footers, "[Turn over]")
+      const questions = cleanPaperQuestions(rows as { question_number: string | null; question_text: string | null }[]);
 
       return NextResponse.json(
         { paper: papers[0], questions },
