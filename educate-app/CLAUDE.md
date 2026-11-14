@@ -125,6 +125,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - Tables: profiles, organisations, classes, class_members, assignments, assignment_progress, past_papers, questions, quiz_results, user_subjects, user_flashcard_decks, user_flashcards, revision_notes, user_banners, friendships, game_sessions, teacher_google_tokens.
 - Some routes still run `CREATE TABLE/ALTER TABLE IF NOT EXISTS` at request time (flashcards, friends, marketplace, save-result, parent-link, game, revision-notes, user-subjects). That's a known smell.
 - **When you add a column or table, add it to `db/schema.sql` too.**
+- **The local `.env.local` (April 2026) does NOT point at production.** Its `DATABASE_URL` is an old database (`ep-weathered-tree…`); production is `ep-little-rice…` (Neon project `shy-paper-14167641`). On 14 Nov a cleanup ran against the old one by mistake and was undone. For any script that reads or writes live data, `vercel env pull <scratch>/prod.env --environment=production --yes`, pass that file explicitly, print only the endpoint id, and delete the file afterwards. `scripts/cleanup-mark-schemes-v3.mjs` requires `--env` for this reason.
 - Apply the schema with any Postgres client, or with a Node script using `@neondatabase/serverless` (HTTP, which works where port 5432 is blocked). Use `DATABASE_URL_UNPOOLED` for DDL when possible.
 
 ## Commands (run in `educate-app/`)

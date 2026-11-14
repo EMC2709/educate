@@ -18,14 +18,26 @@
 // scripts/process-past-papers.ts skips papers with processed = false and keeps
 // them hidden on --force (since 14 Nov 2026; before that a rerun un-hid them).
 //
-//   node scripts/cleanup-mark-schemes-v3.mjs           # dry run: counts and samples
-//   node scripts/cleanup-mark-schemes-v3.mjs --apply   # hide them
+// Run it against PRODUCTION, which is not what .env.local points at (the April
+// .env.local is an old database). Pull the production env into a scratch file,
+// pass it with --env, and delete it afterwards:
+//
+//   vercel env pull <scratch>/prod.env --environment=production --yes
+//   node scripts/cleanup-mark-schemes-v3.mjs --env <scratch>/prod.env           # dry run
+//   node scripts/cleanup-mark-schemes-v3.mjs --env <scratch>/prod.env --apply   # hide them
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { neon } from '@neondatabase/serverless';
 
-process.loadEnvFile(new URL('../.env.local', import.meta.url));
+const envArg = process.argv.indexOf('--env');
+if (envArg < 0) {
+  console.error('Pass --env <file> with the production DATABASE_URL (see the header comment).');
+  process.exit(1);
+}
+process.loadEnvFile(process.argv[envArg + 1]);
 const sql = neon(process.env.DATABASE_URL);
 const APPLY = process.argv.includes('--apply');
+// Name the target before touching it: the endpoint id, never the full URL
+console.log(`Database: ${(process.env.DATABASE_URL.match(/@([^.]+)/) ?? [, '?'])[1]}`);
 
 const TITLE = '(mark[ _-]?schemes?|marking[ _-]?(instructions|guidance|scheme))|(^|[-_ ])(ms|mi)([-_ .]|$)';
 const HEADER = 'MARK SCHEME [–-] [A-Z]';
