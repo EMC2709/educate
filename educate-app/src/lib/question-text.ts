@@ -14,6 +14,20 @@
 // Everything from here on is the end of the paper, not part of the question
 const END_OF_PAPER = /\s*(?:END OF QUESTIONS|Additional page, if required)[\s\S]*$/;
 
+// Mark-scheme text the scraper glued onto a question (OCR sample assessment
+// materials bundle the paper and its mark scheme in one PDF). Everything from the
+// first marker on is marking guidance. Whole mark-scheme documents are hidden in
+// the DB instead (scripts/cleanup-mark-schemes-v3.mjs).
+const MARK_SCHEME_TAIL = new RegExp(
+  String.raw`\s*(?:` + [
+    String.raw`\bMARK SCHEME\b`,                                           // AQA running header, OCR cover page
+    String.raw`(?:\b[A-Z]\d{3}(?:\/\d{2})?\s+)?Mark Scheme\s+(?:January|June|November|Specimen|SPECIMEN)\b`, // OCR footer
+    String.raw`\b[Ii]ndicative content\b`,
+    String.raw`\b(?:DO NOT )?ALLOW\b`,
+    String.raw`\b(?:Question\s*)?Answer\s*Marks\s*Guidance`,
+  ].join('|') + String.raw`)[\s\S]*$`,
+);
+
 // AQA footer codes, e.g. "IB/M/Jun24/8300/1H", "G/Jun23/8035/3/PM", "IB/M/ Jun23/8464/C/1H"
 const FOOTER_CODE = /(?:\b[A-Z]{1,3}\/\s?)*\b(?:Jun|Nov|JUN|NOV)\d{2}\/\d{4}[A-Z]?(?:\/[A-Za-z0-9]{1,6})*/g;
 
@@ -35,7 +49,7 @@ const FURNITURE: RegExp[] = [
 
 export function cleanQuestionText(text: string | null | undefined): string {
   if (!text) return '';
-  let s = text.replace(END_OF_PAPER, '');
+  let s = text.replace(END_OF_PAPER, '').replace(MARK_SCHEME_TAIL, '');
   s = s.replace(FOOTER_CODE, ' ');
   // Drop the marker; drop the number before it only when it is that same page number
   s = s.replace(PAGE_MARKER, (_m, before: string | undefined, page: string) =>
@@ -60,6 +74,10 @@ export function recoverQuestionNumber(stored: string | null, text: string | null
 // "Solve x² = 9" survive.
 const MIN_LETTERS = 5;
 
+// A row with any of these is marking guidance, not a question: a mark code followed
+// by its assessment-objective reference ("B1 2.4", "M1 3.1a") or a level descriptor.
+const MARK_SCHEME_ROW = /\b[BMA][0-2]\s+[1-3]\.[1-9][a-z]?\b|\b[Ww]orthy of credit\b/;
+
 export interface StoredQuestion {
   question_number: string | null;
   question_text: string | null;
@@ -76,6 +94,7 @@ export function cleanPaperQuestions<T extends StoredQuestion>(rows: readonly T[]
       text = text.replace(AQA_LEADING_NUMBER, (_m, q: string, part?: string) => (part ? `0${q}.${part}` : `0${q}`));
     }
     if ((text.match(/\p{L}/gu)?.length ?? 0) < MIN_LETTERS) continue;
+    if (MARK_SCHEME_ROW.test(text)) continue;
     out.push({ ...row, question_number: number, question_text: text });
   }
   return out;

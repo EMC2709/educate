@@ -39,6 +39,28 @@ describe('cleanQuestionText', () => {
       .toBe('Describe it.');
   });
 
+  it('cuts off mark-scheme text that the scraper glued onto a question (OCR sample papers)', () => {
+    expect(cleanQuestionText(
+      '5 Explain what actions taken by Caesar would be in keeping with the ideals of a popularis. Indicative content Land reform and the distribution of land',
+    )).toBe('5 Explain what actions taken by Caesar would be in keeping with the ideals of a popularis.');
+    expect(cleanQuestionText(
+      '(ii) Give two reasons why quartz is common. 2 1.1c × 2 ALLOW intensity of metamorphism DO NOT ALLOW general comments',
+    )).toBe('(ii) Give two reasons why quartz is common. 2 1.1c × 2');
+    expect(cleanQuestionText('Describe the cell. J260/05 Mark Scheme June 20XX 25 Question Answer Marks'))
+      .toBe('Describe the cell.');
+    expect(cleanQuestionText('State the law. MARK SCHEME Duration: 2 hours MAXIMUM MARK 100'))
+      .toBe('State the law.');
+    expect(cleanQuestionText('2 AO2/1 4.1.3 Total 4 MARK SCHEME – PHYSICS PAPER 1H – SPECIMEN MATERIAL 9of 19'))
+      .toBe('2 AO2/1 4.1.3 Total 4');
+    expect(cleanQuestionText('Exemplar Learner Responses QuestionAnswerMarksGuidance 6(c) Please refer'))
+      .toBe('Exemplar Learner Responses');
+  });
+
+  it('keeps ordinary uses of the words "mark" and "scheme"', () => {
+    const s = '3 The council set up a recycling scheme. Explain how it might change behaviour. [4 marks]';
+    expect(cleanQuestionText(s)).toBe(s);
+  });
+
   it('leaves clean text alone', () => {
     const s = '14 4 chocolate bars and 3 packets of mints cost £4.70';
     expect(cleanQuestionText(s)).toBe(s);
@@ -76,6 +98,24 @@ describe('cleanPaperQuestions', () => {
       { question_number: '1.3', question_text: '01.3 THEME 3 Du schreibst ein Blog.', marks: 16 },
       { question_number: '11', question_text: '11 Factorise x 2 + 2x – 24 Answer', marks: 2 },
       { question_number: '3', question_text: '3 Solve x² = 9', marks: 1 },
+    ]);
+  });
+
+  it('drops rows that are only mark-scheme text', () => {
+    expect(cleanPaperQuestions([
+      { question_number: '2', question_text: 'Indicative content The guidance provided is illustrative and not exhaustive.' },
+      { question_number: '3', question_text: '3 Name the gas. [1 mark]' },
+    ])).toEqual([{ question_number: '3', question_text: '3 Name the gas. [1 mark]' }]);
+
+    // Real rows from OCR sample assessment materials: mark codes with AO references, level descriptors
+    expect(cleanPaperQuestions([
+      { question_number: '3(ii)', question_text: '3 (ii) (B) Hence yx= is an invariant line B1 2.2a' },
+      { question_number: '5(i)', question_text: '5 (i) Mass of 5 small bags ~ N(2540,54.45) B2 3.3 1.1 B1 For Normal' },
+      { question_number: '0', question_text: '0 marks No response or no response worthy of credit.' },
+      { question_number: '0', question_text: '0 0 Nothing worthy of credit.' },
+      { question_number: '4', question_text: '4 Vitamin B1 is found in whole grains. Name one food rich in it.' },
+    ])).toEqual([
+      { question_number: '4', question_text: '4 Vitamin B1 is found in whole grains. Name one food rich in it.' },
     ]);
   });
 
