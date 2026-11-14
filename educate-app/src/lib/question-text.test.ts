@@ -113,6 +113,9 @@ describe('cleanPaperQuestions', () => {
       { question_number: '5(i)', question_text: '5 (i) Mass of 5 small bags ~ N(2540,54.45) B2 3.3 1.1 B1 For Normal' },
       { question_number: '0', question_text: '0 marks No response or no response worthy of credit.' },
       { question_number: '0', question_text: '0 0 Nothing worthy of credit.' },
+      // AQA language mark-scheme level descriptors
+      { question_number: '0', question_text: '0 0 The content does not meet the standard required for Level 1 at this tier.' },
+      { question_number: '4', question_text: '4 4 Nearly all key messages are conveyed.' },
       { question_number: '4', question_text: '4 Vitamin B1 is found in whole grains. Name one food rich in it.' },
     ])).toEqual([
       { question_number: '4', question_text: '4 Vitamin B1 is found in whole grains. Name one food rich in it.' },

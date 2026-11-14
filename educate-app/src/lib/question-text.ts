@@ -75,8 +75,10 @@ export function recoverQuestionNumber(stored: string | null, text: string | null
 const MIN_LETTERS = 5;
 
 // A row with any of these is marking guidance, not a question: a mark code followed
-// by its assessment-objective reference ("B1 2.4", "M1 3.1a") or a level descriptor.
-const MARK_SCHEME_ROW = /\b[BMA][0-2]\s+[1-3]\.[1-9][a-z]?\b|\b[Ww]orthy of credit\b/;
+// by its assessment-objective reference ("B1 2.4", "M1 3.1a") or a level descriptor
+// (OCR "worthy of credit", AQA languages "does not meet the standard required",
+// "key messages are conveyed").
+const MARK_SCHEME_ROW = /\b[BMA][0-2]\s+[1-3]\.[1-9][a-z]?\b|\b[Ww]orthy of credit\b|\bdoes not meet the standard required\b|\bkey messages (?:is|are) conveyed\b/;
 
 export interface StoredQuestion {
   question_number: string | null;

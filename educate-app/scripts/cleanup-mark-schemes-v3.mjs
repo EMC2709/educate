@@ -20,7 +20,7 @@
 //
 //   node scripts/cleanup-mark-schemes-v3.mjs           # dry run: counts and samples
 //   node scripts/cleanup-mark-schemes-v3.mjs --apply   # hide them
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { neon } from '@neondatabase/serverless';
 
 process.loadEnvFile(new URL('../.env.local', import.meta.url));
@@ -30,6 +30,11 @@ const APPLY = process.argv.includes('--apply');
 const TITLE = '(mark[ _-]?schemes?|marking[ _-]?(instructions|guidance|scheme))|(^|[-_ ])(ms|mi)([-_ .]|$)';
 const HEADER = 'MARK SCHEME [–-] [A-Z]';
 const PAPER_FURNITURE = '(Turn over|outside the box|[*][0-9]{2,3}[*])';
+// AQA teacher resources ("Example answers and commentaries", examiner reports) have
+// no running header. Every real AQA question paper has page furniture and an exam
+// footer code ("Jun23/8300/1H"); these have neither, plus marking language.
+const AQA_FOOTER_CODE = '(Jun|Nov|JUN|NOV)[0-9]{2}/[0-9]{4}';
+const MARKING_PHRASES = '(key messages are conveyed|does not meet the standard required|marks? for (Content|Quality|Range)|Indicative content|worthy of credit|Example answers and commentar|Extract from mark scheme)';
 
 const found = await sql`
   SELECT p.id, p.exam_type, p.subject, p.title, p.total_questions,
@@ -39,6 +44,10 @@ const found = await sql`
     p.title ~* ${TITLE}
     OR (EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${HEADER})
         AND NOT EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${PAPER_FURNITURE}))
+    OR (p.exam_type IN ('GCSE_AQA', 'A-Level_AQA')
+        AND EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${MARKING_PHRASES})
+        AND NOT EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${PAPER_FURNITURE})
+        AND NOT EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${AQA_FOOTER_CODE}))
   )`;
 
 const byType = {};
@@ -56,7 +65,9 @@ if (!APPLY) {
 } else {
   const ids = found.map(r => r.id);
   // Undo: UPDATE past_papers SET processed = true WHERE id = ANY(<ids from this file>)
-  writeFileSync(new URL('./cleanup-mark-schemes-v3.ids.json', import.meta.url), JSON.stringify(ids, null, 0) + '\n');
+  const idsFile = new URL('./cleanup-mark-schemes-v3.ids.json', import.meta.url);
+  const earlier = existsSync(idsFile) ? JSON.parse(readFileSync(idsFile, 'utf8')) : [];
+  writeFileSync(idsFile, JSON.stringify([...new Set([...earlier, ...ids])], null, 0) + '\n');
   const done = await sql`UPDATE past_papers SET processed = false WHERE id = ANY(${ids}::uuid[]) RETURNING id`;
   console.log(`\nHidden ${done.length} mark-scheme papers (processed = false).`);
 }
