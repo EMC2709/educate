@@ -15,8 +15,8 @@
 // of their rows instead.
 //
 // Same convention as v1/v2: processed = false hides a paper from every route.
-// Note that scripts/process-past-papers.ts re-scrapes papers with processed = false
-// unless they are skipped, so rerunning the scraper would bring these back.
+// scripts/process-past-papers.ts skips papers with processed = false and keeps
+// them hidden on --force (since 14 Nov 2026; before that a rerun un-hid them).
 //
 //   node scripts/cleanup-mark-schemes-v3.mjs           # dry run: counts and samples
 //   node scripts/cleanup-mark-schemes-v3.mjs --apply   # hide them
@@ -35,6 +35,11 @@ const PAPER_FURNITURE = '(Turn over|outside the box|[*][0-9]{2,3}[*])';
 // footer code ("Jun23/8300/1H"); these have neither, plus marking language.
 const AQA_FOOTER_CODE = '(Jun|Nov|JUN|NOV)[0-9]{2}/[0-9]{4}';
 const MARKING_PHRASES = '(key messages are conveyed|does not meet the standard required|marks? for (Content|Quality|Range)|Indicative content|worthy of credit|Example answers and commentar|Extract from mark scheme)';
+// AQA examiner reports quote each question and then comment on how students did.
+// A real paper can use one of these phrases in passing, so a document is only
+// treated as a report when at least 30% of its rows read like commentary.
+const EXAMINER_REPORT = '(Students who|[Ss]tudents (were|often|tended|generally)|Report on the Examination|[Ee]xaminers? report|General [Cc]omments|Most students|[Mm]any students|[Ss]ome students|[Ff]ew students|answered (well|poorly)|well answered|poorly answered)';
+const REPORT_SHARE = 0.3;
 
 const found = await sql`
   SELECT p.id, p.exam_type, p.subject, p.title, p.total_questions,
@@ -45,7 +50,9 @@ const found = await sql`
     OR (EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${HEADER})
         AND NOT EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${PAPER_FURNITURE}))
     OR (p.exam_type IN ('GCSE_AQA', 'A-Level_AQA')
-        AND EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${MARKING_PHRASES})
+        AND (EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${MARKING_PHRASES})
+             OR (SELECT count(*) FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${EXAMINER_REPORT})
+                >= ${REPORT_SHARE}::float * p.total_questions)
         AND NOT EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${PAPER_FURNITURE})
         AND NOT EXISTS (SELECT 1 FROM questions q WHERE q.paper_id = p.id AND q.question_text ~ ${AQA_FOOTER_CODE}))
   )`;

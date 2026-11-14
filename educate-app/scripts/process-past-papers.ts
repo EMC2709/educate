@@ -434,7 +434,7 @@ async function saveToDB(
     ON CONFLICT (drive_file_id) DO UPDATE SET
       total_questions = EXCLUDED.total_questions,
       has_images      = EXCLUDED.has_images,
-      processed       = true,
+      processed       = past_papers.processed,  -- keep hidden papers hidden on --force
       processed_at    = now()
     RETURNING id
   `);
@@ -472,13 +472,15 @@ async function processPaper(
   const label = `${entry.country} › ${entry.exam_type} › ${entry.subject} › ${entry.file.name.slice(0, 35)}`;
 
   try {
-    // Skip only if already processed AND has questions extracted (unless --force)
+    // Skip papers that already have questions, and papers hidden on purpose
+    // (processed = false is set only by the cleanup-mark-schemes / cleanup-tapescripts
+    // scripts; this scraper always writes true). Re-scraping a hidden mark scheme
+    // would otherwise put it back in front of students. --force re-scrapes anyway.
     if (!DRY_RUN && !FORCE) {
       const existing = await withRetry(() => sqlClient`
         SELECT id FROM past_papers
         WHERE drive_file_id = ${entry.file.id}
-          AND processed = true
-          AND total_questions > 0
+          AND (total_questions > 0 OR processed = false)
         LIMIT 1
       `);
       if (existing.length > 0) { counters.skipped++; return; }

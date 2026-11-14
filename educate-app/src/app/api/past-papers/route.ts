@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
       const papers = await sql`
         SELECT id, drive_file_id, country, exam_type, subject, title, year, paper_number,
                component, total_questions, has_images, processed_at
-        FROM past_papers WHERE id = ${id} LIMIT 1
+        FROM past_papers WHERE id = ${id} AND processed = true LIMIT 1  -- hidden mark schemes and reports 404
       `;
       if (papers.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
