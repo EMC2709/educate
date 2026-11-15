@@ -12,8 +12,8 @@ This is Paul's own copy of the UK GCSE revision app (GitHub `EMC2709/educate`). 
 
 **State on 15 Nov, checked that morning:**
 
-- GitHub `master` is at `0bd0c3f`, with nothing uncommitted apart from the local `.claude/settings.local.json`.
-- Live deployment is `dpl_DZJDBDBQFF61A5L9eNktsqJ9xw6d` (14 Nov 20:47, built from `ab594e6`). The one later commit changed only a script and docs, so the live app code matches `master`.
+- GitHub `master` has nothing uncommitted apart from the local `.claude/settings.local.json`.
+- Live deployment is `dpl_DZJDBDBQFF61A5L9eNktsqJ9xw6d` (14 Nov 20:47, built from `ab594e6`). Every later commit changed only a script or docs, so the live app code matches `master`.
 - 48 tests pass in 6 files. The type check still reports the same 56 errors.
 - Models in use: Claude Sonnet 5.5 (tutor chat, topic chat, study tools), Claude Opus 5.5 (marking a whole paper), Claude Haiku 4.5 (answer marking, question generation, revision notes). Nothing depends on Sonnet 4.5 any more, so its 30 Nov retirement breaks nothing.
 
