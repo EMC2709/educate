@@ -160,8 +160,8 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 - **Live:** https://educate-virid.vercel.app
 - **Custom domain:**
   - `educatethemasses.online` (registered at GoDaddy, 11 Nov 2026) is the primary; `www.` redirects to the apex with a 308.
-  - It's attached and its ownership is verified in Vercel. **DNS is still pending at GoDaddy:**
-    - A `@` -> `216.150.1.1` and `216.150.16.1`
+  - **Live since 15 Nov 2026** (HTTPS via Let's Encrypt, issued by Vercel). GoDaddy DNS records:
+    - A `@` -> `216.150.1.1` and `216.150.16.1` (GoDaddy's parking A records `3.33.130.190` / `15.197.148.33` were deleted; if they come back, Vercel flags the domain as misconfigured and most visitors get a parking page)
     - CNAME `www` -> `7696e975a7890719.vercel-dns-016.com`
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod --yes` from the local clone on Paul's laptop (`C:\Users\LAPTOP80\Projects\educate\educate-app`, linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
@@ -245,7 +245,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - **Original paper PDFs** (signed-in only): PDF stream, page images, the "Paper pages" thumbnail strip and the PDF Figures panel, checked 13 Nov as Test Student on AQA Maths Paper 1 Higher 2023 (56-page enlarged paper). Signed out, every paper route returns 401.
   - The official mark scheme beside the answers and the "stored papers only" papers page (AQA, checked 13 Nov)
   - `/practice` (random questions from stored papers, including 11+), answer saving and the finish confirmation on the paper page, topic tick-boxes, online-game API create/read/update (all checked 13 Nov as Test Student).
-- **Unconfigured:** Google Classroom, custom domain DNS (GoDaddy records are listed above, not yet applied).
+- **Unconfigured:** Google Classroom.
 - **Sign-in now required:** online games (`/api/game`) and the global leaderboard. Guests get a 401 with a "sign in" message.
 - **Not yet exercised on the new deployment:** marketplace, flashcards CRUD, assignments, parent link, a full two-player online game, the "AI off" switch on the teacher dashboard, and anything on a real phone.
 
