@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CreateClassModal } from './components/CreateClassModal';
 import { ClassroomSyncPanel } from './components/ClassroomSyncPanel';
+import { LicenceStatusCard } from './components/LicenceStatusCard';
 
 interface Profile {
   userId: string;
@@ -142,18 +143,22 @@ export default function TeacherDashboard() {
 
   const [aiSaving, setAiSaving] = useState(false);
   const [aiError, setAiError] = useState('');
+  // The teacher's school, once loaded: its name and licence end date (null when it has none)
+  const [school, setSchool] = useState<{ name: string; licenceEndsOn: string | null } | null>(null);
 
   // The switch is stored against the school on the server, so it applies to every student's device
   useEffect(() => {
     fetch('/api/organisations')
       .then(r => (r.ok ? r.json() : null))
-      .then((data: { organisation?: { ai_disabled?: boolean } | null } | null) => {
-        const off = data?.organisation?.ai_disabled === true;
+      .then((data: { organisation?: { name?: string; ai_disabled?: boolean; licence_ends_on?: string | null } | null } | null) => {
+        const org = data?.organisation;
+        const off = org?.ai_disabled === true;
         setAiDisabled(off);
         localStorage.setItem('educate-ai-disabled', off ? 'true' : 'false');
+        if (org) setSchool({ name: org.name ?? '', licenceEndsOn: org.licence_ends_on ?? null });
       })
       .catch(() => {});
-  }, []);
+  }, [profile?.org_id]);
 
   const toggleAi = async () => {
     if (aiSaving) return;
@@ -262,6 +267,9 @@ export default function TeacherDashboard() {
           <StatCard label="Active Assignments" value={activeAssignments} color="sky" />
           <StatCard label="Total Assignments" value={assignments.length} color="emerald" />
         </div>
+
+        {/* School licence (set by Educate on /admin) */}
+        {school && <LicenceStatusCard schoolName={school.name} licenceEndsOn={school.licenceEndsOn} />}
 
         {/* AI Cost Control */}
         <div className={`border rounded-2xl p-4 flex items-center justify-between ${aiDisabled ? 'bg-amber-500/5 border-amber-500/20' : 'bg-emerald-500/5 border-emerald-500/20'}`}>

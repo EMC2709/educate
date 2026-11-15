@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ukToday, formatLicenceDate as formatDate } from '@/lib/licence-status';
 
 interface Organisation {
   id: string;
@@ -10,15 +11,6 @@ interface Organisation {
   country: string;
   created_at: string;
   licence_ends_on: string | null;
-}
-
-/** Today in the UK as YYYY-MM-DD, matching how the server decides whether a licence is active */
-function ukToday(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
-}
-
-function formatDate(iso: string): string {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 interface Enquiry {
