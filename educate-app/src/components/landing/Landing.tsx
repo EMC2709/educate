@@ -178,6 +178,9 @@ export function Landing() {
               allowance and every past paper. Teacher accounts and licences are switched on by an Educate
               administrator.
             </p>
+            <Link href="/schools" className={`${SECONDARY_CTA} mt-6`}>
+              Ask about a licence for your school
+            </Link>
           </div>
           <div className="max-w-[36rem] md:pl-16">
             <h2 className="m-0 landing-wide text-white text-xl sm:text-2xl font-bold">For parents</h2>

@@ -21,6 +21,18 @@ function formatDate(iso: string): string {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+interface Enquiry {
+  id: string;
+  name: string;
+  role: string;
+  organisation: string;
+  email: string;
+  student_count: number | null;
+  message: string | null;
+  created_at: string;
+  handled_at: string | null;
+}
+
 type Toast = { type: 'success' | 'error'; message: string } | null;
 
 function slugify(name: string): string {
@@ -54,6 +66,9 @@ export default function AdminPage() {
   const [licenceDraft, setLicenceDraft] = useState<Record<string, string>>({});
   const [savingLicence, setSavingLicence] = useState<string | null>(null);
 
+  // Licence enquiries sent from /schools
+  const [enquiries, setEnquiries] = useState<Enquiry[] | null>(null);
+
   function showToast(type: 'success' | 'error', message: string) {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
@@ -72,8 +87,34 @@ export default function AdminPage() {
     }
   }
 
+  async function loadEnquiries() {
+    try {
+      const res = await fetch('/api/admin/enquiries');
+      const data = await res.json() as { enquiries?: Enquiry[]; error?: string };
+      if (!res.ok) throw new Error(data.error);
+      setEnquiries(data.enquiries ?? []);
+    } catch {
+      setEnquiries([]);
+      showToast('error', 'Failed to load school enquiries');
+    }
+  }
+
+  async function setHandled(enquiry: Enquiry, handled: boolean) {
+    const res = await fetch('/api/admin/enquiries', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: enquiry.id, handled }),
+    }).catch(() => null);
+    if (!res?.ok) {
+      showToast('error', 'Could not update the enquiry');
+      return;
+    }
+    await loadEnquiries();
+  }
+
   useEffect(() => {
     loadOrgs();
+    loadEnquiries();
   }, []);
 
   function handleOrgNameChange(value: string) {
@@ -184,7 +225,7 @@ export default function AdminPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Super Admin Panel</h1>
-          <p className="text-neutral-400 text-sm mt-1">Manage organisations, school licences and user roles.</p>
+          <p className="text-neutral-400 text-sm mt-1">Manage organisations, school licences, school enquiries and user roles.</p>
         </div>
 
         {/* Organisations Section */}
@@ -311,6 +352,49 @@ export default function AdminPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </section>
+
+        {/* School enquiries from /schools */}
+        <section className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-white">School enquiries</h2>
+          <p className="text-neutral-400 text-sm mt-1 mb-4">Sent from the form at /schools. Reply by email, then mark each one done.</p>
+          {enquiries === null ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : enquiries.length === 0 ? (
+            <p className="text-neutral-500 text-sm text-center py-6">No enquiries yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {enquiries.map(q => (
+                <div key={q.id} className={`px-4 py-3 bg-neutral-800 rounded-xl ${q.handled_at ? 'opacity-60' : ''}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white">{q.organisation}</p>
+                      <p className="text-xs text-neutral-400">
+                        {q.name}, {q.role}
+                        {q.student_count ? ` · ${q.student_count.toLocaleString('en-GB')} GCSE students` : ''}
+                      </p>
+                      <a href={`mailto:${q.email}`} className="text-xs text-indigo-400 underline break-all">{q.email}</a>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-neutral-500">
+                        {new Date(q.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setHandled(q, !q.handled_at)}
+                        className="px-3 py-1 rounded-lg border border-neutral-600 hover:border-neutral-400 text-neutral-300 text-xs font-medium transition-colors"
+                      >
+                        {q.handled_at ? 'Mark not done' : 'Mark done'}
+                      </button>
+                    </div>
+                  </div>
+                  {q.message && <p className="mt-2 mb-0 text-sm text-neutral-300 whitespace-pre-wrap break-words">{q.message}</p>}
+                </div>
+              ))}
             </div>
           )}
         </section>

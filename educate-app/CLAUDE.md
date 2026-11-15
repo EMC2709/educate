@@ -101,7 +101,8 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - `organisations`, `classes/**` (join, join-code, members, performance)
   - `assignments/**` (progress, unread)
   - `classroom/{auth,callback,courses,sync}` (Google OAuth)
-- **Admin:** `admin/roles` (PATCH; super_admin only), `admin/organisations` (PATCH `{ orgId, licenceEndsOn }`: a school's licence; super_admin only)
+- **Admin:** `admin/roles` (PATCH; super_admin only), `admin/organisations` (PATCH `{ orgId, licenceEndsOn }`: a school's licence; super_admin only), `admin/enquiries` (GET list, PATCH `{ id, handled }`; super_admin only)
+- **Sales:** `school-enquiries` (POST; **public on purpose**, no sign-in: Zod-validated, 5 per hour per IP, hidden `website` honeypot field). The form is at `/schools`, linked from the landing page; enquiries are stored in `school_enquiries` and listed on `/admin`. Nothing is emailed, so check `/admin`.
 
 ## Roles and permissions
 - `profiles.role` is one of `student` (default), `teacher`, `school_admin`, `super_admin`. Read it via `src/lib/roles.ts` (`getUserRole`, `requireRole`, `getUserOrg`).
@@ -126,9 +127,9 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 - **NEVER add a route that lets a user change their own role.** The old `/api/debug-role` (any signed-in user could POST to become super_admin) was deleted on 11 Nov 2026. Don't restore it.
 
 ## Database
-- The schema is in **`db/schema.sql`** (19 tables, idempotent `IF NOT EXISTS`).
+- The schema is in **`db/schema.sql`** (20 tables, idempotent `IF NOT EXISTS`).
   - It was reconstructed from `scripts/schema-past-papers.sql`, `scripts/migrate-*.ts` and inline `CREATE/ALTER` statements in API routes.
-  - Tables: profiles, organisations, classes, class_members, assignments, assignment_progress, past_papers, questions, quiz_results, user_subjects, user_flashcard_decks, user_flashcards, revision_notes, user_banners, friendships, game_sessions, teacher_google_tokens, ai_usage (daily AI allowance; added 15 Nov, see Conventions), paper_opens (the free papers each student without a licence has opened; added 15 Nov). `organisations.licence_ends_on` was added the same day (see Roles).
+  - Tables: profiles, organisations, classes, class_members, assignments, assignment_progress, past_papers, questions, quiz_results, user_subjects, user_flashcard_decks, user_flashcards, revision_notes, user_banners, friendships, game_sessions, teacher_google_tokens, ai_usage (daily AI allowance; added 15 Nov, see Conventions), paper_opens (the free papers each student without a licence has opened; added 15 Nov), school_enquiries (licence enquiries from `/schools`; added 15 Nov). `organisations.licence_ends_on` was added the same day (see Roles).
 - Some routes still run `CREATE TABLE/ALTER TABLE IF NOT EXISTS` at request time (flashcards, friends, marketplace, save-result, parent-link, game, revision-notes, user-subjects). That's a known smell.
 - **When you add a column or table, add it to `db/schema.sql` too.**
 - **The local `.env.local` (April 2026) does NOT point at production.** Its `DATABASE_URL` is an old database (`ep-weathered-tree…`); production is `ep-little-rice…` (Neon project `shy-paper-14167641`). On 14 Nov a cleanup ran against the old one by mistake and was undone. For any script that reads or writes live data, `vercel env pull <scratch>/prod.env --environment=production --yes`, pass that file explicitly, print only the endpoint id, and delete the file afterwards. `scripts/cleanup-mark-schemes-v3.mjs` requires `--env` for this reason.
@@ -139,7 +140,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 npm ci                 # install
 npm run dev            # http://localhost:3000 (.claude/launch.json uses 3100)
 npm run build          # next build (TypeScript errors are IGNORED, see below)
-npm test               # vitest (9 files, 65 tests, passing on 15 Nov; includes past-paper-match.test.ts, question-text.test.ts, ai-quota.test.ts, paper-access.test.ts and app/page.test.tsx)
+npm test               # vitest (10 files, 71 tests, passing on 15 Nov; includes past-paper-match.test.ts, question-text.test.ts, ai-quota.test.ts, paper-access.test.ts, api/school-enquiries/route.test.ts and app/page.test.tsx)
 npx tsc --noEmit -p .  # real type check: currently 56 errors
 vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linked project)
 ```
@@ -237,7 +238,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
     - If the database cannot be reached, the check lets AI through.
 12. **Subjects saved only in the browser.** Timer, exams, mastery, checklist, timetable and export read `educate-user-subjects` from `localStorage` and may show nothing for a student who has not picked subjects on that device. The notes page was fixed on 13 Nov (falls back to all subjects, then `/api/user-subjects`); the others were not.
 13. **The local `.env.local` is an April copy and is wrong twice over:** its `DATABASE_URL` is an old database (see Database) and its `ANTHROPIC_API_KEY` returns 401. Replace it with `vercel env pull` before any local testing of AI or data.
-14. **School licence follow-ups** (15 Nov): the teacher dashboard doesn't show the school's licence status yet; the landing page has no sales contact (email or form) for schools; the terms page (section 6) still says Educate is free to use; a trust or local authority is one licence per school for now (no group level).
+14. **School licence follow-ups** (15 Nov): the teacher dashboard doesn't show the school's licence status yet; enquiries from `/schools` are not emailed to anyone (no email provider yet) and the privacy policy doesn't mention them; the terms page (section 6) still says Educate is free to use; a trust or local authority is one licence per school for now (no group level).
 
 ## Feature status (Paul's deployment, verified 13 Nov 2026 unless a line says otherwise)
 - **Working:**

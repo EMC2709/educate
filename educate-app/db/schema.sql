@@ -256,3 +256,18 @@ CREATE TABLE IF NOT EXISTS paper_opens (
   opened_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, paper_id)
 );
+
+-- Licence enquiries from schools, trusts and local authorities (added 15 Nov 2026).
+-- Sent from the public form at /schools (POST /api/school-enquiries); read by super_admins on /admin.
+CREATE TABLE IF NOT EXISTS school_enquiries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  organisation TEXT NOT NULL,
+  email TEXT NOT NULL,
+  student_count INTEGER,
+  message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  handled_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS school_enquiries_created_idx ON school_enquiries (created_at DESC);
