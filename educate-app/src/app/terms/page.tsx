@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AI_DAILY_LIMITS, FREE_PAPER_LIMIT } from '@/lib/plan-limits';
 
 export const metadata = {
   title: 'Terms of Service · Educate',
@@ -14,7 +15,7 @@ export default function TermsPage() {
         </Link>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white mt-6 mb-2">Terms of Service</h1>
-        <p className="text-xs text-neutral-500 mb-8">Last updated: 6 April 2026</p>
+        <p className="text-xs text-neutral-500 mb-8">Last updated: 15 November 2026</p>
 
         <div className="space-y-6 text-sm leading-relaxed">
           <section>
@@ -30,7 +31,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-bold text-white mb-2">2. What Educate is</h2>
             <p className="m-0">
               Educate is a study tool that helps you revise for GCSE exams. It provides quizzes,
-              flashcards, AI-generated explanations and progress tracking. It is <strong>not</strong>{' '}
+              flashcards, AI-generated explanations, AI marking, past papers and progress tracking. It is <strong>not</strong>{' '}
               a replacement for your school, your teachers or official exam-board materials.
             </p>
           </section>
@@ -51,7 +52,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-5 space-y-1 m-0">
               <li>Use the service for anything illegal or harmful</li>
               <li>Attempt to extract, scrape or reverse-engineer the AI model</li>
-              <li>Try to bypass usage limits or security controls</li>
+              <li>Try to bypass usage limits or security controls, including by making extra accounts to get more free use</li>
               <li>Submit content that is abusive, hateful, sexual or discriminatory</li>
               <li>Share your account with others</li>
             </ul>
@@ -67,11 +68,30 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-bold text-white mb-2">6. Subscriptions &amp; payments</h2>
+            <h2 className="text-lg font-bold text-white mb-2">6. Free accounts and school licences</h2>
+            <p className="m-0 mb-2">
+              Students and parents never pay to use Educate. The built-in practice questions work without an
+              account, and a free account adds a daily allowance of AI features
+              ({AI_DAILY_LIMITS.free.tutor} AI tutor messages and {AI_DAILY_LIMITS.free.answer_marking} AI-marked
+              answers a day at the moment) and {FREE_PAPER_LIMIT} stored past papers to try.
+            </p>
+            <p className="m-0 mb-2">
+              Schools, multi-academy trusts and local authorities can take an Educate licence. A licence is
+              agreed in writing between Educate and the school, trust or local authority, which pays us by
+              invoice. That agreement sets out the price, how long the licence lasts and anything else agreed,
+              and it applies alongside these Terms. While a school&rsquo;s licence is active, its students and
+              teachers get the larger school allowance and every stored past paper, as described on our{' '}
+              <Link href="/schools" className="text-indigo-400 no-underline">schools page</Link>.
+            </p>
+            <p className="m-0 mb-2">
+              When a licence ends, accounts carry on as free accounts. Nothing is deleted: progress, notes and
+              flashcards stay, and the free allowance applies again.
+            </p>
             <p className="m-0">
-              Educate is currently free to use. If we introduce paid features in the future, you
-              will be asked to opt in before any payment is taken and the pricing will be shown
-              clearly first.
+              Daily allowances reset at midnight UK time. We may change them, for example to keep the service
+              running fairly for everyone, but we won&rsquo;t reduce what a school has agreed in its licence
+              while the licence runs. If we ever offer paid plans to individuals, you will be asked to opt in
+              before any payment is taken, and the price will be shown clearly first.
             </p>
           </section>
 

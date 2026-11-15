@@ -238,7 +238,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
     - If the database cannot be reached, the check lets AI through.
 12. **Subjects saved only in the browser.** Timer, exams, mastery, checklist, timetable and export read `educate-user-subjects` from `localStorage` and may show nothing for a student who has not picked subjects on that device. The notes page was fixed on 13 Nov (falls back to all subjects, then `/api/user-subjects`); the others were not.
 13. **The local `.env.local` is an April copy and is wrong twice over:** its `DATABASE_URL` is an old database (see Database) and its `ANTHROPIC_API_KEY` returns 401. Replace it with `vercel env pull` before any local testing of AI or data.
-14. **School licence follow-ups** (15 Nov): the teacher dashboard doesn't show the school's licence status yet; enquiries from `/schools` are not emailed to anyone (no email provider yet); the terms page (section 6) still says Educate is free to use; a trust or local authority is one licence per school for now (no group level).
+14. **School licence follow-ups** (15 Nov): the teacher dashboard doesn't show the school's licence status yet; enquiries from `/schools` are not emailed to anyone (no email provider yet); the terms page (section 6, updated 15 Nov) promises that a licence's agreed allowance won't be cut while it runs and that nothing is deleted when a licence ends, so keep both true; a trust or local authority is one licence per school for now (no group level).
 
 ## Feature status (Paul's deployment, verified 13 Nov 2026 unless a line says otherwise)
 - **Working:**
