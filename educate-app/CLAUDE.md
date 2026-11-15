@@ -57,7 +57,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
     src/
       proxy.ts                   Clerk middleware + DB role checks for /admin, /api/admin, /teacher
       app/
-        page.tsx                 Home; routes by role (see Roles)
+        page.tsx                 Home: server auth() picks the landing page (signed out) or HomeDashboard (signed in; routes by role, see Roles)
         login/                   Clerk sign-in
         [board]/[subject]/...    Guest-friendly flow: topics -> quiz, papers, paper
         practice/, practice/diagnosis, mastery/..., notes, revision-notes, checklist,
@@ -108,7 +108,8 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - teacher, school_admin and super_admin go to `/teacher`
   - a student with `org_id` goes to `/student`
   - a student without an org gets the independent dashboard
-  - a guest gets the exam-board picker
+  - a guest gets the landing page (`components/landing/`, since 15 Nov); its "Start revising, no account needed" button goes to the exam-board picker at `/boards`
+  - `/` decides on the server (`auth()` in `src/app/page.tsx`); the signed-in routing above runs client-side in `components/home/HomeDashboard.tsx`. Clerk's session token lives about a minute, so a returning user's first request can look signed out: `SignedInRefresh` on the landing page calls `router.refresh()` once Clerk has renewed it. Don't remove it.
 - `src/proxy.ts` only guards `/admin*`, `/api/admin*` (super_admin) and `/teacher*` (teacher+). **Every other API route must do its own `auth()` and role check.**
 - **Granting super_admin, the only sanctioned way:**
   1. The user signs up and loads any signed-in page, which creates their `profiles` row.
@@ -133,7 +134,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 npm ci                 # install
 npm run dev            # http://localhost:3000 (.claude/launch.json uses 3100)
 npm run build          # next build (TypeScript errors are IGNORED, see below)
-npm test               # vitest (6 files, 48 tests, passing on 15 Nov; includes past-paper-match.test.ts and question-text.test.ts)
+npm test               # vitest (7 files, 50 tests, passing on 15 Nov; includes past-paper-match.test.ts, question-text.test.ts and app/page.test.tsx)
 npx tsc --noEmit -p .  # real type check: currently 56 errors
 vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linked project)
 ```
@@ -166,7 +167,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod --yes` from the local clone on Paul's laptop (`C:\Users\LAPTOP80\Projects\educate\educate-app`, linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
   - **Check the link first:** `.vercel/project.json` must say `"projectName":"educate"`. Paul's account also has a stale April project called `educate-app`; this clone was linked to it until 12 Nov. Re-link with `vercel link --yes --project educate` if needed. Never deploy to `educate-app`.
-- As of 15 Nov, nothing is uncommitted on `master`, and the live site is deployment `dpl_DZJDBDBQFF61A5L9eNktsqJ9xw6d` (14 Nov 20:47, built from `ab594e6`). Every commit after `ab594e6` changed only a script or docs, so the live app code matches `master`. The live database has `organisations.ai_disabled` (added 13 Nov) and 2,046 non-papers hidden (14 Nov). Do not force-push. After any code change: commit, push, **and** deploy.
+- As of 15 Nov, the live site is deployment `dpl_8f8yUQBkhFgVdYu9YzqG9Vr1RhV3` (15 Nov, built from `799a1ac`, the landing page), so the live app code matches `master`. The live database has `organisations.ai_disabled` (added 13 Nov) and 2,046 non-papers hidden (14 Nov). Do not force-push. After any code change: commit, push, **and** deploy.
 - The old deployment `educate-app-zeta.vercel.app` (Ethan's original, different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
 - **Two Neon worlds:** Paul's project `shy-paper-14167641` is what educate-virid uses. Ethan's production papers live on `shiny-tooth-08089128` (via Ethan's Vercel `DATABASE_URL`), **not** in Neon org `org-curly-sound-07355255` (project `cool-snow-33977978` has no papers). Port 5432 often times out; use `@neondatabase/serverless` over HTTPS. Do not rotate the source DB password or copy PII.
 
@@ -236,6 +237,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - **Tutor chat, topic chat, study tools and the notes page's "Generate with AI" on Claude Sonnet 5.5** (checked 13 Nov as Test Student; conversations longer than two turns and a declined question were not tried)
   - **School "AI off" switch enforced on the server** (checked 13 Nov as Test Student with a temporary school, since removed: five AI routes refuse, answer marking carries on without AI, the chat panel makes no call)
   - home, `/login` (not `/sign-in`, which is 404)
+  - **Landing page at `/` for signed-out visitors** (live 15 Nov): sample question marks on the spot, buttons go to `/boards` and `/login`; a signed-in visitor with an expired session token is handed to the dashboard (checked in Chrome on the live site)
   - guest quiz (`/AQA/Mathematics/quiz`)
   - Clerk sign-in (production instance on educatethemasses.online since 15 Nov; Google button reaches Google's account chooser. A full sign-up on production not yet done)
   - profile/onboarding
