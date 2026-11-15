@@ -86,6 +86,19 @@ textarea::placeholder, input::placeholder {
   color: #444;
 }
 
+/* ── Landing page (src/components/landing) ── */
+.landing-wide { font-variation-settings: 'wdth' 118; }
+.landing-hand { font-family: var(--font-kalam), 'Comic Sans MS', cursive; font-weight: 700; }
+@keyframes mark-draw { to { stroke-dashoffset: 0; } }
+.mark-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: mark-draw 0.45s ease-out 0.1s forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mark-draw { animation: none; stroke-dashoffset: 0; }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    LIGHT MODE
    Two layers of override:

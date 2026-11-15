@@ -22,7 +22,7 @@ export default function SubjectsPage({ params }: { params: Promise<{ board: stri
       <Navbar board={boardName} />
       <div className="flex min-h-[calc(100vh-56px)]">
         <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          <Link href="/">
+          <Link href="/boards">
             <Button variant="ghost" className="mb-6">&#8592; Back</Button>
           </Link>
 
