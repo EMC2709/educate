@@ -7,6 +7,7 @@ import {
   type PaperCandidate, type PaperSelection,
 } from '@/lib/past-paper-match';
 import { cleanPaperQuestions } from '@/lib/question-text';
+import { canOpenPaper, paperLimitResponse } from '@/lib/paper-access';
 
 // Stored-paper codes per board + subject (scanning question text takes a second or two)
 const availableCache = new Map<string, { codes: string[]; at: number }>();
@@ -141,6 +142,8 @@ export async function GET(req: NextRequest) {
         FROM past_papers WHERE id = ${id} AND processed = true LIMIT 1  -- hidden mark schemes and reports 404
       `;
       if (papers.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      // Without a school licence, a student can open only their free papers
+      if (!(await canOpenPaper(userId, id))) return paperLimitResponse();
 
       const rows = await sql`
         SELECT id, question_number, question_text, marks, topic, has_image, image_desc,

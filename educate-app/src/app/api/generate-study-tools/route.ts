@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { askTutorModel } from '@/lib/anthropic';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import { rateLimit } from '@/lib/rate-limit';
-import { takeAiUse, refundAiUse, aiLimitMessage } from '@/lib/ai-quota';
+import { takeAiUse, refundAiUse } from '@/lib/ai-quota';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -54,8 +54,9 @@ ${body.content}
 Return ONLY a valid JSON array — no markdown, no explanation, no code fences. Example format:
 [{"question":"Explain why plants need chlorophyll for photosynthesis.","marks":3,"answer":"Chlorophyll absorbs light energy (1). This energy drives the conversion of CO2 and water into glucose (1). Without chlorophyll, the light-dependent reactions cannot occur (1)."},...]`;
 
-  if (!(await takeAiUse(userId, 'study')).ok) {
-    return NextResponse.json({ error: aiLimitMessage('study'), code: 'ai_daily_limit' }, { status: 429 });
+  const aiUse = await takeAiUse(userId, 'study');
+  if (!aiUse.ok) {
+    return NextResponse.json({ error: aiUse.message, code: 'ai_daily_limit' }, { status: 429 });
   }
 
   try {

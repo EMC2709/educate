@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { downloadPdfBuffer } from '@/lib/drive';
 import { renderPdfPage } from '@/lib/pdf-render';
+import { canOpenPaper, paperLimitResponse } from '@/lib/paper-access';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -50,6 +51,8 @@ export async function GET(req: NextRequest) {
     if (rows.length === 0 || !rows[0].drive_file_id) {
       return NextResponse.json({ error: 'Paper not found or no PDF' }, { status: 404 });
     }
+    // Without a school licence, a student can open only their free papers
+    if (!(await canOpenPaper(userId, paperId))) return paperLimitResponse();
     const fileId = rows[0].drive_file_id as string;
 
     let pdfBuf = cacheGet(fileId);

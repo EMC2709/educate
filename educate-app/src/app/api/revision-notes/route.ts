@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { rateLimit } from '@/lib/rate-limit';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
-import { takeAiUse, refundAiUse, aiLimitMessage } from '@/lib/ai-quota';
+import { takeAiUse, refundAiUse } from '@/lib/ai-quota';
 import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -85,8 +85,9 @@ Format as:
 
 Keep it brief and high-value. No fluff.`;
 
-  if (!(await takeAiUse(userId, 'study')).ok) {
-    return NextResponse.json({ error: aiLimitMessage('study'), code: 'ai_daily_limit' }, { status: 429 });
+  const aiUse = await takeAiUse(userId, 'study');
+  if (!aiUse.ok) {
+    return NextResponse.json({ error: aiUse.message, code: 'ai_daily_limit' }, { status: 429 });
   }
 
   try {

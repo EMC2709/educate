@@ -12,6 +12,7 @@ interface OrganisationRow {
   country: string;
   created_at: string;
   ai_disabled?: boolean;
+  licence_ends_on?: string | null;
 }
 
 export async function GET() {
@@ -24,7 +25,7 @@ export async function GET() {
     // super_admin gets all organisations
     if (role === 'super_admin') {
       const rows = await sql`
-        SELECT id, name, slug, domain, country, created_at
+        SELECT id, name, slug, domain, country, created_at, licence_ends_on::text AS licence_ends_on
         FROM organisations
         ORDER BY name ASC
       ` as OrganisationRow[];
@@ -35,7 +36,7 @@ export async function GET() {
     if (!orgId) return NextResponse.json({ organisation: null });
 
     const rows = await sql`
-      SELECT id, name, slug, domain, country, created_at, ai_disabled
+      SELECT id, name, slug, domain, country, created_at, ai_disabled, licence_ends_on::text AS licence_ends_on
       FROM organisations
       WHERE id = ${orgId}
       LIMIT 1

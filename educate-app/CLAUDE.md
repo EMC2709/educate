@@ -92,6 +92,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - `generate`, `generate-study-tools`, `topic-chat`, `topic-summary`, `revision-notes`
 - **Content:** `questions`, `past-papers` (list, `?resolve=1` lookup by subject/sitting/paper/tier, `?available=1` stored-paper codes), `mark-scheme` (GET: official AQA mark scheme for a stored paper as JSON, `format=pdf` or `page=N` PNG; POST: AI marking of a student's answers against it), `paper-pdf` (auth-only PDF stream), `paper-page` (auth-only PNG of one page), `paper-pagecount`, `download-paper` (official board-URL proxy only — not Drive)
   - All of these except `download-paper` require sign-in and must send `Cache-Control: private` (never `public` / `s-maxage`, or the CDN serves signed-in content to anyone).
+  - `past-papers?id=`, `paper-pdf`, `paper-page`, `paper-pagecount` and `mark-scheme` GET call `canOpenPaper(userId, paperId)` (`src/lib/paper-access.ts`) after confirming the paper exists, and return `paperLimitResponse()` (403, `code: 'paper_limit'`) when it says no. A new route that serves a stored paper's content must do the same. `api/questions` (quizzes and `/practice`) is not limited.
   - `paper-pdf` and `mark-scheme` are the only routes allowed in an iframe (`X-Frame-Options: SAMEORIGIN` overrides in `next.config.ts`; everything else is `DENY`). Both also need the pdfjs worker in `outputFileTracingIncludes` if they render pages.
 - **Gamification:** `award-xp`, `save-result`, `achievements`, `leaderboard`, `marketplace`, `marketplace/equip`, `friends`, `game`, `quiz-history`
 - **Flashcards:** `flashcards/**`, `shared-flashcards/**` (including `clone`)
@@ -100,7 +101,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - `organisations`, `classes/**` (join, join-code, members, performance)
   - `assignments/**` (progress, unread)
   - `classroom/{auth,callback,courses,sync}` (Google OAuth)
-- **Admin:** `admin/roles` (PATCH; super_admin only)
+- **Admin:** `admin/roles` (PATCH; super_admin only), `admin/organisations` (PATCH `{ orgId, licenceEndsOn }`: a school's licence; super_admin only)
 
 ## Roles and permissions
 - `profiles.role` is one of `student` (default), `teacher`, `school_admin`, `super_admin`. Read it via `src/lib/roles.ts` (`getUserRole`, `requireRole`, `getUserOrg`).
@@ -118,12 +119,16 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
      `UPDATE profiles SET role = 'super_admin', updated_at = now() WHERE user_id = 'user_...';`
   4. After that, super_admins assign other roles via `/admin` (`PATCH /api/admin/roles`).
   5. `scripts/make-admin.mjs` does the same locally with `DATABASE_URL`.
+- **School licences (15 Nov 2026): free vs paid.** `organisations.licence_ends_on` (DATE, inclusive, UK time; NULL = none). Students and teachers in a school whose licence is today or later get the **school tier**; everyone else, including students in an unlicensed school, gets the **free tier**; super_admins always get the school tier (`getAccessTier` in `src/lib/school-licence.ts`).
+  - The numbers live in `src/lib/plan-limits.ts` (no DB code, so the landing page imports them): free = 5 tutor, 1 study, 5 answer marking, 1 question set, 0 whole-paper marking a day and `FREE_PAPER_LIMIT` = 2 stored past papers for good (`paper_opens` table); school = 40 / 10 / 60 / 10 / 2 a day and every paper.
+  - Only a super_admin sets a licence, on `/admin` (date picker per school, "Save licence" / "Remove licence"). Any teacher can create a school, so never grant the school tier for being in an org. Schools pay by invoice; there is no card payment.
+  - **NEVER add a route that lets a teacher or school_admin set their own school's licence.**
 - **NEVER add a route that lets a user change their own role.** The old `/api/debug-role` (any signed-in user could POST to become super_admin) was deleted on 11 Nov 2026. Don't restore it.
 
 ## Database
-- The schema is in **`db/schema.sql`** (18 tables, idempotent `IF NOT EXISTS`).
+- The schema is in **`db/schema.sql`** (19 tables, idempotent `IF NOT EXISTS`).
   - It was reconstructed from `scripts/schema-past-papers.sql`, `scripts/migrate-*.ts` and inline `CREATE/ALTER` statements in API routes.
-  - Tables: profiles, organisations, classes, class_members, assignments, assignment_progress, past_papers, questions, quiz_results, user_subjects, user_flashcard_decks, user_flashcards, revision_notes, user_banners, friendships, game_sessions, teacher_google_tokens, ai_usage (daily AI allowance; added 15 Nov, see Conventions).
+  - Tables: profiles, organisations, classes, class_members, assignments, assignment_progress, past_papers, questions, quiz_results, user_subjects, user_flashcard_decks, user_flashcards, revision_notes, user_banners, friendships, game_sessions, teacher_google_tokens, ai_usage (daily AI allowance; added 15 Nov, see Conventions), paper_opens (the free papers each student without a licence has opened; added 15 Nov). `organisations.licence_ends_on` was added the same day (see Roles).
 - Some routes still run `CREATE TABLE/ALTER TABLE IF NOT EXISTS` at request time (flashcards, friends, marketplace, save-result, parent-link, game, revision-notes, user-subjects). That's a known smell.
 - **When you add a column or table, add it to `db/schema.sql` too.**
 - **The local `.env.local` (April 2026) does NOT point at production.** Its `DATABASE_URL` is an old database (`ep-weathered-tree…`); production is `ep-little-rice…` (Neon project `shy-paper-14167641`). On 14 Nov a cleanup ran against the old one by mistake and was undone. For any script that reads or writes live data, `vercel env pull <scratch>/prod.env --environment=production --yes`, pass that file explicitly, print only the endpoint id, and delete the file afterwards. `scripts/cleanup-mark-schemes-v3.mjs` requires `--env` for this reason.
@@ -134,7 +139,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 npm ci                 # install
 npm run dev            # http://localhost:3000 (.claude/launch.json uses 3100)
 npm run build          # next build (TypeScript errors are IGNORED, see below)
-npm test               # vitest (8 files, 56 tests, passing on 15 Nov; includes past-paper-match.test.ts, question-text.test.ts, ai-quota.test.ts and app/page.test.tsx)
+npm test               # vitest (9 files, 65 tests, passing on 15 Nov; includes past-paper-match.test.ts, question-text.test.ts, ai-quota.test.ts, paper-access.test.ts and app/page.test.tsx)
 npx tsc --noEmit -p .  # real type check: currently 56 errors
 vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linked project)
 ```
@@ -180,7 +185,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - Validate the body with Zod.
   - Rate-limit AI routes with `lib/rate-limit.ts`.
   - **Every route that calls a model must ask `isAiDisabledFor(userId)` (`src/lib/ai-access.ts`) first.** That is the school "AI off" switch (`organisations.ai_disabled`, changed by teachers through `PATCH /api/organisations`). Refuse with `AI_DISABLED_MESSAGE` and a 403, or carry on without AI where a non-AI path exists (as `api/check` and `api/generate` do). Never rely on the browser's `educate-ai-disabled` value; it is only a mirror for the UI.
-  - **Every route that calls a model must then take a use from the student's daily AI allowance with `takeAiUse(userId, bucket)` (`src/lib/ai-quota.ts`), after validating the request and just before the call.** The allowance lives in the `ai_usage` table (one row per user, UK day and bucket; atomic, so parallel requests can't overshoot). Over the limit, return 429 with `aiLimitMessage(bucket)` and `code: 'ai_daily_limit'`, or fall back to the non-AI path (`api/check`, `api/generate`). Give the use back with `refundAiUse` when the model call fails (not possible for the streaming `api/chat`). The limits (`AI_DAILY_LIMITS`) are starting values: tutor 40, study 10, answer_marking 60, question_gen 10, paper_marking 2 per day. If the database can't be reached (or the table is missing) the request is allowed and `[ai-quota]` is logged, so check the logs after a deploy. The in-memory `rateLimit` stays as burst protection. Paid plans, when they exist, should raise these limits per user rather than skip the check.
+  - **Every route that calls a model must then take a use from the student's daily AI allowance with `takeAiUse(userId, bucket)` (`src/lib/ai-quota.ts`), after validating the request and just before the call.** The allowance lives in the `ai_usage` table (one row per user, UK day and bucket; atomic, so parallel requests can't overshoot). Over the limit, return 429 with the result's `message` (tier-aware: a free student is told what a school licence gives) and `code: 'ai_daily_limit'`, or fall back to the non-AI path (`api/check`, `api/generate`). Give the use back with `refundAiUse` when the model call fails (not possible for the streaming `api/chat`). The limits (`AI_DAILY_LIMITS` in `lib/plan-limits.ts`) are per tier (see School licences under Roles) and are starting values. If the database can't be reached (or the table is missing) the request is allowed and `[ai-quota]` is logged, so check the logs after a deploy. The in-memory `rateLimit` stays as burst protection. A licence raises the limits; it never skips the check.
 - SQL: always use the `sql` tagged template (parameterised). Never string-concatenate user input. Compose optional filters with nested `sql\`\`` fragments, as in `api/past-papers`.
 - Guest-first: static banks in `src/data/` must keep working without a DB or AI. Use AI and the DB only as an enhancement or fallback.
 - AI output is rendered through `MessageContent` (KaTeX and Mermaid). Sanitise any new HTML/SVG injection.
@@ -232,6 +237,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
     - If the database cannot be reached, the check lets AI through.
 12. **Subjects saved only in the browser.** Timer, exams, mastery, checklist, timetable and export read `educate-user-subjects` from `localStorage` and may show nothing for a student who has not picked subjects on that device. The notes page was fixed on 13 Nov (falls back to all subjects, then `/api/user-subjects`); the others were not.
 13. **The local `.env.local` is an April copy and is wrong twice over:** its `DATABASE_URL` is an old database (see Database) and its `ANTHROPIC_API_KEY` returns 401. Replace it with `vercel env pull` before any local testing of AI or data.
+14. **School licence follow-ups** (15 Nov): the teacher dashboard doesn't show the school's licence status yet; the landing page has no sales contact (email or form) for schools; the terms page (section 6) still says Educate is free to use; a trust or local authority is one licence per school for now (no group level).
 
 ## Feature status (Paul's deployment, verified 13 Nov 2026 unless a line says otherwise)
 - **Working:**

@@ -9,6 +9,16 @@ interface Organisation {
   domain: string | null;
   country: string;
   created_at: string;
+  licence_ends_on: string | null;
+}
+
+/** Today in the UK as YYYY-MM-DD, matching how the server decides whether a licence is active */
+function ukToday(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
+}
+
+function formatDate(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 type Toast = { type: 'success' | 'error'; message: string } | null;
@@ -39,6 +49,10 @@ export default function AdminPage() {
   const [newRole, setNewRole] = useState('student');
   const [assignOrgId, setAssignOrgId] = useState('');
   const [assigningRole, setAssigningRole] = useState(false);
+
+  // Licence end dates being edited, by organisation id
+  const [licenceDraft, setLicenceDraft] = useState<Record<string, string>>({});
+  const [savingLicence, setSavingLicence] = useState<string | null>(null);
 
   function showToast(type: 'success' | 'error', message: string) {
     setToast({ type, message });
@@ -95,6 +109,31 @@ export default function AdminPage() {
     }
   }
 
+  async function saveLicence(org: Organisation, licenceEndsOn: string | null) {
+    setSavingLicence(org.id);
+    try {
+      const res = await fetch('/api/admin/organisations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId: org.id, licenceEndsOn }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) {
+        showToast('error', data.error ?? 'Could not save the licence');
+      } else {
+        showToast('success', licenceEndsOn
+          ? `${org.name} is licensed until ${formatDate(licenceEndsOn)}`
+          : `Licence removed from ${org.name}`);
+        setLicenceDraft(d => { const next = { ...d }; delete next[org.id]; return next; });
+        await loadOrgs();
+      }
+    } catch {
+      showToast('error', 'Network error saving the licence');
+    } finally {
+      setSavingLicence(null);
+    }
+  }
+
   async function handleAssignRole(e: React.FormEvent) {
     e.preventDefault();
     if (!targetUserId.trim()) return;
@@ -145,7 +184,7 @@ export default function AdminPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Super Admin Panel</h1>
-          <p className="text-neutral-400 text-sm mt-1">Manage organisations and user roles.</p>
+          <p className="text-neutral-400 text-sm mt-1">Manage organisations, school licences and user roles.</p>
         </div>
 
         {/* Organisations Section */}
@@ -220,18 +259,58 @@ export default function AdminPage() {
             <p className="text-neutral-500 text-sm text-center py-6">No organisations yet.</p>
           ) : (
             <div className="space-y-2">
-              {orgs.map(org => (
-                <div
-                  key={org.id}
-                  className="flex items-center justify-between px-4 py-3 bg-neutral-800 rounded-xl"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{org.name}</p>
-                    <p className="text-xs text-neutral-500 truncate">{org.slug} &middot; {org.country}</p>
+              {orgs.map(org => {
+                const active = !!org.licence_ends_on && org.licence_ends_on >= ukToday();
+                const draft = licenceDraft[org.id] ?? org.licence_ends_on ?? '';
+                const saving = savingLicence === org.id;
+                return (
+                  <div key={org.id} className="px-4 py-3 bg-neutral-800 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{org.name}</p>
+                        <p className="text-xs text-neutral-500 truncate">{org.slug} &middot; {org.country}</p>
+                      </div>
+                      <span className="ml-4 text-xs text-neutral-600 shrink-0 font-mono">{org.id.slice(0, 8)}&hellip;</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
+                        active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-neutral-700 text-neutral-400'
+                      }`}>
+                        {active
+                          ? `Licensed until ${formatDate(org.licence_ends_on!)}`
+                          : org.licence_ends_on ? `Licence ended ${formatDate(org.licence_ends_on)}` : 'No licence (free limits)'}
+                      </span>
+                      <label className="sr-only" htmlFor={`licence-${org.id}`}>Licence end date for {org.name}</label>
+                      <input
+                        id={`licence-${org.id}`}
+                        type="date"
+                        value={draft}
+                        min={ukToday()}
+                        onChange={e => setLicenceDraft(d => ({ ...d, [org.id]: e.target.value }))}
+                        className="px-2 py-1 rounded-lg bg-neutral-700 border border-neutral-600 text-white text-xs focus:outline-none focus:border-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        disabled={saving || !draft || draft === org.licence_ends_on}
+                        onClick={() => saveLicence(org, draft)}
+                        className="px-3 py-1 rounded-lg bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors"
+                      >
+                        {saving ? 'Saving...' : 'Save licence'}
+                      </button>
+                      {org.licence_ends_on && (
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => saveLicence(org, null)}
+                          className="px-3 py-1 rounded-lg border border-neutral-600 hover:border-red-500/60 hover:text-red-400 disabled:opacity-40 text-neutral-300 text-xs font-medium transition-colors"
+                        >
+                          Remove licence
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <span className="ml-4 text-xs text-neutral-600 shrink-0 font-mono">{org.id.slice(0, 8)}&hellip;</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

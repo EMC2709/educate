@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { askTutorModel } from '@/lib/anthropic';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
-import { takeAiUse, refundAiUse, aiLimitMessage } from '@/lib/ai-quota';
+import { takeAiUse, refundAiUse } from '@/lib/ai-quota';
 
 const LIMIT = 30;
 const WINDOW_MS = 60 * 1000;
@@ -45,8 +45,9 @@ Keep responses focused and under 200 words unless a longer explanation is genuin
     content: m.content,
   }));
 
-  if (!(await takeAiUse(userId, 'tutor')).ok) {
-    return NextResponse.json({ error: aiLimitMessage('tutor'), code: 'ai_daily_limit' }, { status: 429, headers: rateLimitHeaders(LIMIT, rl) });
+  const aiUse = await takeAiUse(userId, 'tutor');
+  if (!aiUse.ok) {
+    return NextResponse.json({ error: aiUse.message, code: 'ai_daily_limit' }, { status: 429, headers: rateLimitHeaders(LIMIT, rl) });
   }
 
   try {

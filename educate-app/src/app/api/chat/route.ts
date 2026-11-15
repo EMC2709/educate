@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { chatSystemPrompt } from '@/lib/prompts';
 import { TUTOR_MODEL } from '@/lib/anthropic';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
-import { takeAiUse, aiLimitMessage } from '@/lib/ai-quota';
+import { takeAiUse } from '@/lib/ai-quota';
 import { z } from 'zod';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
 
@@ -50,8 +50,9 @@ export async function POST(request: Request) {
   }
 
   // The daily allowance, taken only once the request is known to be valid
-  if (!(await takeAiUse(userId, 'tutor')).ok) {
-    return Response.json({ error: aiLimitMessage('tutor'), code: 'ai_daily_limit' }, { status: 429, headers: rateLimitHeaders(LIMIT, rl) });
+  const aiUse = await takeAiUse(userId, 'tutor');
+  if (!aiUse.ok) {
+    return Response.json({ error: aiUse.message, code: 'ai_daily_limit' }, { status: 429, headers: rateLimitHeaders(LIMIT, rl) });
   }
 
   const systemPrompt = chatSystemPrompt(body.subject ?? null, body.board ?? null);

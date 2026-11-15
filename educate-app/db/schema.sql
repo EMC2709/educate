@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS organisations (
 );
 -- The school "AI off" switch (added 13 Nov 2026); read by src/lib/ai-access.ts
 ALTER TABLE organisations ADD COLUMN IF NOT EXISTS ai_disabled BOOLEAN NOT NULL DEFAULT false;
+-- School licence (added 15 Nov 2026): the school is licensed while this date is today or later (UK time).
+-- NULL means no licence. Only a super_admin sets it (PATCH /api/admin/organisations); read by src/lib/school-licence.ts
+ALTER TABLE organisations ADD COLUMN IF NOT EXISTS licence_ends_on DATE;
 
 CREATE TABLE IF NOT EXISTS profiles (
   user_id TEXT PRIMARY KEY,
@@ -243,4 +246,13 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   uses INTEGER NOT NULL DEFAULT 0,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, day, bucket)
+);
+
+-- Free past papers (added 15 Nov 2026): the papers a student without a school licence has opened.
+-- They may open FREE_PAPER_LIMIT papers for good (src/lib/paper-access.ts).
+CREATE TABLE IF NOT EXISTS paper_opens (
+  user_id TEXT NOT NULL,
+  paper_id TEXT NOT NULL,
+  opened_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, paper_id)
 );

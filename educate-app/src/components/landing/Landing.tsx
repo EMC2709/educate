@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Archivo, Kalam } from 'next/font/google';
 import { EXAM_BOARDS } from '@/data/exam-boards';
+import { AI_DAILY_LIMITS, FREE_PAPER_LIMIT } from '@/lib/plan-limits';
 import { MCQ_BANK } from '@/data/mcq-bank';
 import { SampleQuestion } from './SampleQuestion';
 import { SignedInRefresh } from './SignedInRefresh';
@@ -94,7 +95,7 @@ export function Landing() {
             </h1>
             <p className="mt-6 mb-0 max-w-[34rem] text-lg leading-relaxed text-neutral-400">
               Practise exam-style questions in {SUBJECT_COUNT} subjects straight away, with no account and nothing
-              to install. Sign in when you want an AI tutor, marked answers and past papers.
+              to install. Sign in to try the AI tutor, AI marking and real past papers. Your school’s Educate licence unlocks all of them.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link href="/boards" className={PRIMARY_CTA}>
@@ -155,6 +156,12 @@ export function Landing() {
               When you sign in
             </h2>
             <FeatureList items={WITH_ACCOUNT} />
+            <p className="mt-8 mb-0 text-sm text-neutral-400 leading-relaxed max-w-[34rem]">
+              A free account gets {AI_DAILY_LIMITS.free.tutor} AI tutor messages and {AI_DAILY_LIMITS.free.answer_marking} AI-marked
+              answers a day, and {FREE_PAPER_LIMIT} past papers to try. Students whose school has an Educate licence
+              get {AI_DAILY_LIMITS.school.tutor} tutor messages and {AI_DAILY_LIMITS.school.answer_marking} marked answers a day,
+              every past paper, and AI marking of whole papers.
+            </p>
           </div>
         </section>
 
@@ -167,7 +174,9 @@ export function Landing() {
               student’s progress. You can also switch AI features off for your school’s students.
             </p>
             <p className="mt-3 mb-0 text-sm text-neutral-400 leading-relaxed">
-              Teacher accounts are switched on by an Educate administrator after you sign in.
+              Schools, trusts and local authorities take an Educate licence, which gives every student the full AI
+              allowance and every past paper. Teacher accounts and licences are switched on by an Educate
+              administrator.
             </p>
           </div>
           <div className="max-w-[36rem] md:pl-16">

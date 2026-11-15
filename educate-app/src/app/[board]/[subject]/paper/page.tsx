@@ -533,6 +533,8 @@ export default function ExamPaperPage({
   const [confirmFinish, setConfirmFinish] = useState<boolean>(false);
   const [confirmRedo, setConfirmRedo] = useState<boolean>(false);
   const [needsSignIn, setNeedsSignIn] = useState<boolean>(false);
+  // Set when a student without a school licence has used their free papers
+  const [paperLimitMessage, setPaperLimitMessage] = useState<string | null>(null);
   // Questions the student has chosen to answer in a text box instead of the
   // detected multiple-choice options or drawing canvas.
   const [typedInstead, setTypedInstead] = useState<Record<number, boolean>>({});
@@ -636,6 +638,10 @@ export default function ExamPaperPage({
             if (!paperId) return [];
             const res = await fetch(`/api/past-papers?id=${paperId}`);
             if (res.status === 401) setNeedsSignIn(true);
+            if (res.status === 403) {
+              const body = await res.json().catch(() => null) as { error?: string; code?: string } | null;
+              if (body?.code === 'paper_limit') setPaperLimitMessage(body.error ?? 'You have used your free past papers.');
+            }
             if (!res.ok) return [];
             const data = await res.json() as { paper?: { drive_file_id?: string }; questions?: QRow[] };
             if (data.paper?.drive_file_id) setDriveFileId(data.paper.drive_file_id);
@@ -843,7 +849,12 @@ export default function ExamPaperPage({
                   <Link href="/login" className="text-amber-300 underline font-semibold">Sign in</Link> to practise the real past paper. Without signing in you get sample {subject} questions.
                 </p>
               )}
-              {!usingDbPaper && !needsSignIn && paperInfo.year && (
+              {!usingDbPaper && paperLimitMessage && (
+                <p className="text-sm text-amber-400 mt-2">
+                  {paperLimitMessage} For now you&apos;re practising with sample {subject} questions.
+                </p>
+              )}
+              {!usingDbPaper && !needsSignIn && !paperLimitMessage && paperInfo.year && (
                 <p className="text-xs text-amber-400/90 mt-2">
                   This exact paper isn&apos;t on Educate yet, so you&apos;re practising with sample {subject} questions.
                 </p>

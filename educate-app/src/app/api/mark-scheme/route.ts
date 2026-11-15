@@ -8,7 +8,8 @@ import { officialPdfExists, fetchOfficialPdf } from '@/lib/official-pdf';
 import { renderPdfPage, getPdfPageCount, extractPdfText } from '@/lib/pdf-render';
 import { markPaperWithAI } from '@/lib/ai-paper-marking';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
-import { takeAiUse, refundAiUse, aiLimitMessage } from '@/lib/ai-quota';
+import { takeAiUse, refundAiUse } from '@/lib/ai-quota';
+import { canOpenPaper, paperLimitResponse } from '@/lib/paper-access';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -91,6 +92,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Could not look up the mark scheme' }, { status: 500 });
   }
   if (info === 'not-found') return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
+  // Without a school licence, a student can open only their free papers
+  if (!(await canOpenPaper(userId, paperId))) return paperLimitResponse();
 
   const pageRaw = p.get('page');
   const wantPdf = p.get('format') === 'pdf';
@@ -191,8 +194,9 @@ export async function POST(req: NextRequest) {
 
   // Marking a whole paper is the most expensive AI call, so it has the smallest daily allowance.
   // Any failure below gives the use back.
-  if (!(await takeAiUse(userId, 'paper_marking')).ok) {
-    return NextResponse.json({ error: aiLimitMessage('paper_marking'), code: 'ai_daily_limit' }, { status: 429 });
+  const aiUse = await takeAiUse(userId, 'paper_marking');
+  if (!aiUse.ok) {
+    return NextResponse.json({ error: aiUse.message, code: 'ai_daily_limit' }, { status: 429 });
   }
 
   try {

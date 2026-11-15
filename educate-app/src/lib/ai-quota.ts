@@ -5,20 +5,24 @@
  * restarts, so on its own it puts no ceiling on what one account can spend. Every route
  * that calls a model takes one use from the matching bucket here, just before the call.
  *
+ * There are two tiers (see lib/school-licence.ts): a small free taster for everyone, and the
+ * full allowance for students and teachers whose school has an active licence.
+ *
  * Days run on UK time, so allowances come back at midnight in London.
- * The limits below are starting values, to be set from real usage; paid plans would
- * raise them per user later.
+ * The limits below are starting values, to be set from real usage.
  */
 import { sql } from './db';
+import { getAccessTier } from './school-licence';
+import { AI_DAILY_LIMITS, type AccessTier, type AiBucket } from './plan-limits';
 
-export type AiBucket = 'tutor' | 'study' | 'answer_marking' | 'question_gen' | 'paper_marking';
+export { AI_DAILY_LIMITS, type AiBucket } from './plan-limits';
 
-export const AI_DAILY_LIMITS: Record<AiBucket, number> = {
-  tutor: 40,          // tutor chat and topic chat messages (Sonnet 5.5), including "Generate with AI" on the notes page
-  study: 10,          // study tools from notes (Sonnet 5.5) and revision notes (Haiku)
-  answer_marking: 60, // AI marking of single answers (Haiku); over the limit, the built-in marker takes over
-  question_gen: 10,   // AI-written questions for subjects with no built-in bank (Haiku)
-  paper_marking: 2,   // marking a whole paper against its mark scheme (Opus): the expensive one
+const ONE: Record<AiBucket, string> = {
+  tutor: 'AI tutor message',
+  study: 'AI study tool or set of notes',
+  answer_marking: 'AI-marked answer',
+  question_gen: 'AI-written question set',
+  paper_marking: 'AI-marked paper',
 };
 
 const WHAT: Record<AiBucket, string> = {
@@ -29,15 +33,27 @@ const WHAT: Record<AiBucket, string> = {
   paper_marking: 'AI-marked papers',
 };
 
-export function aiLimitMessage(bucket: AiBucket): string {
-  return `You've used today's ${AI_DAILY_LIMITS[bucket]} ${WHAT[bucket]}. You can use them again from midnight.`;
+export function aiLimitMessage(bucket: AiBucket, tier: AccessTier = 'school'): string {
+  const limit = AI_DAILY_LIMITS[tier][bucket];
+  if (tier === 'free') {
+    const schoolLimit = AI_DAILY_LIMITS.school[bucket];
+    if (limit === 0) {
+      return `${WHAT[bucket][0].toUpperCase()}${WHAT[bucket].slice(1)} come with an Educate school licence (${schoolLimit} a day). Ask your teacher about Educate for your school.`;
+    }
+    const what = limit === 1 ? `free ${ONE[bucket]}` : `${limit} free ${WHAT[bucket]}`;
+    return `You've used today's ${what}. More from midnight. Schools with an Educate licence get ${schoolLimit} a day.`;
+  }
+  return `You've used today's ${limit} ${WHAT[bucket]}. You can use them again from midnight.`;
 }
 
 export interface AiUseResult {
   ok: boolean;
+  tier: AccessTier;
   limit: number;
   /** Uses counted today, including this one when ok */
   used: number | null;
+  /** What to tell the student when ok is false */
+  message: string;
 }
 
 /**
@@ -45,7 +61,10 @@ export interface AiUseResult {
  * under the limit, so parallel requests can't overshoot.
  */
 export async function takeAiUse(userId: string, bucket: AiBucket): Promise<AiUseResult> {
-  const limit = AI_DAILY_LIMITS[bucket];
+  const tier = await getAccessTier(userId);
+  const limit = AI_DAILY_LIMITS[tier][bucket];
+  const message = aiLimitMessage(bucket, tier);
+  if (limit <= 0) return { ok: false, tier, limit, used: 0, message };
   try {
     const rows = await sql`
       INSERT INTO ai_usage (user_id, day, bucket, uses)
@@ -55,13 +74,13 @@ export async function takeAiUse(userId: string, bucket: AiBucket): Promise<AiUse
       WHERE ai_usage.uses < ${limit}
       RETURNING uses
     ` as Array<{ uses: number }>;
-    if (rows.length === 0) return { ok: false, limit, used: limit };
-    return { ok: true, limit, used: rows[0].uses };
+    if (rows.length === 0) return { ok: false, tier, limit, used: limit, message };
+    return { ok: true, tier, limit, used: rows[0].uses, message };
   } catch (err) {
     // If the database cannot be reached, AI stays available (the burst rate limits still apply),
     // matching the school AI switch. Logged loudly, because no daily cap is enforced meanwhile.
     console.error('[ai-quota] could not record AI use, allowing it:', err instanceof Error ? err.message : err);
-    return { ok: true, limit, used: null };
+    return { ok: true, tier, limit, used: null, message };
   }
 }
 
