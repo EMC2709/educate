@@ -2,8 +2,8 @@
 
 # Educate: GCSE Revision Platform
 
-> Last reviewed: 13 Nov 2026. This file is the source of truth for AI coding sessions. Keep it current.
-> For the 11-13 Nov session state (Drive PDFs now live, review findings, platform details, next steps), see `docs/HANDOVER-PAUL-2026-11-12.md`.
+> Last reviewed: 15 Nov 2026. This file is the source of truth for AI coding sessions. Keep it current.
+> For the 11-15 Nov session state (Drive PDFs, review findings, AI marking, Sonnet 5.5 move, school AI switch, paper clean-up, platform details, next steps), see `docs/HANDOVER-PAUL-2026-11-12.md`.
 > **Never put secret values (keys, connection strings, passwords) in this file or any committed file.**
 
 ## What this project is
@@ -133,7 +133,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 npm ci                 # install
 npm run dev            # http://localhost:3000 (.claude/launch.json uses 3100)
 npm run build          # next build (TypeScript errors are IGNORED, see below)
-npm test               # vitest (5 files, 31 tests, passing; includes src/lib/past-paper-match.test.ts)
+npm test               # vitest (6 files, 48 tests, passing on 15 Nov; includes past-paper-match.test.ts and question-text.test.ts)
 npx tsc --noEmit -p .  # real type check: currently 56 errors
 vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linked project)
 ```
@@ -166,7 +166,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 - **Neon:** project `educate` (`shy-paper-14167641`), AWS eu-west-2 (London), free plan (1 GB per branch). It was provisioned through the Vercel Marketplace integration, so manage it via Vercel; the Neon API can't create projects in that org.
 - **How it's deployed:** with `vercel deploy --prod --yes` from the local clone on Paul's laptop (`C:\Users\LAPTOP80\Projects\educate\educate-app`, linked via `.vercel/`, which is gitignored). The project is **not GitHub-linked**, so pushing to GitHub does NOT deploy. `.vercelignore` excludes env files, `node_modules`, `.next` and `.claude`.
   - **Check the link first:** `.vercel/project.json` must say `"projectName":"educate"`. Paul's account also has a stale April project called `educate-app`; this clone was linked to it until 12 Nov. Re-link with `vercel link --yes --project educate` if needed. Never deploy to `educate-app`.
-- As of 13 Nov, GitHub `master` and the live site are in sync at the "school AI switch enforced on the server" commit (deployment `dpl_3PyfDyH5jY6jG7NaZ51FtoY5Lyj2`). The live database has `organisations.ai_disabled` (added 13 Nov). Do not force-push. After any code change: commit, push, **and** deploy.
+- As of 15 Nov, GitHub `master` is at `0bd0c3f` with nothing uncommitted, and the live site is deployment `dpl_DZJDBDBQFF61A5L9eNktsqJ9xw6d` (14 Nov 20:47, built from `ab594e6`). `0bd0c3f` changed only a script and docs, so the live app code matches `master`. The live database has `organisations.ai_disabled` (added 13 Nov) and 2,046 non-papers hidden (14 Nov). Do not force-push. After any code change: commit, push, **and** deploy.
 - The old deployment `educate-app-zeta.vercel.app` (Ethan's original, different account and DB) is separate. `educate-swart.vercel.app` (linked from GitHub) is dead.
 - **Two Neon worlds:** Paul's project `shy-paper-14167641` is what educate-virid uses. Ethan's production papers live on `shiny-tooth-08089128` (via Ethan's Vercel `DATABASE_URL`), **not** in Neon org `org-curly-sound-07355255` (project `cool-snow-33977978` has no papers). Port 5432 often times out; use `@neondatabase/serverless` over HTTPS. Do not rotate the source DB password or copy PII.
 
@@ -224,9 +224,17 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 8. **There are 56 hidden TypeScript errors** (`ignoreBuildErrors: true`). Fix them, then remove the flag.
 9. **Stale docs:** `docs/HANDOVER-ETHAN.md` refers to the shared DB/Clerk, the old URL and `GOOGLE_DRIVE_API_KEY`. The GitHub repo description links the dead URL.
 10. **Content gaps:** some mastery pathways show "coming soon" (`app/mastery`). Request-time DDL in routes should move into `db/schema.sql`.
+11. **School "AI off" switch follow-ups** (13 Nov):
+    - The switch on the teacher dashboard and a teacher's `PATCH /api/organisations` have not been tested; that needs a teacher signed in with a school set up. Enforcement was tested by setting the column directly.
+    - Any teacher can switch AI off for their whole school. Restrict it to `school_admin` if that is wrong.
+    - If the database cannot be reached, the check lets AI through.
+12. **Subjects saved only in the browser.** Timer, exams, mastery, checklist, timetable and export read `educate-user-subjects` from `localStorage` and may show nothing for a student who has not picked subjects on that device. The notes page was fixed on 13 Nov (falls back to all subjects, then `/api/user-subjects`); the others were not.
+13. **The local `.env.local` is an April copy and is wrong twice over:** its `DATABASE_URL` is an old database (see Database) and its `ANTHROPIC_API_KEY` returns 401. Replace it with `vercel env pull` before any local testing of AI or data.
 
-## Feature status (Paul's deployment, verified 13 Nov 2026)
+## Feature status (Paul's deployment, verified 13 Nov 2026 unless a line says otherwise)
 - **Working:**
+  - **Tutor chat, topic chat, study tools and the notes page's "Generate with AI" on Claude Sonnet 5.5** (checked 13 Nov as Test Student; conversations longer than two turns and a declined question were not tried)
+  - **School "AI off" switch enforced on the server** (checked 13 Nov as Test Student with a temporary school, since removed: five AI routes refuse, answer marking carries on without AI, the chat panel makes no call)
   - home, `/login` (not `/sign-in`, which is 404)
   - guest quiz (`/AQA/Mathematics/quiz`)
   - Clerk sign-in (dev instance; new-device email code)
@@ -239,7 +247,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - `/practice` (random questions from stored papers, including 11+), answer saving and the finish confirmation on the paper page, topic tick-boxes, online-game API create/read/update (all checked 13 Nov as Test Student).
 - **Unconfigured:** Google Classroom, custom domain DNS (GoDaddy records are listed above, not yet applied).
 - **Sign-in now required:** online games (`/api/game`) and the global leaderboard. Guests get a 401 with a "sign in" message.
-- **Not yet exercised on the new deployment:** marketplace, flashcards CRUD, assignments, parent link, a full two-player online game.
+- **Not yet exercised on the new deployment:** marketplace, flashcards CRUD, assignments, parent link, a full two-player online game, the "AI off" switch on the teacher dashboard, and anything on a real phone.
 
 ## Test accounts (existing users in the Clerk dev instance; profile rows seeded in the new DB)
 - Test Teacher: `testteacher@yopmail.com` (role teacher)

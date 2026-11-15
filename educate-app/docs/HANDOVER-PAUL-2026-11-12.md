@@ -1,6 +1,6 @@
 # Educate — handover for Claude Code (12–13 Nov 2026)
 
-> First written 12 Nov 2026 (evening); **updated 13 Nov 2026, 07:40 Europe/London** after the PDF work was finished in Claude Code on Paul's Windows laptop.
+> First written 12 Nov 2026 (evening); updated through 13 Nov as each piece of work finished; **status refreshed 15 Nov 2026**.
 > Lasting architecture, conventions and the standing TODO list live in [`CLAUDE.md`](../CLAUDE.md) (updated the same day). Read both.
 > **Never put secret values (API keys, connection strings, passwords, OAuth tokens, service-account JSON) in this file, in `CLAUDE.md`, in git, or in chat.**
 
@@ -8,7 +8,22 @@ This is Paul's own copy of the UK GCSE revision app (GitHub `EMC2709/educate`). 
 
 ---
 
-## Where things stand (13 Nov)
+## Where things stand (15 Nov)
+
+**State on 15 Nov, checked that morning:**
+
+- GitHub `master` is at `0bd0c3f`, with nothing uncommitted apart from the local `.claude/settings.local.json`.
+- Live deployment is `dpl_DZJDBDBQFF61A5L9eNktsqJ9xw6d` (14 Nov 20:47, built from `ab594e6`). The one later commit changed only a script and docs, so the live app code matches `master`.
+- 48 tests pass in 6 files. The type check still reports the same 56 errors.
+- Models in use: Claude Sonnet 5.5 (tutor chat, topic chat, study tools), Claude Opus 5.5 (marking a whole paper), Claude Haiku 4.5 (answer marking, question generation, revision notes). Nothing depends on Sonnet 4.5 any more, so its 30 Nov retirement breaks nothing.
+
+**Added since the 13 Nov morning summary below** (each has its own section further down):
+
+- AI marking of a finished paper against the official mark scheme.
+- A 10-page help guide for students and parents.
+- Tutor chat, topic chat and study tools moved to Claude Sonnet 5.5.
+- The school "AI off" switch now works, and the notes page's Subject list is never empty.
+- 14 Nov: scraped question text is cleaned before it is shown, and 2,046 stored "papers" that were really mark schemes, teacher resources or examiner reports are hidden.
 
 All of the 12 Nov "start here" steps are **done and verified live**:
 
@@ -18,14 +33,17 @@ All of the 12 Nov "start here" steps are **done and verified live**:
 - The "Paper pages" thumbnail strip in the paper sheet works again.
 - Signed-out requests to every paper route return **401**. Auth-gated responses are no longer cacheable by the CDN.
 
-A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [13 Nov — whole-app review](#13-nov--whole-app-review-security-practice-flows-uiux). Later the same day the answers view gained the **official mark scheme beside the student's answers**, and the papers page now **only offers papers Educate has**; see [13 Nov — mark schemes and stored papers](#13-nov--mark-schemes-and-stored-papers). Past papers are still self-marked against that mark scheme; nothing is scored automatically.
+A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [13 Nov — whole-app review](#13-nov--whole-app-review-security-practice-flows-uiux). Later the same day the answers view gained the **official mark scheme beside the student's answers**, and the papers page now **only offers papers Educate has**; see [13 Nov — mark schemes and stored papers](#13-nov--mark-schemes-and-stored-papers). Students can self-mark against that mark scheme, or press "Mark my answers with AI" on papers that have one.
 
 **Suggested next steps:**
 
 1. GoDaddy DNS for `educatethemasses.online` (records below). Only do this when Paul says so.
 2. Dependency security upgrades (`@clerk/nextjs`, `next`). See [Standing product debt](#standing-product-debt-still-open).
-3. The leftover review findings in [Open items from the 13 Nov review](#open-items-from-the-13-nov-code-review). They are all medium or low.
-4. `super_admin` for Paul: he signs up with his own account, then run the SQL in [Clerk](#clerk).
+3. Test the "AI off" switch on the teacher dashboard. Paul signs in as Test Teacher and sets up a school; the server side is already tested.
+4. Replace the laptop's `.env.local`. It is an April copy: its database is an old one and its Anthropic key is invalid.
+5. The leftover review findings in [Open items from the 13 Nov review](#open-items-from-the-13-nov-code-review). They are all medium or low.
+6. `super_admin` for Paul: he signs up with his own account, then run the SQL in [Clerk](#clerk).
+7. Try AI marking on a full paper and on an essay subject, and the app on a real phone. None of these has been tested.
 
 ---
 
@@ -38,7 +56,7 @@ A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [1
   - Until 12 Nov it was linked to an old April project called **`educate-app`** (`prj_TZsh…`, last deployed 210 days ago). Check `.vercel/project.json` says `"projectName":"educate"` before any deploy.
   - The old Grok Bot clone `/workspace/educate-deploy` is no longer needed.
 - **The Vercel project is not GitHub-linked:** `git push` does **not** deploy. Deploy with `vercel deploy --prod --yes` from `educate-app/`.
-- `master` and what's live are in sync as of 13 Nov 07:30:
+- `master` and what's live are in sync as of 15 Nov (see the top of this file for the current deployment). The table lists every commit that changed the app; docs-only commits are left out:
 
   | Commit | What it does | Live on educate-virid? |
   |---|---|---|
@@ -49,7 +67,13 @@ A whole-app review on 13 Nov fixed a batch of security and practice bugs; see [1
   | `5bb361e` | PDF panel shows page images when `navigator.pdfViewerEnabled === false` | Yes |
   | `ae16f2d` | Security fixes from the whole-app review (game, XP, leaderboard, AI routes, download-paper) | Yes |
   | `8a0fe2f` | Practice fixes (answers saved, honest results, `/practice`, phone layout) | Yes |
-  | `2f1a6ba` | Official mark scheme beside the answers; papers page offers only stored papers | Yes — current deployment `dpl_2dQJzmttexVJScGahR1QiEsZ1Ukf` (13 Nov) |
+  | `2f1a6ba` | Official mark scheme beside the answers; papers page offers only stored papers | Yes |
+  | `252be41` | AI marking of a finished paper against the official mark scheme | Yes |
+  | `08db4c9` | Tutor chat, topic chat and study tools on Claude Sonnet 5.5; notes "Generate with AI" fixed | Yes |
+  | `6491f2a` | School "AI off" switch enforced on the server; notes Subject list never empty | Yes |
+  | `88557a3` | Page furniture stripped from scraped question text | Yes |
+  | `59ac69c`, `fe37410`, `ab594e6` | Mark schemes, teacher resources and examiner reports scraped as papers are hidden; hidden papers stay hidden | Yes — current deployment `dpl_DZJDBDBQFF61A5L9eNktsqJ9xw6d` (14 Nov 20:47) |
+  | `0bd0c3f` | The clean-up script must be told which database to change | Script and docs only; nothing to deploy |
 
 - **Local leftovers on the laptop (not in git):**
   - `stash@{0}` holds a RuFlo template that had overwritten `educate-app/CLAUDE.md`. It is safe to drop.
@@ -419,6 +443,22 @@ Deployment `dpl_3PyfDyH5jY6jG7NaZ51FtoY5Lyj2`.
 - A student with no saved subjects on that device now gets all 26 subjects (AQA), and their own list replaces it if their account has one.
 - Tested live as Test Student: 26 subjects listed, Mathematics selected, note generation runs.
 - The other pages that read `educate-user-subjects` from the browser (timer, exams, mastery, checklist, timetable, export) were not changed and may still show nothing for such a student.
+
+---
+
+## 14 Nov — question text cleaned, non-papers hidden
+
+This section was written on 15 Nov from the commit messages and `CLAUDE.md`. The work was done in a different session, and nothing here was re-tested on 15 Nov.
+
+- **Question text is cleaned before it is shown** (`88557a3`). Stored text still carried printed page furniture: page numbers with barcode markers, "[Turn over]", "BLANK PAGE", footer codes. About 70% of AQA Maths Paper 1 Higher questions showed it.
+  - `cleanPaperQuestions` in `src/lib/question-text.ts` strips it, recovers AQA question numbers such as "0 1 . 3", and drops rows with no words left.
+  - It runs on the output of `api/past-papers?id=` and `api/questions` only. The database rows are untouched, because paper matching reads the footer codes from the raw text.
+- **2,046 stored "papers" that are not question papers are hidden** with `processed = false` (`59ac69c`, `fe37410`, `ab594e6`): 1,455 mark schemes, 93 AQA answers-and-commentaries resources and 498 AQA examiner reports.
+  - `scripts/cleanup-mark-schemes-v3.mjs` did it. The ids are in `scripts/cleanup-mark-schemes-v3.ids.json`, so it can be undone.
+  - A scraper rerun no longer brings them back, and `GET /api/past-papers?id=` returns 404 for a hidden paper.
+  - About 40 other AQA non-papers (specifications, grade tables, NEA guides) are still visible.
+  - OCR sample materials bundle the paper and mark scheme in one PDF. They stay visible, and their mark-scheme rows are filtered out when shown.
+- **A mistake that was caught and undone** (`0bd0c3f`): the first clean-up run changed an old database, because the laptop's `.env.local` is an April copy that does not point at production. That change was reversed and the same 2,046 papers were then hidden in production. The script now refuses to run without `--env <production env file>` and prints the database endpoint first.
 
 ---
 
