@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         </Link>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white mt-6 mb-2">Privacy Policy</h1>
-        <p className="text-xs text-neutral-500 mb-8">Last updated: 6 April 2026</p>
+        <p className="text-xs text-neutral-500 mb-8">Last updated: 15 November 2026</p>
 
         <div className="space-y-6 text-sm leading-relaxed">
           <section>
@@ -33,6 +33,12 @@ export default function PrivacyPage() {
               <li><strong>Study data</strong> — your selected subjects, exam board, quiz answers, scores, flashcard reviews, notes, exam dates, streaks and XP.</li>
               <li><strong>AI chat history</strong> — questions you send to the AI tutor and the responses generated.</li>
               <li><strong>Technical data</strong> — basic browser/device info via standard server logs (no advertising cookies, no fingerprinting).</li>
+              <li>
+                <strong>School licence enquiries</strong> — if you ask about a licence using the form on
+                our <Link href="/schools" className="text-indigo-400">schools page</Link>, we collect your name, your role,
+                the name of your school, trust or local authority, your work email, and, if you give them, the
+                number of GCSE students and your message. You don&rsquo;t need an account to send it.
+              </li>
             </ul>
           </section>
 
@@ -42,6 +48,10 @@ export default function PrivacyPage() {
               <li>To provide the revision app and personalise your experience.</li>
               <li>To save your progress so you can continue across sessions and devices.</li>
               <li>To improve the app — we may look at aggregated, non-identifying usage stats.</li>
+              <li>
+                To reply to a school licence enquiry and, if your school goes ahead, to set up and invoice the
+                licence. We use enquiry details for nothing else, and we don&rsquo;t add you to a mailing list.
+              </li>
               <li>We do <strong>not</strong> sell your data, share it with advertisers, or use it for marketing.</li>
             </ul>
           </section>
@@ -51,7 +61,8 @@ export default function PrivacyPage() {
             <p className="m-0 mb-2">We use the following processors, all of whom act on our instructions:</p>
             <ul className="list-disc pl-5 space-y-1 m-0">
               <li><strong>Clerk</strong> — authentication.</li>
-              <li><strong>Supabase</strong> — encrypted database storage (EU region).</li>
+              <li><strong>Neon</strong> — encrypted database storage (London, UK).</li>
+              <li><strong>Vercel</strong> — hosts the app (functions run in London, UK).</li>
               <li><strong>Anthropic (Claude API)</strong> — generates AI tutor responses. Anthropic does not train on your inputs by default.</li>
             </ul>
           </section>
@@ -69,7 +80,10 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-bold text-white mb-2">6. How long we keep data</h2>
             <p className="m-0">
               We keep your data for as long as your account is active. If you delete your account,
-              we erase your study data within 30 days. Server logs are retained for 14 days.
+              we erase your study data within 30 days. Server logs are retained for 14 days. We keep a school
+              licence enquiry while we&rsquo;re talking to you about a licence and for up to 12 months after our
+              last contact, unless your school takes a licence, in which case we keep the contact details for as
+              long as the licence runs. You can ask us to delete an enquiry at any time.
             </p>
           </section>
 

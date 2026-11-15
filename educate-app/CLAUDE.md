@@ -228,7 +228,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
      - Security still open: teachers can add any user to a class by raw id, `api/friends` leaks account existence, class join codes are weak.
    - Rules that came out of it: every route that spends AI money or writes to the DB needs `auth()` and `rateLimit`; never trust scores, XP or player ids from the client; never return Clerk user ids of other users.
 6. **New teachers must create a school** (organisation) at `/teacher` before they can create classes. Consider a smoother onboarding.
-7. **The privacy policy (`src/app/privacy/page.tsx`) says Supabase.** It should say Neon (EU/London), Clerk, Anthropic, Vercel and Google Drive (paper PDFs).
+7. **Privacy policy (`src/app/privacy/page.tsx`), updated 15 Nov:** it now lists Neon (London), Vercel, Clerk and Anthropic, and covers the `/schools` enquiry form (what is collected, why, and that enquiries are kept up to 12 months after last contact, or while a licence runs). Nothing deletes old enquiries automatically: delete them by hand in Neon when they pass 12 months. Still open: its contact address `privacy@educate.app` is not on Educate's domain (check it reaches someone), and it says nothing about the school AI-off switch, AI usage counts (`ai_usage`) or the free papers record (`paper_opens`).
 8. **There are 56 hidden TypeScript errors** (`ignoreBuildErrors: true`). Fix them, then remove the flag.
 9. **Stale docs:** `docs/HANDOVER-ETHAN.md` refers to the shared DB/Clerk, the old URL and `GOOGLE_DRIVE_API_KEY`. The GitHub repo description links the dead URL.
 10. **Content gaps:** some mastery pathways show "coming soon" (`app/mastery`). Request-time DDL in routes should move into `db/schema.sql`.
@@ -238,7 +238,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
     - If the database cannot be reached, the check lets AI through.
 12. **Subjects saved only in the browser.** Timer, exams, mastery, checklist, timetable and export read `educate-user-subjects` from `localStorage` and may show nothing for a student who has not picked subjects on that device. The notes page was fixed on 13 Nov (falls back to all subjects, then `/api/user-subjects`); the others were not.
 13. **The local `.env.local` is an April copy and is wrong twice over:** its `DATABASE_URL` is an old database (see Database) and its `ANTHROPIC_API_KEY` returns 401. Replace it with `vercel env pull` before any local testing of AI or data.
-14. **School licence follow-ups** (15 Nov): the teacher dashboard doesn't show the school's licence status yet; enquiries from `/schools` are not emailed to anyone (no email provider yet) and the privacy policy doesn't mention them; the terms page (section 6) still says Educate is free to use; a trust or local authority is one licence per school for now (no group level).
+14. **School licence follow-ups** (15 Nov): the teacher dashboard doesn't show the school's licence status yet; enquiries from `/schools` are not emailed to anyone (no email provider yet); the terms page (section 6) still says Educate is free to use; a trust or local authority is one licence per school for now (no group level).
 
 ## Feature status (Paul's deployment, verified 13 Nov 2026 unless a line says otherwise)
 - **Working:**
