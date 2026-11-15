@@ -224,9 +224,13 @@ async function extractQuestionsFromPDFVision(
     if (stats.size > 10 * 1024 * 1024) return [];
 
     const base64 = fs.readFileSync(pdfPath).toString('base64');
+    // Claude Sonnet 5.5 thinks first (adaptive, on by default) and the thinking counts
+    // towards max_tokens, so the limit sits well above the old 8,192. Effort 'low' suits
+    // transcription. 16,000 stays under the SDK's non-streaming limit.
     const res = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 8192,
+      model: 'claude-sonnet-5-5',
+      max_tokens: 16000,
+      output_config: { effort: 'low' },
       messages: [{
         role: 'user',
         content: [
@@ -245,7 +249,15 @@ Do NOT skip or summarise any questions. Include the complete question text for e
         ],
       }],
     });
-    const text = (res.content[0] as { text: string }).text.trim();
+    if (res.stop_reason === 'refusal' || res.stop_reason === 'max_tokens') {
+      console.warn(`  Vision extraction stopped early (${res.stop_reason})`);
+    }
+    // The first block is the (empty) thinking block, so read the text blocks.
+    const text = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('')
+      .trim();
     const match = text.match(/\[[\s\S]*\]/);
     if (match) return JSON.parse(match[0]) as ExtractedQuestion[];
   } catch { /* ignore */ }
