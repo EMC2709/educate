@@ -9,6 +9,7 @@ import { anthropic } from '@/lib/anthropic';
 import { auth } from '@clerk/nextjs/server';
 import { rateLimit } from '@/lib/rate-limit';
 import { isAiDisabledFor } from '@/lib/ai-access';
+import { takeAiUse, refundAiUse } from '@/lib/ai-quota';
 import { generateMCQPrompt } from '@/lib/prompts';
 import type { Question, Flashcard } from '@/types';
 
@@ -76,7 +77,8 @@ export async function POST(request: Request) {
       const apiKey = process.env.ANTHROPIC_API_KEY;
       const { userId } = await auth();
       const allowed = !!userId && rateLimit(`generate-mcq:user:${userId}`, 10, 60_000).ok && !(await isAiDisabledFor(userId));
-      if (allowed && apiKey && apiKey !== 'your-api-key-here') {
+      // Over today's AI allowance, the student gets an empty set, as when AI is unavailable
+      if (allowed && userId && apiKey && apiKey !== 'your-api-key-here' && (await takeAiUse(userId, 'question_gen')).ok) {
         try {
           const prompt = generateMCQPrompt(subject, parsedBody.board, focusStr ?? null);
           const message = await anthropic.messages.create({
@@ -97,6 +99,7 @@ export async function POST(request: Request) {
           }
         } catch (aiError) {
           console.error('AI MCQ generation failed:', aiError);
+          await refundAiUse(userId, 'question_gen');
         }
       }
       return NextResponse.json({ mcqQuestions: [] });

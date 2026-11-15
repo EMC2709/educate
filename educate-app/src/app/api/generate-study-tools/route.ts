@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { askTutorModel } from '@/lib/anthropic';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import { rateLimit } from '@/lib/rate-limit';
+import { takeAiUse, refundAiUse, aiLimitMessage } from '@/lib/ai-quota';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -53,6 +54,10 @@ ${body.content}
 Return ONLY a valid JSON array — no markdown, no explanation, no code fences. Example format:
 [{"question":"Explain why plants need chlorophyll for photosynthesis.","marks":3,"answer":"Chlorophyll absorbs light energy (1). This energy drives the conversion of CO2 and water into glucose (1). Without chlorophyll, the light-dependent reactions cannot occur (1)."},...]`;
 
+  if (!(await takeAiUse(userId, 'study')).ok) {
+    return NextResponse.json({ error: aiLimitMessage('study'), code: 'ai_daily_limit' }, { status: 429 });
+  }
+
   try {
     // max_tokens covers the model's thinking as well as the JSON, so it sits well above the JSON's size
     const reply = await askTutorModel({
@@ -64,6 +69,7 @@ Return ONLY a valid JSON array — no markdown, no explanation, no code fences. 
     });
     if (reply.refused || reply.truncated) {
       console.error('generate-study-tools: no usable reply', { refused: reply.refused, truncated: reply.truncated });
+      await refundAiUse(userId, 'study');
       return NextResponse.json({ error: 'Generation failed.' }, { status: 500 });
     }
     const raw = reply.text;
@@ -75,17 +81,20 @@ Return ONLY a valid JSON array — no markdown, no explanation, no code fences. 
     const match = cleaned.match(/\[[\s\S]*\]/);
     if (!match) {
       console.error('generate-study-tools: no JSON array found in:', raw.slice(0, 200));
+      await refundAiUse(userId, 'study');
       return NextResponse.json({ error: 'No JSON array in response.' }, { status: 500 });
     }
 
     const parsed = JSON.parse(match[0]);
     if (!Array.isArray(parsed) || parsed.length === 0) {
+      await refundAiUse(userId, 'study');
       return NextResponse.json({ error: 'Empty result.' }, { status: 500 });
     }
 
     return NextResponse.json({ items: parsed });
   } catch (err) {
     console.error('generate-study-tools error:', err);
+    await refundAiUse(userId, 'study');
     return NextResponse.json({ error: 'Generation failed.' }, { status: 500 });
   }
 }

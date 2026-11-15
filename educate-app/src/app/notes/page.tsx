@@ -87,7 +87,7 @@ function ConvertModal({
       else setQuestions(items as CustomQuestion[]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      setError(msg.includes('Sign in') || msg.includes('switched off') || msg.includes('Too many') ? msg : 'Could not generate — make sure you are signed in.');
+      setError(msg.includes('Sign in') || msg.includes('switched off') || msg.includes('Too many') || msg.includes('midnight') ? msg : 'Could not generate — make sure you are signed in.');
     }
     setLoading(false);
   }
@@ -420,8 +420,8 @@ export default function NotesPage() {
           board: selectedBoard,
         }),
       });
-      if (res.status === 403) {
-        // AI switched off for the student's school: say so rather than blaming sign-in
+      if (res.status === 403 || res.status === 429) {
+        // AI switched off for the student's school, or today's AI allowance used up: say so rather than blaming sign-in
         const refusal = await res.json().catch(() => null) as { error?: string } | null;
         showToast({ icon: '⚠️', title: refusal?.error ?? 'AI features are not available.', type: 'info' });
         setGenerating(false);

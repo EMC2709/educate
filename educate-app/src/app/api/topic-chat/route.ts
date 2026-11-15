@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { askTutorModel } from '@/lib/anthropic';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
+import { takeAiUse, refundAiUse, aiLimitMessage } from '@/lib/ai-quota';
 
 const LIMIT = 30;
 const WINDOW_MS = 60 * 1000;
@@ -44,6 +45,10 @@ Keep responses focused and under 200 words unless a longer explanation is genuin
     content: m.content,
   }));
 
+  if (!(await takeAiUse(userId, 'tutor')).ok) {
+    return NextResponse.json({ error: aiLimitMessage('tutor'), code: 'ai_daily_limit' }, { status: 429, headers: rateLimitHeaders(LIMIT, rl) });
+  }
+
   try {
     // max_tokens covers the model's thinking as well as the reply, so it sits well above 200 words
     const reply = await askTutorModel({ route: 'topic-chat', system, messages: coreMessages, maxTokens: 3000 });
@@ -52,6 +57,7 @@ Keep responses focused and under 200 words unless a longer explanation is genuin
       : reply.text;
     return NextResponse.json({ message }, { headers: rateLimitHeaders(LIMIT, rl) });
   } catch {
+    await refundAiUse(userId, 'tutor');
     return NextResponse.json({ error: 'Failed to respond.' }, { status: 500 });
   }
 }

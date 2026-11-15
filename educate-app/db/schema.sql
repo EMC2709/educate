@@ -234,3 +234,13 @@ CREATE TABLE IF NOT EXISTS quiz_results (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS quiz_results_user_idx ON quiz_results (user_id, created_at DESC);
+
+-- Daily AI allowance per user (src/lib/ai-quota.ts). One row per user, UK day and bucket.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  user_id TEXT NOT NULL,
+  day DATE NOT NULL,
+  bucket TEXT NOT NULL,
+  uses INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, day, bucket)
+);

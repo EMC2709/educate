@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { chatSystemPrompt } from '@/lib/prompts';
 import { TUTOR_MODEL } from '@/lib/anthropic';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
+import { takeAiUse, aiLimitMessage } from '@/lib/ai-quota';
 import { z } from 'zod';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
 
@@ -46,6 +47,11 @@ export async function POST(request: Request) {
   // The message shape is open-ended, so cap the conversation by total size instead
   if (JSON.stringify(body.messages).length > 80_000) {
     return Response.json({ error: 'This conversation is too long. Start a new chat.' }, { status: 413, headers: rateLimitHeaders(LIMIT, rl) });
+  }
+
+  // The daily allowance, taken only once the request is known to be valid
+  if (!(await takeAiUse(userId, 'tutor')).ok) {
+    return Response.json({ error: aiLimitMessage('tutor'), code: 'ai_daily_limit' }, { status: 429, headers: rateLimitHeaders(LIMIT, rl) });
   }
 
   const systemPrompt = chatSystemPrompt(body.subject ?? null, body.board ?? null);

@@ -6,6 +6,7 @@ import { scoreAnswer, buildFallbackFeedback } from '@/lib/mark-scheme';
 import { checkAnswerPrompt } from '@/lib/prompts';
 import { rateLimit } from '@/lib/rate-limit';
 import { isAiDisabledFor } from '@/lib/ai-access';
+import { takeAiUse, refundAiUse } from '@/lib/ai-quota';
 
 const schema = z.object({
   subject: z.string().max(80),
@@ -39,7 +40,8 @@ export async function POST(request: Request) {
     // --- Strategy 1: AI semantic scoring (signed-in users only) ---
     // Claude understands paraphrasing and equivalent expressions — far more lenient than
     // keyword matching. This is the primary scorer when available.
-    if (aiEnabled) {
+    // Over today's AI allowance, the deterministic scorer below marks the answer instead
+    if (aiEnabled && userId && (await takeAiUse(userId, 'answer_marking')).ok) {
       try {
         const prompt = checkAnswerPrompt(subject, board, questionType, question, modelAnswer, userAnswer, marks);
 
@@ -70,6 +72,7 @@ export async function POST(request: Request) {
         }
       } catch (aiError) {
         console.error('AI scoring failed — falling back to deterministic:', aiError);
+        await refundAiUse(userId, 'answer_marking');
       }
     }
 

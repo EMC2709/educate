@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { rateLimit } from '@/lib/rate-limit';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
+import { takeAiUse, refundAiUse, aiLimitMessage } from '@/lib/ai-quota';
 import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -84,6 +85,10 @@ Format as:
 
 Keep it brief and high-value. No fluff.`;
 
+  if (!(await takeAiUse(userId, 'study')).ok) {
+    return NextResponse.json({ error: aiLimitMessage('study'), code: 'ai_daily_limit' }, { status: 429 });
+  }
+
   try {
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -109,6 +114,7 @@ Keep it brief and high-value. No fluff.`;
     return NextResponse.json({ content });
   } catch (err) {
     console.error('[revision-notes POST]', err);
+    await refundAiUse(userId, 'study');
     return NextResponse.json({ error: 'Failed to generate notes' }, { status: 500 });
   }
 }

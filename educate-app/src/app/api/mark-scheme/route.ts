@@ -8,6 +8,7 @@ import { officialPdfExists, fetchOfficialPdf } from '@/lib/official-pdf';
 import { renderPdfPage, getPdfPageCount, extractPdfText } from '@/lib/pdf-render';
 import { markPaperWithAI } from '@/lib/ai-paper-marking';
 import { isAiDisabledFor, AI_DISABLED_MESSAGE } from '@/lib/ai-access';
+import { takeAiUse, refundAiUse, aiLimitMessage } from '@/lib/ai-quota';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -188,6 +189,12 @@ export async function POST(req: NextRequest) {
   if (info === 'not-found') return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
   if (!info.url) return NextResponse.json({ error: 'There is no mark scheme to mark against for this paper.' }, { status: 404 });
 
+  // Marking a whole paper is the most expensive AI call, so it has the smallest daily allowance.
+  // Any failure below gives the use back.
+  if (!(await takeAiUse(userId, 'paper_marking')).ok) {
+    return NextResponse.json({ error: aiLimitMessage('paper_marking'), code: 'ai_daily_limit' }, { status: 429 });
+  }
+
   try {
     let text = textCache.get(info.url);
     if (!text || Date.now() - text.at > RESOLVED_MS) {
@@ -197,11 +204,13 @@ export async function POST(req: NextRequest) {
       textCache.set(info.url, text);
     }
     if (text.text.length < 200) {
+      await refundAiUse(userId, 'paper_marking');
       return NextResponse.json({ error: 'The mark scheme could not be read for AI marking.' }, { status: 502 });
     }
 
     const outcome = await markPaperWithAI(text.text, answers);
     if (!outcome.ok) {
+      await refundAiUse(userId, 'paper_marking');
       return NextResponse.json(
         { error: outcome.reason === 'refused' ? 'The AI could not mark these answers.' : 'The AI marking did not come back complete. Please try again.' },
         { status: 502 },
@@ -210,6 +219,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(outcome, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err) {
     console.error('[ai-marking] failed:', err instanceof Error ? err.message : 'unknown error');
+    await refundAiUse(userId, 'paper_marking');
     return NextResponse.json({ error: 'AI marking failed. Please try again.' }, { status: 502 });
   }
 }

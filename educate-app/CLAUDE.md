@@ -121,9 +121,9 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 - **NEVER add a route that lets a user change their own role.** The old `/api/debug-role` (any signed-in user could POST to become super_admin) was deleted on 11 Nov 2026. Don't restore it.
 
 ## Database
-- The schema is in **`db/schema.sql`** (17 tables, idempotent `IF NOT EXISTS`).
+- The schema is in **`db/schema.sql`** (18 tables, idempotent `IF NOT EXISTS`).
   - It was reconstructed from `scripts/schema-past-papers.sql`, `scripts/migrate-*.ts` and inline `CREATE/ALTER` statements in API routes.
-  - Tables: profiles, organisations, classes, class_members, assignments, assignment_progress, past_papers, questions, quiz_results, user_subjects, user_flashcard_decks, user_flashcards, revision_notes, user_banners, friendships, game_sessions, teacher_google_tokens.
+  - Tables: profiles, organisations, classes, class_members, assignments, assignment_progress, past_papers, questions, quiz_results, user_subjects, user_flashcard_decks, user_flashcards, revision_notes, user_banners, friendships, game_sessions, teacher_google_tokens, ai_usage (daily AI allowance; added 15 Nov, see Conventions).
 - Some routes still run `CREATE TABLE/ALTER TABLE IF NOT EXISTS` at request time (flashcards, friends, marketplace, save-result, parent-link, game, revision-notes, user-subjects). That's a known smell.
 - **When you add a column or table, add it to `db/schema.sql` too.**
 - **The local `.env.local` (April 2026) does NOT point at production.** Its `DATABASE_URL` is an old database (`ep-weathered-tree…`); production is `ep-little-rice…` (Neon project `shy-paper-14167641`). On 14 Nov a cleanup ran against the old one by mistake and was undone. For any script that reads or writes live data, `vercel env pull <scratch>/prod.env --environment=production --yes`, pass that file explicitly, print only the endpoint id, and delete the file afterwards. `scripts/cleanup-mark-schemes-v3.mjs` requires `--env` for this reason.
@@ -134,7 +134,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 npm ci                 # install
 npm run dev            # http://localhost:3000 (.claude/launch.json uses 3100)
 npm run build          # next build (TypeScript errors are IGNORED, see below)
-npm test               # vitest (7 files, 50 tests, passing on 15 Nov; includes past-paper-match.test.ts, question-text.test.ts and app/page.test.tsx)
+npm test               # vitest (8 files, 56 tests, passing on 15 Nov; includes past-paper-match.test.ts, question-text.test.ts, ai-quota.test.ts and app/page.test.tsx)
 npx tsc --noEmit -p .  # real type check: currently 56 errors
 vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linked project)
 ```
@@ -180,6 +180,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - Validate the body with Zod.
   - Rate-limit AI routes with `lib/rate-limit.ts`.
   - **Every route that calls a model must ask `isAiDisabledFor(userId)` (`src/lib/ai-access.ts`) first.** That is the school "AI off" switch (`organisations.ai_disabled`, changed by teachers through `PATCH /api/organisations`). Refuse with `AI_DISABLED_MESSAGE` and a 403, or carry on without AI where a non-AI path exists (as `api/check` and `api/generate` do). Never rely on the browser's `educate-ai-disabled` value; it is only a mirror for the UI.
+  - **Every route that calls a model must then take a use from the student's daily AI allowance with `takeAiUse(userId, bucket)` (`src/lib/ai-quota.ts`), after validating the request and just before the call.** The allowance lives in the `ai_usage` table (one row per user, UK day and bucket; atomic, so parallel requests can't overshoot). Over the limit, return 429 with `aiLimitMessage(bucket)` and `code: 'ai_daily_limit'`, or fall back to the non-AI path (`api/check`, `api/generate`). Give the use back with `refundAiUse` when the model call fails (not possible for the streaming `api/chat`). The limits (`AI_DAILY_LIMITS`) are starting values: tutor 40, study 10, answer_marking 60, question_gen 10, paper_marking 2 per day. If the database can't be reached (or the table is missing) the request is allowed and `[ai-quota]` is logged, so check the logs after a deploy. The in-memory `rateLimit` stays as burst protection. Paid plans, when they exist, should raise these limits per user rather than skip the check.
 - SQL: always use the `sql` tagged template (parameterised). Never string-concatenate user input. Compose optional filters with nested `sql\`\`` fragments, as in `api/past-papers`.
 - Guest-first: static banks in `src/data/` must keep working without a DB or AI. Use AI and the DB only as an enhancement or fallback.
 - AI output is rendered through `MessageContent` (KaTeX and Mermaid). Sanitise any new HTML/SVG injection.
