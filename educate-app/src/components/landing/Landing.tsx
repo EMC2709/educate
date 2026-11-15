@@ -3,6 +3,7 @@ import { Archivo, Kalam } from 'next/font/google';
 import { EXAM_BOARDS } from '@/data/exam-boards';
 import { MCQ_BANK } from '@/data/mcq-bank';
 import { SampleQuestion } from './SampleQuestion';
+import { SignedInRefresh } from './SignedInRefresh';
 
 // Archivo's width axis gives headings the wide, heavy look of an exam-paper
 // cover. Kalam is only for the examiner's handwriting on the sample question.
@@ -83,6 +84,7 @@ function FeatureList({ items }: { items: { title: string; body: string }[] }) {
 export function Landing() {
   return (
     <div className={`${archivo.className} ${kalam.variable} pb-24`}>
+      <SignedInRefresh />
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* ── Hero ─────────────────────────────────────────────────────── */}
         <section className="grid lg:grid-cols-[1.25fr_1fr] gap-12 lg:gap-14 items-center pt-10 sm:pt-16 lg:pt-20 pb-16 lg:pb-24">
