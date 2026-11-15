@@ -195,11 +195,11 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
    - `game` PATCH has no ownership check.
    - Mermaid and KaTeX output isn't sanitised (DOMPurify).
    - The in-memory rate limiter resets on cold start.
-3. **Clerk is the original app's DEVELOPMENT instance** (pk_test). The sign-in page shows the "Development mode" badge, Google sign-in uses Clerk's shared OAuth, and new-device sign-ins require an email code. Plan for a Clerk production instance on `educatethemasses.online`:
-   - add Clerk's 5 CNAMEs at GoDaddy
-   - swap in the pk_live/sk_live keys
-   - use Paul's own Google OAuth client
-   - recreate users, since a production instance starts empty
+3. **Clerk production is live (15 Nov 2026).** Clerk app "Educate" (`app_3C2cHAKmXkKnEEEnBeKlC1s9qfy`, Paul's personal workspace) has a production instance on `educatethemasses.online` (Frontend API `clerk.educatethemasses.online`, 5 CNAMEs at GoDaddy, all verified).
+   - Vercel **Production** uses `pk_live`/`sk_live`; Preview and Development still use the dev instance's `pk_test`/`sk_test` (`better-duckling-95.clerk.accounts.dev`). Production keys only work on `educatethemasses.online`, so **sign-in on educate-virid.vercel.app no longer works**; send people to the custom domain.
+   - Clerk only shows a new secret key once, when it is created (Production → API keys → Add new key). Unused keys `educate_pmc` and `default` can be deleted.
+   - Google sign-in uses Paul's own OAuth client "Educate - Clerk production" in Google Cloud project `educate-492818` (redirect `https://clerk.educatethemasses.online/v1/oauth_callback`). That project's consent screen is branded **"The Solar Campus"**, so Google shows that name when students sign in. Fix the app name under Google Auth Platform → Branding, or move the client to its own project.
+   - The production instance started empty: the dev-instance users (including the test accounts) do not exist there. Their old `profiles` rows (dev `user_…` ids) are orphaned; a user who signs up again gets a new id and a new profile.
 4. **Past papers are in Paul's DB** (copied 12 Nov 2026 from Ethan's production Neon; verified equal): 26,231 papers, 584,732 questions, 0 orphans, 496 MB. Do not re-copy. Watch the 1 GB free limit.
    - Practice matching was broken (year-only, no subject) and is **fixed and live** (`71590c2`, `src/lib/past-paper-match.ts`). It uses exam-code footers in question text because `year` / `paper_number` / tier are mostly null. Retest: AQA Maths Paper 1 Higher 2023 loads 37 Maths questions, 84 marks — not Combined Science. Details and caveats (enlarged paper chosen, OCR fallback, no GCSE_Edexcel rows) are in the 12 Nov handover.
 5. **Drive PDFs are live** (13 Nov 2026) for signed-in users: `GET /api/paper-pdf?id=<paperUuid>` streams the original, `/api/paper-page` renders page PNGs, and the PDF Figures panel falls back to page images when `navigator.pdfViewerEnabled === false` (Android Chrome, or Chrome set to download PDFs). Follow-ups from the 13 Nov code review, all still open (details in the handover):
@@ -237,7 +237,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
   - **School "AI off" switch enforced on the server** (checked 13 Nov as Test Student with a temporary school, since removed: five AI routes refuse, answer marking carries on without AI, the chat panel makes no call)
   - home, `/login` (not `/sign-in`, which is 404)
   - guest quiz (`/AQA/Mathematics/quiz`)
-  - Clerk sign-in (dev instance; new-device email code)
+  - Clerk sign-in (production instance on educatethemasses.online since 15 Nov; Google button reaches Google's account chooser. A full sign-up on production not yet done)
   - profile/onboarding
   - AI tutor chat (streaming) and AI marking
   - teacher dashboard ("Set up your school")
@@ -249,7 +249,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
 - **Sign-in now required:** online games (`/api/game`) and the global leaderboard. Guests get a 401 with a "sign in" message.
 - **Not yet exercised on the new deployment:** marketplace, flashcards CRUD, assignments, parent link, a full two-player online game, the "AI off" switch on the teacher dashboard, and anything on a real phone.
 
-## Test accounts (existing users in the Clerk dev instance; profile rows seeded in the new DB)
+## Test accounts (exist only in the Clerk DEV instance; they must sign up again on production, and the teacher role must be set again in `profiles`)
 - Test Teacher: `testteacher@yopmail.com` (role teacher)
 - Test Student: `teststudent11@yopmail.com` (role student, no org)
 - Passwords are NOT stored here. yopmail inboxes are public, so don't use these accounts for anything sensitive.
