@@ -1934,7 +1934,7 @@ export default function EducateApp() {
 Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
 [{"term":"Key term","definition":"Clear GCSE-level definition (2-3 sentences)","example":"Brief example or null"}]`;
       try {
-        const res = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1800, messages:[{ role:"user", content:prompt }] }) });
+        const res = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:1800, messages:[{ role:"user", content:prompt }] }) });
         const data = await res.json();
         const text = data.content?.map(b=>b.text||"").join("").trim();
         setFlashcards(JSON.parse(text.replace(/```json|```/g,"").trim()));
@@ -1953,7 +1953,7 @@ Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
 Respond ONLY with a valid JSON array, no markdown, no backticks, no preamble:
 [{"question":"Question text","answer":"Detailed model answer","marks":${cfg.marks},"hint":"Brief hint"}]`;
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1400, messages:[{ role:"user", content:prompt }] }) });
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:1400, messages:[{ role:"user", content:prompt }] }) });
       const data = await res.json();
       const text = data.content?.map(b=>b.text||"").join("").trim();
       setQuestions(JSON.parse(text.replace(/```json|```/g,"").trim()));
@@ -1974,7 +1974,7 @@ Assess rigorously. Respond ONLY with valid JSON, no backticks:
 {"correct":true or false,"marksAwarded":number,"feedback":"2-3 sentence specific feedback","modelAnswer":"Ideal answer"}`;
     setFeedback({ loading:true });
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:500, messages:[{ role:"user", content:prompt }] }) });
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:500, messages:[{ role:"user", content:prompt }] }) });
       const data = await res.json();
       const text = data.content?.map(b=>b.text||"").join("").trim();
       const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
@@ -1992,7 +1992,7 @@ Assess rigorously. Respond ONLY with valid JSON, no backticks:
     setChatLoading(true);
     const context = selectedSubject ? `Student is studying GCSE ${selectedSubject} with ${selectedBoard}.` : "Student is preparing for GCSEs.";
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:600, system:`You are a friendly, encouraging GCSE tutor. ${context} Give clear, accurate, exam-focused help. Keep responses concise and practical. Use UK English. Guide students to think rather than just giving full answers.`, messages:newMessages.map(m=>({role:m.role,content:m.content})) }) });
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"claude-sonnet-5-5", max_tokens:4000, output_config:{ effort:"low" }, system:`You are a friendly, encouraging GCSE tutor. ${context} Give clear, accurate, exam-focused help. Keep responses concise and practical. Use UK English. Guide students to think rather than just giving full answers.`, messages:newMessages.map(m=>({role:m.role,content:m.content})) }) });
       const data = await res.json();
       setChatMessages(prev => [...prev, { role:"assistant", content:data.content?.map(b=>b.text||"").join("")||"Sorry, try again." }]);
     } catch { setChatMessages(prev => [...prev, { role:"assistant", content:"Something went wrong. Please try again." }]); }
