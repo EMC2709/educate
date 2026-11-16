@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sql } from '@/lib/db';
 import { rateLimit, getRateLimitKey, rateLimitHeaders } from '@/lib/rate-limit';
 import { ENQUIRY_ROLES, ENQUIRY_LIMITS } from '@/lib/school-enquiry';
+import { notifyEnquiry } from '@/lib/enquiry-email';
 
 const schema = z.object({
   name: z.string().trim().min(1).max(ENQUIRY_LIMITS.name),
@@ -22,7 +23,7 @@ const LIMIT = 5;
  *
  * Public on purpose: the person asking usually has no Educate account. Rate limited per IP
  * (burst protection only; the limiter is in memory). Enquiries are stored for super_admins
- * to read on /admin; nothing is emailed.
+ * to read on /admin, and emailed to the team when email is set up (lib/enquiry-email.ts).
  */
 export async function POST(request: Request) {
   const rl = rateLimit(getRateLimitKey('school-enquiry', null, request), LIMIT, 60 * 60_000);
@@ -48,9 +49,12 @@ export async function POST(request: Request) {
       VALUES (${e.name}, ${e.role}, ${e.organisation}, ${e.email.toLowerCase()},
               ${e.studentCount ?? null}, ${e.message ? e.message : null})
     `;
-    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[school-enquiries] could not save an enquiry:', err instanceof Error ? err.message : err);
     return NextResponse.json({ error: 'Your enquiry could not be sent. Please try again.' }, { status: 500 });
   }
+
+  // Only after it is saved, so an email always has a row on /admin behind it. Never throws.
+  await notifyEnquiry(e);
+  return NextResponse.json({ ok: true });
 }

@@ -106,7 +106,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
   - `assignments/**` (progress, unread)
   - `classroom/{auth,callback,courses,sync}` (Google OAuth)
 - **Admin:** `admin/roles` (PATCH; super_admin only), `admin/organisations` (PATCH `{ orgId, licenceEndsOn }`: a school's licence; super_admin only), `admin/enquiries` (GET list, PATCH `{ id, handled }`; super_admin only)
-- **Sales:** `school-enquiries` (POST; **public on purpose**, no sign-in: Zod-validated, 5 per hour per IP, hidden `website` honeypot field). The form is at `/schools`, linked from the landing page; enquiries are stored in `school_enquiries` and listed on `/admin`. Nothing is emailed, so check `/admin`.
+- **Sales:** `school-enquiries` (POST; **public on purpose**, no sign-in: Zod-validated, 5 per hour per IP, hidden `website` honeypot field). The form is at `/schools`, linked from the landing page; enquiries are stored in `school_enquiries` and listed on `/admin`, then emailed to the team through Resend (`src/lib/enquiry-email.ts`: plain text, Reply-To is the enquirer, never fails the request). If the three email variables (see Environment variables) are missing, nothing is emailed and `[school-enquiries] email not set up` is logged, so check `/admin`.
 
 ## Roles and permissions
 - `profiles.role` is one of `student` (default), `teacher`, `school_admin`, `super_admin`. Read it via `src/lib/roles.ts` (`getUserRole`, `requireRole`, `getUserOrg`).
@@ -144,7 +144,7 @@ educate/                         (git repo root; GitHub: EMC2709/educate, branch
 npm ci                 # install
 npm run dev            # http://localhost:3000 (.claude/launch.json uses 3100)
 npm run build          # next build (TypeScript errors are IGNORED, see below)
-npm test               # vitest (11 files, 77 tests, passing on 15 Nov; includes past-paper-match.test.ts, question-text.test.ts, ai-quota.test.ts, paper-access.test.ts, licence-status.test.ts, api/school-enquiries/route.test.ts and app/page.test.tsx)
+npm test               # vitest (12 files, 83 tests, passing on 16 Nov; includes enquiry-email.test.ts, past-paper-match.test.ts, question-text.test.ts, ai-quota.test.ts, paper-access.test.ts, licence-status.test.ts, api/school-enquiries/route.test.ts and app/page.test.tsx)
 npx tsc --noEmit -p .  # real type check: currently 56 errors
 vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linked project)
 ```
@@ -160,7 +160,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
     - `getDrive()` in `src/lib/drive.ts` detects `type: "service_account"` (or `client_email` + `private_key`) and does **not** need `GOOGLE_TOKEN_JSON`.
     - User-OAuth fallback still accepts `GOOGLE_CREDENTIALS_JSON` + `GOOGLE_TOKEN_JSON` (from `scripts/auth-drive.ts`).
     - Local copy of the key: `C:\Users\LAPTOP80\.secrets\educate-drive-sa.json` (outside git). Never print or commit it.
-- **Not set yet:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (Classroom OAuth).
+- **Not set yet:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (Classroom OAuth); `RESEND_API_KEY`, `ENQUIRY_NOTIFY_TO` (comma-separated recipients) and `ENQUIRY_NOTIFY_FROM` (a sender on a domain verified in Resend) for enquiry emails.
 - `GOOGLE_DRIVE_API_KEY`, mentioned in the old handover, is **not read by the app**.
 - Drive folder `1wTYT4FwqFLTuTcY_nc-UJM7pla5PbvW9` (PAPERS; owned by stuart.fosker@gmail.com; Paul is editor as paulmc18@gmail.com) is shared with that service account as **Viewer** and is otherwise Restricted. Do **not** set "anyone with the link". How to revoke or rotate: `docs/HANDOVER-PAUL-2026-11-12.md`.
 
@@ -242,7 +242,7 @@ vercel env pull .env.local   # pull dev env vars (needs Vercel CLI login + linke
     - If the database cannot be reached, the check lets AI through.
 12. **Subjects saved only in the browser.** Timer, exams, mastery, checklist, timetable and export read `educate-user-subjects` from `localStorage` and may show nothing for a student who has not picked subjects on that device. The notes page was fixed on 13 Nov (falls back to all subjects, then `/api/user-subjects`); the others were not.
 13. **The local `.env.local` is an April copy and is wrong twice over:** its `DATABASE_URL` is an old database (see Database) and its `ANTHROPIC_API_KEY` returns 401. Replace it with `vercel env pull` before any local testing of AI or data.
-14. **School licence follow-ups** (15 Nov): the teacher dashboard shows the school's licence (`teacher/components/LicenceStatusCard.tsx`, states from `src/lib/licence-status.ts`: active, ending within 30 days, ended, none; renew/ask buttons go to `/schools`); a super_admin's `/teacher` shows no card because `GET /api/organisations` returns them the full list. Enquiries from `/schools` are not emailed to anyone (no email provider yet); the terms page (section 6, updated 15 Nov) promises that a licence's agreed allowance won't be cut while it runs and that nothing is deleted when a licence ends, so keep both true; a trust or local authority is one licence per school for now (no group level).
+14. **School licence follow-ups** (15 Nov): the teacher dashboard shows the school's licence (`teacher/components/LicenceStatusCard.tsx`, states from `src/lib/licence-status.ts`: active, ending within 30 days, ended, none; renew/ask buttons go to `/schools`); a super_admin's `/teacher` shows no card because `GET /api/organisations` returns them the full list. Enquiries from `/schools` are emailed once `RESEND_API_KEY`, `ENQUIRY_NOTIFY_TO` and `ENQUIRY_NOTIFY_FROM` are set in Vercel Production (16 Nov: code ready, variables not set yet; the privacy policy already lists Resend); the terms page (section 6, updated 15 Nov) promises that a licence's agreed allowance won't be cut while it runs and that nothing is deleted when a licence ends, so keep both true; a trust or local authority is one licence per school for now (no group level).
 
 ## Feature status (Paul's deployment, verified 13 Nov 2026 unless a line says otherwise)
 - **Working:**

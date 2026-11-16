@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const sqlMock = vi.fn();
 vi.mock('@/lib/db', () => ({ sql: (...args: unknown[]) => sqlMock(...args) }));
+const notifyMock = vi.fn();
+vi.mock('@/lib/enquiry-email', () => ({ notifyEnquiry: (...args: unknown[]) => notifyMock(...args) }));
 
 import { POST } from './route';
 
@@ -28,6 +30,8 @@ describe('POST /api/school-enquiries', () => {
   beforeEach(() => {
     sqlMock.mockReset();
     sqlMock.mockResolvedValue([]);
+    notifyMock.mockReset();
+    notifyMock.mockResolvedValue(undefined);
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -37,6 +41,8 @@ describe('POST /api/school-enquiries', () => {
     expect(await res.json()).toEqual({ ok: true });
     const values = (sqlMock.mock.calls[0] as unknown[]).slice(1);
     expect(values).toEqual(['Sam Taylor', 'Head of department', 'Oakwood Academy', 's.taylor@oakwood.sch.uk', 240, 'Maths and science, AQA.']);
+    expect(notifyMock).toHaveBeenCalledTimes(1);
+    expect(notifyMock.mock.calls[0][0]).toMatchObject({ organisation: 'Oakwood Academy', email: 'S.Taylor@Oakwood.sch.uk' });
   });
 
   it('accepts an enquiry without the optional fields', async () => {
@@ -54,12 +60,14 @@ describe('POST /api/school-enquiries', () => {
       expect((await post(bad)).status).toBe(400);
     }
     expect(sqlMock).not.toHaveBeenCalled();
+    expect(notifyMock).not.toHaveBeenCalled();
   });
 
   it('answers a bot that fills the hidden field as if it worked, without storing anything', async () => {
     const res = await post({ ...valid, website: 'http://spam.example' });
     expect(res.status).toBe(200);
     expect(sqlMock).not.toHaveBeenCalled();
+    expect(notifyMock).not.toHaveBeenCalled();
   });
 
   it('limits enquiries from one address', async () => {
@@ -77,5 +85,6 @@ describe('POST /api/school-enquiries', () => {
     const res = await post(valid);
     expect(res.status).toBe(500);
     expect(JSON.stringify(await res.json())).not.toContain('relation');
+    expect(notifyMock).not.toHaveBeenCalled();
   });
 });

@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         </Link>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white mt-6 mb-2">Privacy Policy</h1>
-        <p className="text-xs text-neutral-500 mb-8">Last updated: 15 November 2026</p>
+        <p className="text-xs text-neutral-500 mb-8">Last updated: 16 November 2026</p>
 
         <div className="space-y-6 text-sm leading-relaxed">
           <section>
@@ -64,6 +64,7 @@ export default function PrivacyPage() {
               <li><strong>Neon</strong> — encrypted database storage (London, UK).</li>
               <li><strong>Vercel</strong> — hosts the app (functions run in London, UK).</li>
               <li><strong>Anthropic (Claude API)</strong> — generates AI tutor responses. Anthropic does not train on your inputs by default.</li>
+              <li><strong>Resend</strong> — sends us an email copy of each school licence enquiry, so we can reply quickly.</li>
             </ul>
           </section>
 
